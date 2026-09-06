@@ -1,18 +1,32 @@
 # J Utility Palette
 
-A clean, lightweight Windows productivity companion for the workflows that were useful in the earlier PowerToys experiment: reusable prompts, paired project links, and temporary notes.
+A clean, lightweight Windows productivity companion for reusable prompts, project links, and temporary notes.
 
 This repository intentionally starts from scratch. It is **not** a fork of Microsoft PowerToys.
 
 ## What V1 does
 
 - Sidebar, Compact, and Expanded layouts from one app/data model.
-- App-native **Always On Top** toggle.
+- Three explicit window modes:
+  - **Normal** — standard Windows window.
+  - **Always on top** — remains above other applications.
+  - **Summon / hide** — stays out of the way until a configured global mouse action shows it, then the same action hides it again.
+- Summon bindings: Mouse Button 4, Mouse Button 5, middle click, or Ctrl + middle click.
+- Optional hide-on-focus-loss and cursor-relative placement on the active monitor.
+- Temporary **Keep open** pin without changing the saved window mode.
 - Project Clipboard: Repo + Site + optional Extra, explicit Open/Copy actions, per-field copy switches, Copy All.
 - Modular prompt composer with project variables and recent prompt history.
 - Sticky notes with pinned/archive state.
 - Local JSON workspace with backup plus import/export.
 - No GitHub token, cloud account, Node/Electron runtime, or PowerToys source tree required.
+
+## Summon mode
+
+Open **Settings → Window behavior → Summon / hide**, then choose a mouse trigger. The default is **Mouse Button 5**. While Summon mode is active the configured mouse action is consumed by J Utility, preventing side-button Back/Forward navigation or middle-click side effects in the foreground application.
+
+For mice without side buttons, **Ctrl + middle click** is the safest fallback because ordinary middle click remains untouched.
+
+If `Open near the mouse cursor` is enabled, the window is positioned in native screen coordinates and clamped to the working area of the monitor under the cursor.
 
 ## Run on Windows
 

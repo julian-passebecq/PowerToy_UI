@@ -132,12 +132,23 @@ public sealed class WorkspaceStore
 
     private static WorkspaceState Normalize(WorkspaceState state)
     {
-        state.SchemaVersion = WorkspaceState.CurrentSchemaVersion;
+        int incomingSchemaVersion = state.SchemaVersion;
         state.Preferences ??= new AppPreferences();
         state.Projects ??= [];
         state.PromptModules ??= [];
         state.RecentPrompts ??= [];
         state.Notes ??= [];
+
+        if (incomingSchemaVersion < 2
+            && state.Preferences.AlwaysOnTop
+            && state.Preferences.WindowBehavior == WindowBehaviorMode.Normal)
+        {
+            state.Preferences.WindowBehavior = WindowBehaviorMode.AlwaysOnTop;
+        }
+
+        // Keep the legacy field synchronized so exported workspaces still round-trip with v1 builds.
+        state.Preferences.AlwaysOnTop = state.Preferences.WindowBehavior == WindowBehaviorMode.AlwaysOnTop;
+        state.SchemaVersion = WorkspaceState.CurrentSchemaVersion;
 
         foreach (ProjectEntry project in state.Projects)
         {

@@ -4,6 +4,8 @@ using JUtility.Core.Services;
 
 namespace JUtility.App.ViewModels;
 
+public sealed record SelectionOption<T>(T Value, string Label);
+
 public sealed class MainViewModel : ObservableObject
 {
     private readonly WorkspaceStore _store;
@@ -28,6 +30,21 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
     public ObservableCollection<StickyNoteEntry> Notes { get; }
     public ObservableCollection<RecentPromptEntry> RecentPrompts { get; }
+
+    public IReadOnlyList<SelectionOption<WindowBehaviorMode>> WindowBehaviorOptions { get; } =
+    [
+        new(WindowBehaviorMode.Normal, "Normal"),
+        new(WindowBehaviorMode.AlwaysOnTop, "Always on top"),
+        new(WindowBehaviorMode.Summon, "Summon / hide"),
+    ];
+
+    public IReadOnlyList<SelectionOption<SummonMouseBinding>> SummonBindingOptions { get; } =
+    [
+        new(SummonMouseBinding.MouseButton4, "Mouse button 4"),
+        new(SummonMouseBinding.MouseButton5, "Mouse button 5"),
+        new(SummonMouseBinding.MiddleClick, "Middle click"),
+        new(SummonMouseBinding.CtrlMiddleClick, "Ctrl + middle click"),
+    ];
 
     public ProjectEntry? SelectedPromptProject
     {
@@ -68,17 +85,63 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public bool AlwaysOnTop
+    public WindowBehaviorMode WindowBehavior
     {
-        get => _state.Preferences.AlwaysOnTop;
+        get => _state.Preferences.WindowBehavior;
         set
         {
-            if (_state.Preferences.AlwaysOnTop == value)
+            if (_state.Preferences.WindowBehavior == value)
             {
                 return;
             }
 
-            _state.Preferences.AlwaysOnTop = value;
+            _state.Preferences.WindowBehavior = value;
+            _state.Preferences.AlwaysOnTop = value == WindowBehaviorMode.AlwaysOnTop;
+            RaisePropertyChanged();
+        }
+    }
+
+    public SummonMouseBinding SummonMouseBinding
+    {
+        get => _state.Preferences.SummonMouseBinding;
+        set
+        {
+            if (_state.Preferences.SummonMouseBinding == value)
+            {
+                return;
+            }
+
+            _state.Preferences.SummonMouseBinding = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool HideOnFocusLoss
+    {
+        get => _state.Preferences.HideOnFocusLoss;
+        set
+        {
+            if (_state.Preferences.HideOnFocusLoss == value)
+            {
+                return;
+            }
+
+            _state.Preferences.HideOnFocusLoss = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool OpenNearCursor
+    {
+        get => _state.Preferences.OpenNearCursor;
+        set
+        {
+            if (_state.Preferences.OpenNearCursor == value)
+            {
+                return;
+            }
+
+            _state.Preferences.OpenNearCursor = value;
             RaisePropertyChanged();
         }
     }
@@ -208,7 +271,10 @@ public sealed class MainViewModel : ObservableObject
         ReplaceCollection(RecentPrompts, _state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
         SelectedPromptProject = Projects.FirstOrDefault(project => !project.IsArchived);
         RaisePropertyChanged(nameof(ViewMode));
-        RaisePropertyChanged(nameof(AlwaysOnTop));
+        RaisePropertyChanged(nameof(WindowBehavior));
+        RaisePropertyChanged(nameof(SummonMouseBinding));
+        RaisePropertyChanged(nameof(HideOnFocusLoss));
+        RaisePropertyChanged(nameof(OpenNearCursor));
         RaisePropertyChanged(nameof(ShowExtraColumn));
         StatusText = "Workspace imported";
     }

@@ -68,6 +68,40 @@ Check("workspace store round-trips and creates backup", () =>
     }
 });
 
+Check("v1 always-on-top preference migrates to window behavior mode", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityMigration-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            Path.Combine(root, "workspace.json"),
+            "{\"SchemaVersion\":1,\"Preferences\":{\"AlwaysOnTop\":true},\"Projects\":[],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[]}");
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+        True(loaded.Preferences.WindowBehavior == WindowBehaviorMode.AlwaysOnTop);
+        True(loaded.Preferences.AlwaysOnTop);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("summon preferences have safe defaults", () =>
+{
+    AppPreferences preferences = new();
+    True(preferences.WindowBehavior == WindowBehaviorMode.Normal);
+    True(preferences.SummonMouseBinding == SummonMouseBinding.MouseButton5);
+    True(preferences.HideOnFocusLoss);
+    True(preferences.OpenNearCursor);
+});
+
 if (failures.Count > 0)
 {
     Console.Error.WriteLine($"{failures.Count} smoke test(s) failed:");

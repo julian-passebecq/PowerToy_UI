@@ -7,10 +7,32 @@ public enum WorkspaceViewMode
     Expanded,
 }
 
+public enum WindowBehaviorMode
+{
+    Normal,
+    AlwaysOnTop,
+    Summon,
+}
+
+public enum SummonMouseBinding
+{
+    MouseButton4,
+    MouseButton5,
+    MiddleClick,
+    CtrlMiddleClick,
+}
+
 public sealed class AppPreferences
 {
     public WorkspaceViewMode LastView { get; set; } = WorkspaceViewMode.Compact;
+    public WindowBehaviorMode WindowBehavior { get; set; } = WindowBehaviorMode.Normal;
+    public SummonMouseBinding SummonMouseBinding { get; set; } = SummonMouseBinding.MouseButton5;
+    public bool HideOnFocusLoss { get; set; } = true;
+    public bool OpenNearCursor { get; set; } = true;
+
+    // Kept for backward compatibility with schema v1 workspace files.
     public bool AlwaysOnTop { get; set; }
+
     public bool ShowExtraColumn { get; set; } = true;
 }
 
@@ -67,7 +89,7 @@ public sealed class StickyNoteEntry
 
 public sealed class WorkspaceState
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();

@@ -1,5 +1,8 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
+using JUtility.App.Services;
 using JUtility.App.ViewModels;
 using JUtility.Core.Models;
 using JUtility.Core.Services;
@@ -10,6 +13,10 @@ namespace JUtility.App;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly GlobalMouseSummonService _summonService = new();
+    private bool _temporaryPin;
+    private bool _suppressAutoHide;
+    private bool _loaded;
 
     public MainWindow()
     {
@@ -17,13 +24,9 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
 
-        Loaded += (_, _) =>
-        {
-            ApplyViewMode(_viewModel.ViewMode);
-            ApplyPin();
-            ApplyExtraColumnVisibility();
-        };
-
+        _summonService.Triggered += SummonService_Triggered;
+        Loaded += MainWindow_Loaded;
+        Deactivated += MainWindow_Deactivated;
         Closing += (_, _) =>
         {
             try
@@ -35,6 +38,39 @@ public partial class MainWindow : Window
                 // Do not block window close if storage is temporarily unavailable.
             }
         };
+        Closed += (_, _) => _summonService.Dispose();
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        _loaded = true;
+        ApplyViewMode(_viewModel.ViewMode);
+        ApplyExtraColumnVisibility();
+        ApplyWindowBehavior(initialLoad: true);
+    }
+
+    private void MainWindow_Deactivated(object? sender, EventArgs e)
+    {
+        if (_suppressAutoHide
+            || _temporaryPin
+            || _viewModel.WindowBehavior != WindowBehaviorMode.Summon
+            || !_viewModel.HideOnFocusLoss)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_suppressAutoHide
+                && !_temporaryPin
+                && _viewModel.WindowBehavior == WindowBehaviorMode.Summon
+                && _viewModel.HideOnFocusLoss
+                && IsVisible
+                && !IsActive)
+            {
+                Hide();
+            }
+        }, DispatcherPriority.ContextIdle);
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
@@ -66,13 +102,151 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Pin_Changed(object sender, RoutedEventArgs e)
+    private void WindowBehavior_Changed(object sender, SelectionChangedEventArgs e)
     {
-        ApplyPin();
+        if (sender is ComboBox combo && combo.SelectedValue is WindowBehaviorMode mode)
+        {
+            _viewModel.WindowBehavior = mode;
+        }
+
+        if (!_loaded)
+        {
+            return;
+        }
+
+        ApplyWindowBehavior();
         SafeSave();
     }
 
-    private void ApplyPin() => Topmost = _viewModel.AlwaysOnTop;
+    private void SummonBinding_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox combo && combo.SelectedValue is SummonMouseBinding binding)
+        {
+            _viewModel.SummonMouseBinding = binding;
+        }
+
+        if (!_loaded)
+        {
+            return;
+        }
+
+        if (_viewModel.WindowBehavior == WindowBehaviorMode.Summon)
+        {
+            ApplyWindowBehavior();
+        }
+
+        SafeSave();
+    }
+
+    private void SummonPreference_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loaded)
+        {
+            SafeSave();
+        }
+    }
+
+    private void TemporaryPin_Changed(object sender, RoutedEventArgs e)
+    {
+        _temporaryPin = TemporaryPinCheck.IsChecked == true;
+        ApplyTopmost();
+        _viewModel.StatusText = _temporaryPin ? "Kept open temporarily" : "Temporary pin released";
+    }
+
+    private void ApplyWindowBehavior(bool initialLoad = false)
+    {
+        bool summonMode = _viewModel.WindowBehavior == WindowBehaviorMode.Summon;
+        ShowInTaskbar = !summonMode;
+        ApplyTopmost();
+
+        if (!summonMode)
+        {
+            _summonService.Stop();
+            return;
+        }
+
+        try
+        {
+            _summonService.Start(_viewModel.SummonMouseBinding);
+            _viewModel.StatusText = "Summon mode ready";
+
+            if (initialLoad)
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (_viewModel.WindowBehavior == WindowBehaviorMode.Summon && _summonService.IsRunning)
+                    {
+                        Hide();
+                    }
+                }, DispatcherPriority.ApplicationIdle);
+            }
+        }
+        catch (Exception ex)
+        {
+            _viewModel.WindowBehavior = WindowBehaviorMode.Normal;
+            ShowInTaskbar = true;
+            ApplyTopmost();
+            _viewModel.StatusText = "Summon mode unavailable";
+            ShowOwnedMessage(ex.Message, "Summon mode unavailable", MessageBoxImage.Warning);
+        }
+    }
+
+    private void ApplyTopmost() =>
+        Topmost = _viewModel.WindowBehavior == WindowBehaviorMode.AlwaysOnTop || _temporaryPin;
+
+    private void SummonService_Triggered(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(ToggleSummonVisibility, DispatcherPriority.Send);
+
+    private void ToggleSummonVisibility()
+    {
+        if (_viewModel.WindowBehavior != WindowBehaviorMode.Summon)
+        {
+            return;
+        }
+
+        if (IsVisible)
+        {
+            Hide();
+            return;
+        }
+
+        ShowSummoned();
+    }
+
+    private void ShowSummoned()
+    {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_viewModel.OpenNearCursor)
+            {
+                WindowPlacementService.MoveNearCursor(this);
+            }
+
+            Activate();
+            Focus();
+        }, DispatcherPriority.Loaded);
+    }
+
+    private void HideNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.WindowBehavior != WindowBehaviorMode.Summon)
+        {
+            _viewModel.StatusText = "Select Summon / hide mode first";
+            return;
+        }
+
+        Hide();
+    }
 
     private void ShowExtra_Changed(object sender, RoutedEventArgs e)
     {
@@ -128,7 +302,7 @@ public partial class MainWindow : Window
 
         if (!UrlNormalizer.TryNormalizeOptionalWebUrl(url, out string normalized) || string.IsNullOrWhiteSpace(normalized))
         {
-            MessageBox.Show(this, "This value is not a valid HTTP/HTTPS URL.", "Invalid URL", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowOwnedMessage("This value is not a valid HTTP/HTTPS URL.", "Invalid URL", MessageBoxImage.Warning);
             return;
         }
 
@@ -221,16 +395,21 @@ public partial class MainWindow : Window
             FileName = "j-utility-workspace.json",
         };
 
-        if (dialog.ShowDialog(this) == true)
+        _suppressAutoHide = true;
+        try
         {
-            try
+            if (dialog.ShowDialog(this) == true)
             {
                 _viewModel.Export(dialog.FileName);
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, "Export failed", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Export failed", MessageBoxImage.Error);
+        }
+        finally
+        {
+            _suppressAutoHide = false;
         }
     }
 
@@ -241,19 +420,24 @@ public partial class MainWindow : Window
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
         };
 
-        if (dialog.ShowDialog(this) == true)
+        _suppressAutoHide = true;
+        try
         {
-            try
+            if (dialog.ShowDialog(this) == true)
             {
                 _viewModel.Import(dialog.FileName);
                 ApplyViewMode(_viewModel.ViewMode);
-                ApplyPin();
+                ApplyWindowBehavior();
                 ApplyExtraColumnVisibility();
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, "Import failed", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Import failed", MessageBoxImage.Error);
+        }
+        finally
+        {
+            _suppressAutoHide = false;
         }
     }
 
@@ -270,6 +454,20 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private void ShowOwnedMessage(string message, string title, MessageBoxImage image)
+    {
+        bool previous = _suppressAutoHide;
+        _suppressAutoHide = true;
+        try
+        {
+            MessageBox.Show(this, message, title, MessageBoxButton.OK, image);
+        }
+        finally
+        {
+            _suppressAutoHide = previous;
+        }
+    }
+
     private void SafeSave(bool showError = false)
     {
         try
@@ -281,7 +479,7 @@ public partial class MainWindow : Window
             _viewModel.StatusText = "Save failed";
             if (showError)
             {
-                MessageBox.Show(this, ex.Message, "Save failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowOwnedMessage(ex.Message, "Save failed", MessageBoxImage.Error);
             }
         }
     }
