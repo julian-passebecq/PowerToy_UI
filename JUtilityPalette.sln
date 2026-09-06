@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JUtility.Core", "src\JUtility.Core\JUtility.Core.csproj", "{4D47163D-D35D-4C70-8C74-4A6B5F2FE171}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JUtility.App", "src\JUtility.App\JUtility.App.csproj", "{0B7924E3-0EA8-40DD-AF2A-2D0ECFCD2BB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JUtility.SmokeTests", "tests\JUtility.SmokeTests\JUtility.SmokeTests.csproj", "{D17AD00F-053E-4598-9BCA-9C13DC5C0D86}"
+EndProject
+Global
+    GlobalSection(SolutionConfigurationPlatforms) = preSolution
+        Debug|Any CPU = Debug|Any CPU
+        Release|Any CPU = Release|Any CPU
+    EndGlobalSection
+    GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {4D47163D-D35D-4C70-8C74-4A6B5F2FE171}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {4D47163D-D35D-4C70-8C74-4A6B5F2FE171}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {4D47163D-D35D-4C70-8C74-4A6B5F2FE171}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {4D47163D-D35D-4C70-8C74-4A6B5F2FE171}.Release|Any CPU.Build.0 = Release|Any CPU
+        {0B7924E3-0EA8-40DD-AF2A-2D0ECFCD2BB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {0B7924E3-0EA8-40DD-AF2A-2D0ECFCD2BB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {0B7924E3-0EA8-40DD-AF2A-2D0ECFCD2BB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {0B7924E3-0EA8-40DD-AF2A-2D0ECFCD2BB9}.Release|Any CPU.Build.0 = Release|Any CPU
+        {D17AD00F-053E-4598-9BCA-9C13DC5C0D86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {D17AD00F-053E-4598-9BCA-9C13DC5C0D86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {D17AD00F-053E-4598-9BCA-9C13DC5C0D86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {D17AD00F-053E-4598-9BCA-9C13DC5C0D86}.Release|Any CPU.Build.0 = Release|Any CPU
+    EndGlobalSection
+EndGlobal
