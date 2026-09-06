@@ -59,7 +59,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        Dispatcher.BeginInvoke(() =>
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
         {
             if (!_suppressAutoHide
                 && !_temporaryPin
@@ -70,7 +70,7 @@ public partial class MainWindow : Window
             {
                 Hide();
             }
-        }, DispatcherPriority.ContextIdle);
+        }));
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
@@ -172,13 +172,13 @@ public partial class MainWindow : Window
 
             if (initialLoad)
             {
-                Dispatcher.BeginInvoke(() =>
+                Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
                 {
                     if (_viewModel.WindowBehavior == WindowBehaviorMode.Summon && _summonService.IsRunning)
                     {
                         Hide();
                     }
-                }, DispatcherPriority.ApplicationIdle);
+                }));
             }
         }
         catch (Exception ex)
@@ -195,7 +195,7 @@ public partial class MainWindow : Window
         Topmost = _viewModel.WindowBehavior == WindowBehaviorMode.AlwaysOnTop || _temporaryPin;
 
     private void SummonService_Triggered(object? sender, EventArgs e) =>
-        Dispatcher.BeginInvoke(ToggleSummonVisibility, DispatcherPriority.Send);
+        Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(ToggleSummonVisibility));
 
     private void ToggleSummonVisibility()
     {
@@ -225,7 +225,7 @@ public partial class MainWindow : Window
             WindowState = WindowState.Normal;
         }
 
-        Dispatcher.BeginInvoke(() =>
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
             if (_viewModel.OpenNearCursor)
             {
@@ -234,7 +234,7 @@ public partial class MainWindow : Window
 
             Activate();
             Focus();
-        }, DispatcherPriority.Loaded);
+        }));
     }
 
     private void HideNow_Click(object sender, RoutedEventArgs e)
