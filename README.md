@@ -1,8 +1,14 @@
 # J Utility Palette
 
+**Current checkpoint:** [Pro AI handover](handover/README.md) records preserved work, failures and remaining release outcomes. The full app currently fails compilation; the feature list below is not release acceptance.
+
 A clean, lightweight Windows productivity companion for reusable prompts, project links, and temporary notes.
 
 This repository intentionally starts from scratch. It is **not** a fork of Microsoft PowerToys.
+
+## Development coordination
+
+See [projectmanagement](projectmanagement/README.md) for the product vision, current sprint, technical audit, backlog, and development/test/lead handoffs. Start with [current status](projectmanagement/STATUS.md); the feature list below describes implemented scope, not verified release readiness.
 
 ## What V1 does
 
