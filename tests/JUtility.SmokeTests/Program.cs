@@ -709,6 +709,106 @@ Check("null collection entries are ignored during normalization", () =>
     }
 });
 
+Check("duplicate IDs and unsupported enum values are rejected without rewriting source", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityValidationGuard-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "workspace.json");
+        Guid duplicate = Guid.NewGuid();
+        string invalid = $"""
+        {
+          "SchemaVersion": 4,
+          "Preferences": { "WindowBehavior": 999 },
+          "Projects": [
+            { "Id": "{{duplicate}}", "Name": "A" },
+            { "Id": "{{duplicate}}", "Name": "B" }
+          ],
+          "RepositoryLists": [],
+          "Portals": [],
+          "Resources": [],
+          "ClipboardSnippets": [],
+          "PromptModules": [],
+          "RecentPrompts": [],
+          "Notes": []
+        }
+        """;
+        File.WriteAllText(path, invalid);
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(invalid, File.ReadAllText(path));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("recent prompt history is deduplicated and capped during normalization", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityRecentHistory-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.RecentPrompts.Clear();
+
+        DateTimeOffset start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        for (int index = 0; index < 35; index++)
+        {
+            state.RecentPrompts.Add(new RecentPromptEntry
+            {
+                Title = $"Prompt {index}",
+                Text = $"text-{index}",
+                CreatedUtc = start.AddMinutes(index),
+            });
+        }
+
+        state.RecentPrompts.Add(new RecentPromptEntry
+        {
+            Title = "Newest duplicate",
+            Text = "text-34",
+            CreatedUtc = start.AddHours(10),
+        });
+        state.RecentPrompts.Add(new RecentPromptEntry
+        {
+            Title = "Empty",
+            Text = "   ",
+            CreatedUtc = start.AddHours(11),
+        });
+
+        store.Save(state);
+        WorkspaceState loaded = store.Load();
+
+        True(loaded.RecentPrompts.Count == 30);
+        True(loaded.RecentPrompts.Count(prompt => prompt.Text == "text-34") == 1);
+        Equal("Newest duplicate", loaded.RecentPrompts.First(prompt => prompt.Text == "text-34").Title);
+        False(loaded.RecentPrompts.Any(prompt => string.IsNullOrWhiteSpace(prompt.Text)));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("v3 workspace migrates to schema v4 with an empty Resource Hub", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityV3ResourceMigration-" + Guid.NewGuid().ToString("N"));
