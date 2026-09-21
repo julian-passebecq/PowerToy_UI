@@ -859,7 +859,7 @@
                                 <Button Content="↑" Tag="{Binding}" Click="MoveModuleUp_Click"/>
                                 <Button Content="↓" Tag="{Binding}" Click="MoveModuleDown_Click"/>
                               </DockPanel>
-                              <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/>
+                              <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" LostFocus="PromptModuleBody_LostFocus"/>
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -874,6 +874,20 @@
                     <StackPanel>
                       <TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/>
                       <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/>
+                      <DockPanel Margin="3,5,3,0">
+                        <TextBlock Text="Custom variables" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="Refresh" HorizontalAlignment="Right" Click="RefreshPromptVariables_Click"/>
+                      </DockPanel>
+                      <ItemsControl ItemsSource="{Binding PromptVariables}" Margin="3,2,3,4">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <DockPanel Margin="0,2">
+                              <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                              <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder"/>
+                            </DockPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
                       <WrapPanel>
                         <Button Content="Preview" Click="PreviewPrompt_Click"/>
                         <Button Content="Copy prompt" Click="ComposeCopy_Click"/>
