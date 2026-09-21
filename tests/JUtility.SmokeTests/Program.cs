@@ -709,6 +709,92 @@ Check("null collection entries are ignored during normalization", () =>
     }
 });
 
+Check("nullable optional workspace strings normalize safely without losing free-form text", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityNullStrings-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        Guid projectId = Guid.NewGuid();
+        Guid resourceId = Guid.NewGuid();
+        Guid noteId = Guid.NewGuid();
+        string json = $"""
+        {
+          "SchemaVersion": 4,
+          "Preferences": { "GitHubOwner": null, "LastModule": null },
+          "Projects": [
+            {
+              "Id": "{{projectId}}",
+              "Name": " Project ",
+              "Category": null,
+              "Subcategory": null,
+              "Note": null,
+              "RepoUrl": null,
+              "SiteUrl": "  https://example.com/site  "
+            }
+          ],
+          "RepositoryLists": [],
+          "Portals": [],
+          "Resources": [
+            {
+              "Id": "{{resourceId}}",
+              "Name": " Drive ",
+              "Provider": null,
+              "Kind": null,
+              "Group": null,
+              "Url": null,
+              "Note": null
+            }
+          ],
+          "ClipboardSnippets": [],
+          "PromptModules": [],
+          "RecentPrompts": [],
+          "Notes": [
+            {
+              "Id": "{{noteId}}",
+              "Kind": 2,
+              "Title": " Note ",
+              "Subject": null,
+              "Text": null,
+              "Url": null,
+              "Labels": null,
+              "Status": null,
+              "Priority": null
+            }
+          ]
+        }
+        """;
+        File.WriteAllText(Path.Combine(root, "workspace.json"), json);
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+
+        Equal("julian-passebecq", loaded.Preferences.GitHubOwner);
+        Equal("Dashboard", loaded.Preferences.LastModule);
+        Equal("Project", loaded.Projects[0].Name);
+        Equal("Projects", loaded.Projects[0].Category);
+        Equal("Misc", loaded.Projects[0].Subcategory);
+        Equal("", loaded.Projects[0].Note);
+        Equal("", loaded.Projects[0].RepoUrl);
+        Equal("https://example.com/site", loaded.Projects[0].SiteUrl);
+        Equal("Other", loaded.Resources[0].Provider);
+        Equal("Link", loaded.Resources[0].Kind);
+        Equal("General", loaded.Resources[0].Group);
+        Equal("", loaded.Resources[0].Url);
+        Equal("", loaded.Resources[0].Note);
+        Equal("", loaded.Notes[0].Subject);
+        Equal("", loaded.Notes[0].Text);
+        Equal("", loaded.Notes[0].Url);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("duplicate IDs and unsupported enum values are rejected without rewriting source", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityValidationGuard-" + Guid.NewGuid().ToString("N"));
