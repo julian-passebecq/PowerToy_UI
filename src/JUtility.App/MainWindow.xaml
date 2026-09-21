@@ -742,7 +742,7 @@
                             <Grid>
                               <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                               <Border Width="34" Height="34" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding Provider}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="9" TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="◆" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                               </Border>
                               <StackPanel Grid.Column="1" Margin="8,0">
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
