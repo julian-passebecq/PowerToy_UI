@@ -796,14 +796,15 @@
                       <Button Content="+ Module" HorizontalAlignment="Right" Click="AddModule_Click"/>
                     </DockPanel>
 
-                    <ListBox Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6">
+                    <ListBox x:Name="PromptModuleList" Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="5">
                             <StackPanel>
                               <DockPanel>
                                 <CheckBox IsChecked="{Binding IsEnabled}"/>
-                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="190"/>
+                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="170"/>
+                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="Category" LostFocus="Category_LostFocus"/>
                                 <Button Content="↑" Tag="{Binding}" Click="MoveModuleUp_Click"/>
                                 <Button Content="↓" Tag="{Binding}" Click="MoveModuleDown_Click"/>
                               </DockPanel>
