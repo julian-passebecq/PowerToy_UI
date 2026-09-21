@@ -834,10 +834,16 @@
                     <ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
-                          <StackPanel Margin="4">
-                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
-                          </StackPanel>
+                          <DockPanel Margin="4">
+                            <StackPanel>
+                              <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                              <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}" MaxWidth="420"/>
+                            </StackPanel>
+                            <WrapPanel HorizontalAlignment="Right">
+                              <Button Content="Recall" Tag="{Binding}" Click="RecallRecentPrompt_Click"/>
+                              <Button Content="Copy" Tag="{Binding}" Click="CopyRecentPrompt_Click"/>
+                            </WrapPanel>
+                          </DockPanel>
                         </DataTemplate>
                       </ListBox.ItemTemplate>
                     </ListBox>
