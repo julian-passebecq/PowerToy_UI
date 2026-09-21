@@ -94,7 +94,43 @@ Interaction contract:
 - a + action adds either a new portal or a new sub-link;
 - URLs are user-maintained; no live-site discovery or browser automation is required.
 
-### 3. Capture / Stickies
+### 3. Resource Hub
+
+Purpose: collect exact destinations across storage, code and knowledge services in one local quick-link catalog.
+
+Examples:
+
+- GitHub repository
+- Google Drive folder or document
+- Dropbox folder
+- OneDrive / SharePoint location
+- Notion page
+- dashboard or arbitrary HTTPS link
+
+A resource stores:
+
+- name
+- provider
+- kind (Repository, Folder, Document, Dashboard, Link, etc.)
+- project/group/topic
+- URL
+- optional note
+- favorite and ribbon-pin flags
+- optional source-project link when imported from Repository Hub
+
+Interaction contract:
+
+- common providers (GitHub, Google Drive, Dropbox, OneDrive, Notion, SharePoint) are always available in the top ribbon as filters;
+- provider filters can be combined from the ribbon;
+- secondary navigation offers All / Favorites / Pinned plus providers present in the workspace;
+- cards expose explicit Open and Copy actions;
+- **Import repos** creates or refreshes GitHub Resource Hub links from active Repository Hub projects;
+- **Clipboard URL** creates a resource and infers provider/kind where practical;
+- pinned/favorite resources are available in Sidebar/Summon quick access.
+
+Portal Launcher remains the service-home surface; Resource Hub is for exact destinations.
+
+### 4. Capture / Stickies
 
 Purpose: quickly capture information that can later be exported to the user's website or another system.
 
@@ -123,7 +159,7 @@ Transcript is a long-text mode using the same local item model, not a separate a
 
 Exports should support at least JSON and Markdown. CSV can be added for list-like captures.
 
-### 4. Clipboard / Prompt Library
+### 5. Clipboard / Prompt Library
 
 Purpose: copy reusable text instantly.
 
@@ -143,7 +179,7 @@ Snippet fields:
 
 The top ribbon can expose pinned snippets for one-click copy.
 
-### 5. Dashboard
+### 6. Dashboard
 
 Dashboard is summary/navigation, not another editor.
 
@@ -178,6 +214,13 @@ Power Ops
 │  ├─ Development
 │  ├─ Personal Sites
 │  └─ Work / Social
+├─ Resource Hub
+│  ├─ GitHub
+│  ├─ Google Drive
+│  ├─ Dropbox
+│  ├─ OneDrive / SharePoint
+│  ├─ Notion
+│  └─ Other
 ├─ Capture
 │  ├─ Inbox
 │  ├─ To-do
