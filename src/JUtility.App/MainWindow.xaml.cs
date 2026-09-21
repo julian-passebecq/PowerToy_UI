@@ -748,6 +748,7 @@ public partial class MainWindow : Window
         "google drive" => "#0F9D58",
         "dropbox" => "#0061FF",
         "onedrive" => "#0078D4",
+        "sharepoint" => "#038387",
         "notion" => "#404040",
         _ => "#5B5FC7",
     };
