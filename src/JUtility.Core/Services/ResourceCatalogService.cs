@@ -225,21 +225,22 @@ public static class ResourceCatalogService
             return false;
         }
 
-        return string.Equals(
-            CanonicalPathAndSuffix(leftUri),
-            CanonicalPathAndSuffix(rightUri),
-            StringComparison.Ordinal);
+        string leftPath = CanonicalPath(leftUri);
+        string rightPath = CanonicalPath(rightUri);
+        StringComparison pathComparison =
+            leftUri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+        return string.Equals(leftPath, rightPath, pathComparison)
+            && string.Equals(leftUri.Query, rightUri.Query, StringComparison.Ordinal)
+            && string.Equals(leftUri.Fragment, rightUri.Fragment, StringComparison.Ordinal);
     }
 
-    private static string CanonicalPathAndSuffix(Uri uri)
+    private static string CanonicalPath(Uri uri)
     {
         string path = uri.AbsolutePath;
-        if (path.Length > 1)
-        {
-            path = path.TrimEnd('/');
-        }
-
-        return path + uri.Query + uri.Fragment;
+        return path.Length > 1 ? path.TrimEnd('/') : path;
     }
 
     private static string DetectProvider(Uri uri)
