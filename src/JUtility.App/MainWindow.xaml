@@ -192,7 +192,10 @@
 
           <DockPanel Margin="0,4">
             <TextBlock Text="Capture" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
+            <WrapPanel HorizontalAlignment="Right">
+              <Button Content="+ URL" Click="CaptureClipboardUrl_Click" ToolTip="Create a bookmark from the URL currently on the clipboard"/>
+              <Button Content="+ Capture" Click="AddNote_Click"/>
+            </WrapPanel>
           </DockPanel>
           <ItemsControl x:Name="SidebarCaptureList" ItemsSource="{Binding Notes}">
             <ItemsControl.ItemTemplate>
@@ -355,6 +358,7 @@
                                   Click="CaptureCompletionFilterChanged_Click"
                                   VerticalAlignment="Center"
                                   Margin="0,0,8,0"/>
+                        <Button Content="+ URL from clipboard" Click="CaptureClipboardUrl_Click"/>
                         <Button Content="+ Quick capture" Click="AddNote_Click"/>
                       </WrapPanel>
                     </DockPanel>
@@ -686,6 +690,7 @@
                                   Click="CaptureCompletionFilterChanged_Click"
                                   VerticalAlignment="Center"
                                   Margin="0,0,8,0"/>
+                        <Button Content="+ URL" Click="CaptureClipboardUrl_Click" ToolTip="Create a bookmark from the URL currently on the clipboard"/>
                         <Button Content="+ Capture" Click="AddNote_Click"/>
                         <Button Content="Export all" Click="ExportCaptures_Click"/>
                       </WrapPanel>
