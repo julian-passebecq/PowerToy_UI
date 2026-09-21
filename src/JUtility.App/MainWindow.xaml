@@ -194,7 +194,7 @@
             <TextBlock Text="Capture" FontWeight="SemiBold" FontSize="14"/>
             <Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
           </DockPanel>
-          <ItemsControl ItemsSource="{Binding Notes}">
+          <ItemsControl x:Name="SidebarCaptureList" ItemsSource="{Binding Notes}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border Background="#FFFBEA" BorderBrush="#E6DFAF" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
