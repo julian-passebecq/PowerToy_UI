@@ -124,6 +124,29 @@ Check("Resource Hub provider and group filters combine instead of overriding eac
     False(ResourceCatalogService.MatchesFilter(githubAtlas, null, "all", "dropbox"));
 });
 
+Check("Resource Hub direct provider filters match only that provider", () =>
+{
+    WorkspaceResourceEntry github = new()
+    {
+        Name = "Repo",
+        Provider = "GitHub",
+        Kind = "Repository",
+        Url = "https://github.com/example/repo",
+    };
+    WorkspaceResourceEntry drive = new()
+    {
+        Name = "Docs",
+        Provider = "Google Drive",
+        Kind = "Folder",
+        Url = "https://drive.google.com/drive/folders/docs",
+    };
+
+    True(ResourceCatalogService.MatchesFilter(github, null, "GitHub", ""));
+    False(ResourceCatalogService.MatchesFilter(drive, null, "GitHub", ""));
+    True(ResourceCatalogService.MatchesFilter(drive, null, "Google Drive", ""));
+    False(ResourceCatalogService.MatchesFilter(github, null, "Google Drive", ""));
+});
+
 Check("resource URL classifier recognizes OneDrive short links", () =>
 {
     True(ResourceCatalogService.TryClassify("https://1drv.ms/f/s!example", out ResourceUrlClassification oneDrive));
