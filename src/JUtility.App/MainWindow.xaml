@@ -535,7 +535,7 @@
                     </WrapPanel>
                   </DockPanel>
 
-                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2" CellEditEnding="ProjectsGrid_CellEditEnding">
+                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2" CellEditEnding="ProjectsGrid_CellEditEnding" AutomationProperties.Name="Repository projects">
                     <DataGrid.Columns>
                       <DataGridTemplateColumn Header="✓" Width="36">
                         <DataGridTemplateColumn.CellTemplate>
@@ -657,7 +657,7 @@
                       <Button Content="+ Portal" HorizontalAlignment="Right" Click="AddPortal_Click"/>
                     </DockPanel>
 
-                    <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8" MouseDoubleClick="PortalList_MouseDoubleClick" KeyDown="PortalList_KeyDown">
+                    <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8" MouseDoubleClick="PortalList_MouseDoubleClick" KeyDown="PortalList_KeyDown" AutomationProperties.Name="Portals" AutomationProperties.HelpText="Press Enter to open the selected portal. Press Ctrl+C to copy its URL.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
@@ -772,7 +772,7 @@
                       </WrapPanel>
                     </DockPanel>
 
-                    <ListBox x:Name="ResourceList" Grid.Row="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" Margin="0,8" MouseDoubleClick="ResourceList_MouseDoubleClick" KeyDown="ResourceList_KeyDown">
+                    <ListBox x:Name="ResourceList" Grid.Row="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" Margin="0,8" MouseDoubleClick="ResourceList_MouseDoubleClick" KeyDown="ResourceList_KeyDown" AutomationProperties.Name="Resources" AutomationProperties.HelpText="Press Enter to open the selected resource. Press Ctrl+C to copy its URL.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,4">
@@ -862,7 +862,7 @@
                       </WrapPanel>
                     </DockPanel>
 
-                    <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8" KeyDown="CaptureList_KeyDown" AutomationProperties.Name="Captures">
+                    <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8" KeyDown="CaptureList_KeyDown" AutomationProperties.Name="Captures" AutomationProperties.HelpText="Press Enter to edit the selected capture title. Press Ctrl+C to copy the capture.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="7">
@@ -940,7 +940,7 @@
                       <Button Content="+ Snippet" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
                     </DockPanel>
 
-                    <ListBox x:Name="SnippetList" Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8" KeyDown="SnippetList_KeyDown">
+                    <ListBox x:Name="SnippetList" Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8" KeyDown="SnippetList_KeyDown" AutomationProperties.Name="Clipboard snippets" AutomationProperties.HelpText="Press Enter or Ctrl+C to copy the selected snippet.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="7">
@@ -994,7 +994,7 @@
                       <Button Content="+ Module" HorizontalAlignment="Right" Click="AddModule_Click"/>
                     </DockPanel>
 
-                    <ListBox x:Name="PromptModuleList" Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6">
+                    <ListBox x:Name="PromptModuleList" Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6" AutomationProperties.Name="Prompt modules">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="5">
