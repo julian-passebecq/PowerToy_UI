@@ -463,6 +463,8 @@
                       <DataGridTextColumn Header="Project" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
                       <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
                       <DataGridTextColumn Header="Sub" Binding="{Binding Subcategory, UpdateSourceTrigger=PropertyChanged}" Width="105"/>
+                      <DataGridTextColumn Header="Language" Binding="{Binding Language}" Width="85" IsReadOnly="True"/>
+                      <DataGridTextColumn Header="Updated" Binding="{Binding GitHubUpdatedUtc, StringFormat={}{0:yyyy-MM-dd}}" Width="95" IsReadOnly="True"/>
                       <DataGridTemplateColumn Header="GitHub" Width="235">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
