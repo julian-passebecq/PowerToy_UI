@@ -241,7 +241,10 @@ public partial class MainWindow : Window
             }
 
             string filter = GetModuleFilter("Portals");
-            return filter == "all" || string.Equals(portal.Category, filter, StringComparison.OrdinalIgnoreCase);
+            if (filter == "all") return true;
+            if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase)) return portal.IsFavorite;
+            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return portal.IsPinnedToRibbon;
+            return string.Equals(portal.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
         _portalView.SortDescriptions.Clear();
         _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsFavorite), ListSortDirection.Descending));
@@ -312,7 +315,9 @@ public partial class MainWindow : Window
             }
 
             string filter = GetModuleFilter("Clipboard");
-            return filter == "all" || string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
+            if (filter == "all") return true;
+            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return snippet.IsPinned;
+            return string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
         _snippetView.SortDescriptions.Clear();
         _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.IsPinned), ListSortDirection.Descending));
@@ -496,6 +501,8 @@ public partial class MainWindow : Window
                 SecondaryTitle.Text = "Portal categories";
                 SecondaryHint.Text = "Filter direct-open services";
                 Add("all", "All portals", _viewModel.Portals.Count);
+                Add("favorites", "Favorites", _viewModel.Portals.Count(portal => portal.IsFavorite));
+                Add("pinned", "Pinned to ribbon", _viewModel.Portals.Count(portal => portal.IsPinnedToRibbon));
                 foreach (IGrouping<string, PortalEntry> group in _viewModel.Portals
                     .GroupBy(portal => string.IsNullOrWhiteSpace(portal.Category) ? "General" : portal.Category, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
@@ -521,6 +528,7 @@ public partial class MainWindow : Window
                 SecondaryTitle.Text = "Clipboard categories";
                 SecondaryHint.Text = "Filter reusable text";
                 Add("all", "All snippets", _viewModel.ClipboardSnippets.Count);
+                Add("pinned", "Pinned to ribbon", _viewModel.ClipboardSnippets.Count(snippet => snippet.IsPinned));
                 foreach (IGrouping<string, ClipboardSnippetEntry> group in _viewModel.ClipboardSnippets
                     .GroupBy(snippet => string.IsNullOrWhiteSpace(snippet.Category) ? "General" : snippet.Category, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
@@ -884,18 +892,40 @@ public partial class MainWindow : Window
 
     private static void ApplyCurrentCategory(PortalEntry? item, string filter)
     {
-        if (item is not null && filter != "all")
+        if (item is null || filter == "all")
         {
-            item.Category = filter;
+            return;
         }
+
+        if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase))
+        {
+            item.IsFavorite = true;
+            return;
+        }
+
+        if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            item.IsPinnedToRibbon = true;
+            return;
+        }
+
+        item.Category = filter;
     }
 
     private static void ApplyCurrentCategory(ClipboardSnippetEntry? item, string filter)
     {
-        if (item is not null && filter != "all")
+        if (item is null || filter == "all")
         {
-            item.Category = filter;
+            return;
         }
+
+        if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            item.IsPinned = true;
+            return;
+        }
+
+        item.Category = filter;
     }
 
     private void ApplyCurrentCaptureKind(StickyNoteEntry? note)
