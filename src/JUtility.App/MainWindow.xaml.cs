@@ -1478,6 +1478,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CaptureItemStateChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded || (sender as FrameworkElement)?.DataContext is not StickyNoteEntry note)
+        {
+            return;
+        }
+
+        note.UpdatedUtc = DateTimeOffset.UtcNow;
+        _captureView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        RefreshCaptureBoard();
+        SafeSave();
+    }
+
     private void CaptureCompletionFilterChanged_Click(object sender, RoutedEventArgs e)
     {
         if (!_loaded)
