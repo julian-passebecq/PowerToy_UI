@@ -367,6 +367,7 @@
                     </StackPanel>
                     <WrapPanel HorizontalAlignment="Right">
                       <Button Content="+ Project" Click="AddProject_Click"/>
+                      <Button Content="Sync GitHub" Click="SyncGitHub_Click" ToolTip="Uses the authenticated GitHub CLI when available; otherwise imports public repositories."/>
                       <Button Content="Copy all included" Click="CopyAll_Click"/>
                       <CheckBox Content="Legacy Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" Margin="8,0"/>
                     </WrapPanel>
@@ -700,6 +701,12 @@
                     <CheckBox Content="Hide when focus is lost" IsChecked="{Binding HideOnFocusLoss}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed" Margin="0,8,0,0"/>
                     <CheckBox Content="Open near the mouse cursor" IsChecked="{Binding OpenNearCursor}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed"/>
                     <Button Content="Hide now to test summon" Width="190" HorizontalAlignment="Left" Click="HideNow_Click" Margin="0,6,0,0"/>
+
+                    <Separator Margin="0,16,0,12"/>
+                    <TextBlock Text="GitHub repository discovery" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Owner / account" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                    <TextBox Width="300" HorizontalAlignment="Left" Text="{Binding GitHubOwner, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="Sync GitHub first tries your local authenticated gh CLI, so private repositories can be discovered without storing a token in the workspace. If gh is unavailable it falls back to public repositories only." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
 
                     <Separator Margin="0,16,0,12"/>
                     <TextBlock Text="Local-first storage" FontSize="16" FontWeight="SemiBold"/>
