@@ -1,8 +1,12 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Threading;
 using JUtility.App.Services;
 using JUtility.App.ViewModels;
@@ -12,6 +16,13 @@ using Microsoft.Win32;
 
 namespace JUtility.App;
 
+public sealed record ShellNavItem(string Key, string Label, int Count, bool IsActive)
+{
+    public FontWeight Weight => IsActive ? FontWeights.SemiBold : FontWeights.Normal;
+}
+
+public sealed record QuickRibbonItem(string Action, string Key, string Title, string Subtitle, string Glyph, string Accent, string Value = "");
+
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
@@ -19,12 +30,22 @@ public partial class MainWindow : Window
     private bool _temporaryPin;
     private bool _suppressAutoHide;
     private bool _loaded;
+    private readonly ObservableCollection<ShellNavItem> _secondaryNavItems = [];
+    private readonly ObservableCollection<QuickRibbonItem> _quickRibbonItems = [];
+    private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
+    private ICollectionView? _projectView;
+    private ICollectionView? _portalView;
+    private ICollectionView? _captureView;
+    private ICollectionView? _snippetView;
+    private string _activeModule = "Dashboard";
 
     public MainWindow()
     {
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
+        SecondaryNav.ItemsSource = _secondaryNavItems;
+        QuickRibbon.ItemsSource = _quickRibbonItems;
 
         _summonService.Triggered += SummonService_Triggered;
         Loaded += MainWindow_Loaded;
@@ -46,6 +67,8 @@ public partial class MainWindow : Window
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         _loaded = true;
+        InitializeWorkspaceViews();
+        SelectWorkspaceTab("Dashboard");
         ApplyViewMode(_viewModel.ViewMode);
         ApplyExtraColumnVisibility();
         ApplyWindowBehavior(initialLoad: true);
