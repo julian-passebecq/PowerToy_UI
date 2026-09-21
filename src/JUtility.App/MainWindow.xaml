@@ -318,6 +318,7 @@
                           <WrapPanel>
                             <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
                             <Button Content="Copy" Tag="{Binding}" Click="CopyRepoList_Click"/>
+                            <Button Content="Open" Tag="{Binding}" Click="OpenRepoList_Click"/>
                             <Button Content="×" Tag="{Binding}" Click="DeleteRepoList_Click"/>
                           </WrapPanel>
                         </StackPanel>
@@ -432,6 +433,7 @@
                                     <WrapPanel HorizontalAlignment="Right">
                                       <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
                                       <Button Content="Copy" Tag="{Binding}" Click="CopyRepoList_Click"/>
+                                      <Button Content="Open" Tag="{Binding}" Click="OpenRepoList_Click"/>
                                     </WrapPanel>
                                   </DockPanel>
                                 </Border>
