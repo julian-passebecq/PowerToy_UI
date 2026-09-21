@@ -1431,6 +1431,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RecallRecentPrompt_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not RecentPromptEntry recent)
+        {
+            return;
+        }
+
+        _viewModel.PromptPreview = recent.Text;
+        _viewModel.StatusText = "Recent prompt recalled";
+    }
+
+    private void CopyRecentPrompt_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is RecentPromptEntry recent)
+        {
+            CopyText(recent.Text, "Recent prompt copied");
+        }
+    }
+
     private void ComposeCopyProject_Click(object sender, RoutedEventArgs e)
     {
         string text = _viewModel.ComposePrompt(appendProjectLinks: true);
