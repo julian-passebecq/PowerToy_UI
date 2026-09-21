@@ -337,6 +337,152 @@ Check("backup recovery does not overwrite the good backup with corrupt primary",
         WorkspaceState recovered = store.Load();
         True(recovered.Projects.Count > 0);
         Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+        string[] evidence = Directory.GetFiles(root, "workspace.invalid.*.json");
+        True(evidence.Length == 1);
+        Equal("{corrupt", File.ReadAllText(evidence[0]));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("malformed primary without backup is preserved and never silently reseeded", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityMalformedNoBackup-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string primary = Path.Combine(root, "workspace.json");
+        File.WriteAllText(primary, "{broken");
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal("{broken", File.ReadAllText(primary));
+        False(File.Exists(store.BackupFilePath));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("invalid backup without primary is preserved and never silently reseeded", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityInvalidBackupOnly-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string backup = Path.Combine(root, "workspace.backup.json");
+        File.WriteAllText(backup, "{broken-backup");
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal("{broken-backup", File.ReadAllText(backup));
+        False(File.Exists(store.DataFilePath));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("workspace save normalizes a detached snapshot without mutating caller objects", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityDetachedSave-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        ProjectEntry project = new()
+        {
+            Name = "  Spaced project  ",
+            Category = "  ",
+            Subcategory = "  ",
+        };
+        state.Projects.Add(project);
+        state.SchemaVersion = 3;
+
+        store.Save(state);
+
+        Equal("  Spaced project  ", project.Name);
+        Equal("  ", project.Category);
+        True(state.SchemaVersion == 3);
+
+        WorkspaceState loaded = store.Load();
+        ProjectEntry persisted = loaded.Projects.Single(item => item.Id == project.Id);
+        Equal("Spaced project", persisted.Name);
+        Equal("Projects", persisted.Category);
+        Equal("Misc", persisted.Subcategory);
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("locked primary does not fall back to backup or rewrite files", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedPrimary-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "LockedPrimaryMarker" });
+        store.Save(state);
+
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+
+        bool threw = false;
+        using (FileStream held = new(store.DataFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            try
+            {
+                store.Load();
+            }
+            catch (IOException)
+            {
+                threw = true;
+            }
+        }
+
+        True(threw);
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
     }
     finally
     {
