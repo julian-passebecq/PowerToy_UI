@@ -82,7 +82,38 @@ public sealed class MainViewModel : ObservableObject
     public StickyNoteEntry? SelectedNote
     {
         get => _selectedNote;
-        set => SetProperty(ref _selectedNote, value);
+        set
+        {
+            if (SetProperty(ref _selectedNote, value))
+            {
+                RaisePropertyChanged(nameof(SelectedNoteDueDate));
+            }
+        }
+    }
+
+    public DateTime? SelectedNoteDueDate
+    {
+        get => SelectedNote?.DueUtc?.LocalDateTime.Date;
+        set
+        {
+            if (SelectedNote is null)
+            {
+                return;
+            }
+
+            DateTimeOffset? normalized = value is null
+                ? null
+                : new DateTimeOffset(DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Local));
+
+            if (SelectedNote.DueUtc == normalized)
+            {
+                return;
+            }
+
+            SelectedNote.DueUtc = normalized;
+            SelectedNote.UpdatedUtc = DateTimeOffset.UtcNow;
+            RaisePropertyChanged();
+        }
     }
 
     public string PromptPreview
