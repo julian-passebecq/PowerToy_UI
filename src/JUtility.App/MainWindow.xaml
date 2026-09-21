@@ -1069,7 +1069,10 @@
                     <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SummonBindingOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SummonMouseBinding, Mode=TwoWay}" SelectionChanged="SummonBinding_Changed"/>
                     <CheckBox Content="Hide when focus is lost" IsChecked="{Binding HideOnFocusLoss}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed" Margin="0,8,0,0"/>
                     <CheckBox Content="Open near the mouse cursor" IsChecked="{Binding OpenNearCursor}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed"/>
-                    <Button Content="Hide now to test summon" Width="190" HorizontalAlignment="Left" Click="HideNow_Click" Margin="0,6,0,0"/>
+                    <WrapPanel Margin="0,6,0,0">
+                      <Button Content="Hide now to test summon" Width="190" Click="HideNow_Click"/>
+                      <Button Content="Reset saved window layouts" Width="190" Click="ResetWindowLayouts_Click"/>
+                    </WrapPanel>
 
                     <Separator Margin="0,16,0,12"/>
                     <TextBlock Text="GitHub repository discovery" FontSize="16" FontWeight="SemiBold"/>
