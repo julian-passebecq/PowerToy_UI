@@ -564,12 +564,30 @@ public sealed class MainViewModel : ObservableObject
 
     public void RemoveProject(ProjectEntry project)
     {
+        ArgumentNullException.ThrowIfNull(project);
+
+        foreach (StickyNoteEntry note in Notes.Where(note => note.ProjectId == project.Id))
+        {
+            note.ProjectId = null;
+            note.UpdatedUtc = DateTimeOffset.UtcNow;
+        }
+
+        foreach (RepositoryListEntry list in RepositoryLists)
+        {
+            int removed = list.Items.RemoveAll(item => item.ProjectId == project.Id);
+            if (removed > 0)
+            {
+                list.UpdatedUtc = DateTimeOffset.UtcNow;
+            }
+        }
+
         Projects.Remove(project);
         if (ReferenceEquals(SelectedPromptProject, project))
         {
             SelectedPromptProject = Projects.FirstOrDefault(item => !item.IsArchived);
         }
-        StatusText = "Project removed";
+
+        StatusText = "Project removed; linked captures were detached and saved lists updated";
     }
 
     public void AddPromptModule()
