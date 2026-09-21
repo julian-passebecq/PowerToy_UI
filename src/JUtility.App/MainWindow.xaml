@@ -396,15 +396,24 @@
 
                       <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
                         <StackPanel>
-                          <DockPanel><TextBlock Text="Pinned / recent captures" FontSize="15" FontWeight="SemiBold"/><Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/></DockPanel>
-                          <ItemsControl ItemsSource="{Binding Notes}">
+                          <DockPanel>
+                            <TextBlock Text="Saved repository lists" FontSize="15" FontWeight="SemiBold"/>
+                            <Button Content="Repository Hub →" HorizontalAlignment="Right" Tag="Repository Hub" Click="PrimaryNav_Click"/>
+                          </DockPanel>
+                          <ItemsControl ItemsSource="{Binding RepositoryLists}">
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,6">
-                                  <StackPanel>
-                                    <DockPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/></DockPanel>
-                                    <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                                  </StackPanel>
+                                <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,5">
+                                  <DockPanel>
+                                    <StackPanel>
+                                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                      <TextBlock Text="{Binding Items.Count, StringFormat={}{0} repositories}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                    </StackPanel>
+                                    <WrapPanel HorizontalAlignment="Right">
+                                      <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
+                                      <Button Content="Copy" Tag="{Binding}" Click="CopyRepoList_Click"/>
+                                    </WrapPanel>
+                                  </DockPanel>
                                 </Border>
                               </DataTemplate>
                             </ItemsControl.ItemTemplate>
