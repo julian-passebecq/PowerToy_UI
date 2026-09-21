@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using JUtility.App.Services;
 using JUtility.Core.Models;
 using JUtility.Core.Services;
 
 namespace JUtility.App.ViewModels;
 
 public sealed record SelectionOption<T>(T Value, string Label);
+public sealed record RepositoryMergeSummary(int Added, int Updated, int Total);
 
 public sealed class MainViewModel : ObservableObject
 {
@@ -186,8 +188,109 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public string GitHubOwner
+    {
+        get => _state.Preferences.GitHubOwner;
+        set
+        {
+            string normalized = string.IsNullOrWhiteSpace(value) ? "julian-passebecq" : value.Trim();
+            if (string.Equals(_state.Preferences.GitHubOwner, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _state.Preferences.GitHubOwner = normalized;
+            RaisePropertyChanged();
+        }
+    }
+
     public string DataFilePath => _store.DataFilePath;
     public string DataDirectory => _store.DataDirectory;
+
+    public RepositoryMergeSummary MergeGitHubRepositories(IEnumerable<GitHubRepositorySnapshot> repositories)
+    {
+        ArgumentNullException.ThrowIfNull(repositories);
+        int added = 0;
+        int updated = 0;
+
+        foreach (GitHubRepositorySnapshot snapshot in repositories)
+        {
+            string normalizedUrl = snapshot.Url.TrimEnd('/');
+            ProjectEntry? existing = Projects.FirstOrDefault(project =>
+                (!string.IsNullOrWhiteSpace(project.GitHubFullName)
+                    && string.Equals(project.GitHubFullName, snapshot.FullName, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrWhiteSpace(project.RepoUrl)
+                    && string.Equals(project.RepoUrl.TrimEnd('/'), normalizedUrl, StringComparison.OrdinalIgnoreCase)));
+
+            if (existing is null)
+            {
+                existing = new ProjectEntry
+                {
+                    Name = snapshot.Name,
+                    Category = DetectProjectFamily(snapshot.Name),
+                    Note = snapshot.Description,
+                    GitHubFullName = snapshot.FullName,
+                    Language = snapshot.Language,
+                    IsGitHubPrivate = snapshot.IsPrivate,
+                    GitHubUpdatedUtc = snapshot.UpdatedUtc,
+                    RepoUrl = snapshot.Url,
+                    SiteUrl = snapshot.Homepage,
+                    CopyName = false,
+                    CopyRepo = true,
+                    CopySite = !string.IsNullOrWhiteSpace(snapshot.Homepage),
+                    CopyServer = false,
+                    CopyChatGpt = false,
+                    IncludeInCopyAll = false,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                };
+                Projects.Add(existing);
+                added++;
+                continue;
+            }
+
+            existing.GitHubFullName = snapshot.FullName;
+            existing.Language = snapshot.Language;
+            existing.IsGitHubPrivate = snapshot.IsPrivate;
+            existing.GitHubUpdatedUtc = snapshot.UpdatedUtc;
+            existing.RepoUrl = snapshot.Url;
+            if (string.IsNullOrWhiteSpace(existing.SiteUrl) && !string.IsNullOrWhiteSpace(snapshot.Homepage))
+            {
+                existing.SiteUrl = snapshot.Homepage;
+            }
+            if (string.IsNullOrWhiteSpace(existing.Note) && !string.IsNullOrWhiteSpace(snapshot.Description))
+            {
+                existing.Note = snapshot.Description;
+            }
+            if (string.IsNullOrWhiteSpace(existing.Category)
+                || string.Equals(existing.Category, "Projects", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(existing.Category, "Other", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.Category = DetectProjectFamily(snapshot.Name);
+            }
+            existing.UpdatedUtc = DateTimeOffset.UtcNow;
+            updated++;
+        }
+
+        StatusText = $"GitHub sync: {added} added, {updated} updated";
+        return new RepositoryMergeSummary(added, updated, Projects.Count);
+    }
+
+    private static string DetectProjectFamily(string name)
+    {
+        if (name.StartsWith("foil", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("databricks-vscode-foil", StringComparison.OrdinalIgnoreCase)) return "Foil";
+        if (name.StartsWith("atlas", StringComparison.OrdinalIgnoreCase)) return "Atlas";
+        if (name.Contains("datapass", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("ducklab", StringComparison.OrdinalIgnoreCase)) return "Datapass";
+        if (name.Contains("fabric", StringComparison.OrdinalIgnoreCase)) return "Fabric";
+        if (name.Contains("oracle", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("infra", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("grafana", StringComparison.OrdinalIgnoreCase)) return "Infra";
+        if (name.Contains("portfolio", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("julianvue", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("bisite", StringComparison.OrdinalIgnoreCase)) return "Portfolio";
+        return "Other";
+    }
 
     public void AddProject()
     {
@@ -453,6 +556,7 @@ public sealed class MainViewModel : ObservableObject
         RaisePropertyChanged(nameof(HideOnFocusLoss));
         RaisePropertyChanged(nameof(OpenNearCursor));
         RaisePropertyChanged(nameof(ShowExtraColumn));
+        RaisePropertyChanged(nameof(GitHubOwner));
         StatusText = "Workspace imported";
     }
 
