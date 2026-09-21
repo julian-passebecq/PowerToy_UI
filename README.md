@@ -108,7 +108,9 @@ Workspace data is stored at:
 %LOCALAPPDATA%\JUtilityPalette\workspace.json
 ```
 
-The store maintains a backup and supports explicit JSON import/export. Current schema handling rejects unsupported future versions rather than silently rewriting them, and recovery preserves the last good backup when the primary file is corrupt.
+The store maintains a backup and supports explicit JSON import/export. Current schema handling rejects unsupported future versions rather than silently rewriting them. Corrupt primary bytes are preserved as recovery evidence before a valid backup is restored; malformed workspaces without a valid backup are never silently reset.
+
+Workspace import is two-phase in the UI: the selected file is validated and summarized first, and the current workspace is replaced only after explicit confirmation. Export uses a same-directory temporary file and cannot target the active primary or backup.
 
 No GitHub token is written to the workspace.
 
@@ -125,6 +127,14 @@ Or:
 ```powershell
 dotnet run --project .\src\JUtility.App\JUtility.App.csproj
 ```
+
+For isolated testing or a separate local workspace:
+
+```powershell
+.\artifacts\PowerOps-win-x64\JUtilityPalette.exe --data-dir "D:\PowerOps-Test"
+```
+
+Single-instance ownership is scoped to the canonical data directory: the same workspace cannot have two writers, while deliberately separate `--data-dir` workspaces can run independently.
 
 ## Build and smoke-test
 
