@@ -716,8 +716,8 @@
                     <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220"/>
 
                     <WrapPanel Grid.Row="2">
-                      <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6"/>
-                      <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6"/>
+                      <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6" Checked="CaptureItemStateChanged_Click" Unchecked="CaptureItemStateChanged_Click"/>
+                      <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6" Checked="CaptureItemStateChanged_Click" Unchecked="CaptureItemStateChanged_Click"/>
                       <Button Content="Copy capture" Click="CopyNote_Click"/>
                       <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                       <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
