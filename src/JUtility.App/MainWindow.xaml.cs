@@ -98,6 +98,58 @@ public partial class MainWindow : Window
         }));
     }
 
+    private void InitializeWorkspaceViews()
+    {
+        _projectView = CollectionViewSource.GetDefaultView(_viewModel.Projects);
+        _projectView.Filter = item =>
+        {
+            if (item is not ProjectEntry project) return false;
+            string filter = GetModuleFilter("Repository Hub");
+            return filter == "all" || string.Equals(project.Category, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        ProjectsGrid.ItemsSource = _projectView;
+
+        _portalView = CollectionViewSource.GetDefaultView(_viewModel.Portals);
+        _portalView.Filter = item =>
+        {
+            if (item is not PortalEntry portal) return false;
+            string filter = GetModuleFilter("Portals");
+            return filter == "all" || string.Equals(portal.Category, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        PortalList.ItemsSource = _portalView;
+
+        _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
+        _captureView.Filter = item =>
+        {
+            if (item is not StickyNoteEntry note) return false;
+            string filter = GetModuleFilter("Capture");
+            return filter == "all" || string.Equals(note.Kind.ToString(), filter, StringComparison.OrdinalIgnoreCase);
+        };
+        CaptureList.ItemsSource = _captureView;
+
+        _snippetView = CollectionViewSource.GetDefaultView(_viewModel.ClipboardSnippets);
+        _snippetView.Filter = item =>
+        {
+            if (item is not ClipboardSnippetEntry snippet) return false;
+            string filter = GetModuleFilter("Clipboard");
+            return filter == "all" || string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        SnippetList.ItemsSource = _snippetView;
+    }
+
+    private string GetModuleFilter(string module) =>
+        _moduleFilters.TryGetValue(module, out string? value) && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : "all";
+
+    private void PrimaryNav_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is string module)
+        {
+            SelectWorkspaceTab(module);
+        }
+    }
+
     private void RepositoryHub_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Repository Hub");
     private void PortalLauncher_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Portals");
     private void Capture_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Capture");
@@ -111,9 +163,305 @@ public partial class MainWindow : Window
             if (item is TabItem tab && string.Equals(tab.Header?.ToString(), header, StringComparison.Ordinal))
             {
                 WorkspacePanel.SelectedItem = tab;
-                return;
+                _activeModule = header;
+                break;
             }
         }
+
+        RefreshShellNavigation();
+    }
+
+    private void RefreshShellNavigation()
+    {
+        CurrentModuleTitle.Text = _activeModule;
+        CurrentModuleSubtitle.Text = _activeModule switch
+        {
+            "Dashboard" => "Overview and recent work",
+            "Repository Hub" => "GitHub, website, server and ChatGPT links",
+            "Portals" => "Direct-open services and project sub-links",
+            "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
+            "Clipboard" => "One-click reusable text",
+            "Prompt Builder" => "Compose reusable instruction modules",
+            "Settings" => "Window and local storage behavior",
+            _ => string.Empty,
+        };
+
+        QuickAddButton.Content = _activeModule switch
+        {
+            "Repository Hub" => "+ Project",
+            "Portals" => "+ Portal",
+            "Capture" => "+ Capture",
+            "Clipboard" => "+ Snippet",
+            "Prompt Builder" => "+ Module",
+            _ => "+ Capture",
+        };
+
+        RepoSavedListsPanel.Visibility = _activeModule == "Repository Hub" ? Visibility.Visible : Visibility.Collapsed;
+        UpdatePrimaryNavSelection();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        RefreshActiveView();
+    }
+
+    private void UpdatePrimaryNavSelection()
+    {
+        foreach (Button button in PrimaryNavPanel.Children.OfType<Button>())
+        {
+            bool active = string.Equals(button.Tag as string, _activeModule, StringComparison.OrdinalIgnoreCase);
+            button.Background = active ? new SolidColorBrush(Color.FromRgb(0xE8, 0xF2, 0xFF)) : Brushes.Transparent;
+            button.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x0B, 0x63, 0xCE)) : Brushes.Black;
+        }
+    }
+
+    private void RefreshSecondaryNavigation()
+    {
+        _secondaryNavItems.Clear();
+        string activeFilter = GetModuleFilter(_activeModule);
+
+        void Add(string key, string label, int count) =>
+            _secondaryNavItems.Add(new ShellNavItem(key, label, count, string.Equals(key, activeFilter, StringComparison.OrdinalIgnoreCase)));
+
+        switch (_activeModule)
+        {
+            case "Repository Hub":
+                SecondaryTitle.Text = "Projects";
+                SecondaryHint.Text = "Filter the repository table";
+                Add("all", "All repositories", _viewModel.Projects.Count(project => !project.IsArchived));
+                foreach (IGrouping<string, ProjectEntry> group in _viewModel.Projects
+                    .Where(project => !project.IsArchived)
+                    .GroupBy(project => string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Portals":
+                SecondaryTitle.Text = "Portal categories";
+                SecondaryHint.Text = "Filter direct-open services";
+                Add("all", "All portals", _viewModel.Portals.Count);
+                foreach (IGrouping<string, PortalEntry> group in _viewModel.Portals
+                    .GroupBy(portal => string.IsNullOrWhiteSpace(portal.Category) ? "General" : portal.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Capture":
+                SecondaryTitle.Text = "Capture types";
+                SecondaryHint.Text = "Same data model, different intent";
+                Add("all", "All captures", _viewModel.Notes.Count(note => !note.IsArchived));
+                foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
+                {
+                    Add(kind.ToString(), CaptureKindLabel(kind), _viewModel.Notes.Count(note => !note.IsArchived && note.Kind == kind));
+                }
+                break;
+
+            case "Clipboard":
+                SecondaryTitle.Text = "Clipboard categories";
+                SecondaryHint.Text = "Filter reusable text";
+                Add("all", "All snippets", _viewModel.ClipboardSnippets.Count);
+                foreach (IGrouping<string, ClipboardSnippetEntry> group in _viewModel.ClipboardSnippets
+                    .GroupBy(snippet => string.IsNullOrWhiteSpace(snippet.Category) ? "General" : snippet.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Prompt Builder":
+                SecondaryTitle.Text = "Prompt modules";
+                SecondaryHint.Text = "Module categories are edited in the center";
+                Add("all", "All modules", _viewModel.PromptModules.Count);
+                foreach (IGrouping<string, PromptModuleEntry> group in _viewModel.PromptModules
+                    .GroupBy(module => string.IsNullOrWhiteSpace(module.Category) ? "General" : module.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Settings":
+                SecondaryTitle.Text = "Settings";
+                SecondaryHint.Text = "Local Windows utility preferences";
+                Add("all", "General", 1);
+                break;
+
+            default:
+                SecondaryTitle.Text = "Overview";
+                SecondaryHint.Text = "Use the modules on the left";
+                Add("all", "Dashboard", 1);
+                break;
+        }
+    }
+
+    private static string CaptureKindLabel(CaptureKind kind) => kind switch
+    {
+        CaptureKind.QuickNote => "Quick notes",
+        CaptureKind.ReadLater => "Read later",
+        _ => kind.ToString(),
+    };
+
+    private void SecondaryNav_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string key)
+        {
+            return;
+        }
+
+        _moduleFilters[_activeModule] = key;
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        RefreshActiveView();
+    }
+
+    private void RefreshActiveView()
+    {
+        switch (_activeModule)
+        {
+            case "Repository Hub": _projectView?.Refresh(); break;
+            case "Portals": _portalView?.Refresh(); break;
+            case "Capture": _captureView?.Refresh(); break;
+            case "Clipboard": _snippetView?.Refresh(); break;
+        }
+    }
+
+    private void RefreshQuickRibbon()
+    {
+        _quickRibbonItems.Clear();
+        string activeFilter = GetModuleFilter(_activeModule);
+
+        void AddFilter(string key, string title, string subtitle, string glyph, string accent) =>
+            _quickRibbonItems.Add(new QuickRibbonItem("filter", key, title, subtitle, glyph, accent));
+
+        switch (_activeModule)
+        {
+            case "Repository Hub":
+                AddFilter("all", "All", $"{_viewModel.Projects.Count} repos", "A", "#0F6CBD");
+                foreach (IGrouping<string, ProjectEntry> group in _viewModel.Projects
+                    .GroupBy(project => string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderByDescending(group => group.Count())
+                    .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(7))
+                {
+                    string glyph = group.Key.Length > 0 ? group.Key[..1].ToUpperInvariant() : "P";
+                    AddFilter(group.Key, group.Key, $"{group.Count()} repos", glyph, string.Equals(group.Key, activeFilter, StringComparison.OrdinalIgnoreCase) ? "#0F6CBD" : "#5B6577");
+                }
+                break;
+
+            case "Portals":
+                IEnumerable<PortalEntry> pinnedPortals = _viewModel.Portals.Where(portal => portal.IsPinnedToRibbon);
+                if (!pinnedPortals.Any()) pinnedPortals = _viewModel.Portals.Take(7);
+                foreach (PortalEntry portal in pinnedPortals.Take(8))
+                {
+                    string glyph = !string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey.Trim()[..1].ToUpperInvariant() : portal.Name[..Math.Min(1, portal.Name.Length)].ToUpperInvariant();
+                    _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, portal.Category, glyph, "#107C10", portal.MainUrl));
+                }
+                break;
+
+            case "Capture":
+                AddFilter("all", "All", $"{_viewModel.Notes.Count} items", "A", "#0F6CBD");
+                foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
+                {
+                    int count = _viewModel.Notes.Count(note => note.Kind == kind && !note.IsArchived);
+                    AddFilter(kind.ToString(), CaptureKindLabel(kind), $"{count} items", CaptureKindLabel(kind)[..1].ToUpperInvariant(), "#8764B8");
+                }
+                break;
+
+            case "Clipboard":
+                IEnumerable<ClipboardSnippetEntry> pinnedSnippets = _viewModel.ClipboardSnippets.Where(snippet => snippet.IsPinned);
+                if (!pinnedSnippets.Any()) pinnedSnippets = _viewModel.ClipboardSnippets.Take(7);
+                foreach (ClipboardSnippetEntry snippet in pinnedSnippets.Take(8))
+                {
+                    string glyph = snippet.Title.Length > 0 ? snippet.Title[..1].ToUpperInvariant() : "C";
+                    _quickRibbonItems.Add(new QuickRibbonItem("snippet", snippet.Id.ToString(), snippet.Title, snippet.Category, glyph, "#C239B3", snippet.Text));
+                }
+                break;
+
+            case "Dashboard":
+                foreach (PortalEntry portal in _viewModel.Portals.Where(portal => portal.IsPinnedToRibbon).Take(5))
+                {
+                    string glyph = !string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey.Trim()[..1].ToUpperInvariant() : portal.Name[..Math.Min(1, portal.Name.Length)].ToUpperInvariant();
+                    _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, "Portal", glyph, "#107C10", portal.MainUrl));
+                }
+                foreach (ClipboardSnippetEntry snippet in _viewModel.ClipboardSnippets.Where(snippet => snippet.IsPinned).Take(3))
+                {
+                    string glyph = snippet.Title.Length > 0 ? snippet.Title[..1].ToUpperInvariant() : "C";
+                    _quickRibbonItems.Add(new QuickRibbonItem("snippet", snippet.Id.ToString(), snippet.Title, "Copy", glyph, "#C239B3", snippet.Text));
+                }
+                if (_quickRibbonItems.Count == 0)
+                {
+                    _quickRibbonItems.Add(new QuickRibbonItem("navigate", "Portals", "Portals", "Open services", "↗", "#107C10"));
+                    _quickRibbonItems.Add(new QuickRibbonItem("navigate", "Repository Hub", "Repositories", "Project links", "R", "#0F6CBD"));
+                    _quickRibbonItems.Add(new QuickRibbonItem("navigate", "Capture", "Capture", "Quick notes", "N", "#8764B8"));
+                    _quickRibbonItems.Add(new QuickRibbonItem("navigate", "Clipboard", "Clipboard", "Reusable text", "C", "#C239B3"));
+                }
+                break;
+        }
+    }
+
+    private void QuickRibbon_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not QuickRibbonItem item)
+        {
+            return;
+        }
+
+        switch (item.Action)
+        {
+            case "filter":
+                _moduleFilters[_activeModule] = item.Key;
+                RefreshSecondaryNavigation();
+                RefreshQuickRibbon();
+                RefreshActiveView();
+                break;
+            case "portal":
+                OpenUrlValue(item.Value);
+                break;
+            case "snippet":
+                CopyText(item.Value, "Pinned snippet copied");
+                break;
+            case "navigate":
+                SelectWorkspaceTab(item.Key);
+                break;
+        }
+    }
+
+    private void QuickAdd_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_activeModule)
+        {
+            case "Repository Hub":
+                _viewModel.AddProject();
+                break;
+            case "Portals":
+                _viewModel.AddPortal();
+                break;
+            case "Clipboard":
+                _viewModel.AddClipboardSnippet();
+                break;
+            case "Prompt Builder":
+                _viewModel.AddPromptModule();
+                break;
+            default:
+                _viewModel.AddNote();
+                if (_activeModule == "Dashboard") SelectWorkspaceTab("Capture");
+                break;
+        }
+
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void RefreshAfterDataChange()
+    {
+        _projectView?.Refresh();
+        _portalView?.Refresh();
+        _captureView?.Refresh();
+        _snippetView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
