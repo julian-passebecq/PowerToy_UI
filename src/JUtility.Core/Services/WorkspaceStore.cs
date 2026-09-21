@@ -197,7 +197,7 @@ public sealed class WorkspaceStore
         return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
     }
 
-    public WorkspaceState Import(string path)
+    public WorkspaceState PrepareImport(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string json = File.ReadAllText(path);
@@ -222,10 +222,19 @@ public sealed class WorkspaceStore
             imported.SchemaVersion = 1;
         }
 
-        WorkspaceState normalized = Normalize(imported);
-        Save(normalized);
-        return normalized;
+        return Normalize(imported);
     }
+
+    public WorkspaceState CommitImport(WorkspaceState candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        WorkspaceState detached = Normalize(CloneState(candidate));
+        Save(detached);
+        return detached;
+    }
+
+    public WorkspaceState Import(string path) =>
+        CommitImport(PrepareImport(path));
 
     private static bool KnownWorkspaceProperty(string name) =>
         name.Equals(nameof(WorkspaceState.SchemaVersion), StringComparison.OrdinalIgnoreCase)
