@@ -446,7 +446,7 @@
                       <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0">
                         <StackPanel>
                           <DockPanel>
-                            <TextBlock Text="Pinned resources" FontSize="15" FontWeight="SemiBold"/>
+                            <TextBlock Text="Pinned / favorite resources" FontSize="15" FontWeight="SemiBold"/>
                             <Button Content="Resource Hub →" HorizontalAlignment="Right" Tag="Resources" Click="PrimaryNav_Click"/>
                           </DockPanel>
                           <ItemsControl x:Name="DashboardResourceList" ItemsSource="{Binding Resources}">
