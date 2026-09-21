@@ -792,6 +792,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _activeCaptureSubjects.Clear();
         _moduleFilters["Capture"] = key;
         SelectWorkspaceTab("Capture");
     }
