@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<CaptureBoardSection> _captureBoardSections = [];
     private readonly ObservableCollection<ProjectTreeNode> _projectTreeNodes = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _activeRepositoryFamilies = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
     private ICollectionView? _captureView;
@@ -111,6 +112,11 @@ public partial class MainWindow : Window
         _projectView.Filter = item =>
         {
             if (item is not ProjectEntry project || project.IsArchived) return false;
+            if (_activeRepositoryFamilies.Count > 0)
+            {
+                return _activeRepositoryFamilies.Contains(project.Category);
+            }
+
             string filter = GetModuleFilter("Repository Hub");
             if (filter == "all") return true;
             if (filter.StartsWith("family:", StringComparison.OrdinalIgnoreCase))
@@ -357,6 +363,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _activeRepositoryFamilies.Clear();
         _moduleFilters["Repository Hub"] = node.Key;
         RefreshQuickRibbon();
         _projectView?.Refresh();
@@ -404,16 +411,30 @@ public partial class MainWindow : Window
         switch (_activeModule)
         {
             case "Repository Hub":
-                AddFilter("all", "All", $"{_viewModel.Projects.Count} repos", "A", "#0F6CBD");
+                _quickRibbonItems.Add(new QuickRibbonItem(
+                    "repo-all",
+                    "all",
+                    "All",
+                    $"{_viewModel.Projects.Count(project => !project.IsArchived)} repos",
+                    "A",
+                    _activeRepositoryFamilies.Count == 0 && activeFilter == "all" ? "#0F6CBD" : "#5B6577"));
+
                 foreach (IGrouping<string, ProjectEntry> group in _viewModel.Projects
+                    .Where(project => !project.IsArchived)
                     .GroupBy(project => string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category, StringComparer.OrdinalIgnoreCase)
                     .OrderByDescending(group => group.Count())
                     .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-                    .Take(7))
+                    .Take(8))
                 {
                     string glyph = group.Key.Length > 0 ? group.Key[..1].ToUpperInvariant() : "P";
-                    string key = $"family:{group.Key}";
-                    AddFilter(key, group.Key, $"{group.Count()} repos", glyph, string.Equals(key, activeFilter, StringComparison.OrdinalIgnoreCase) ? "#0F6CBD" : "#5B6577");
+                    bool selected = _activeRepositoryFamilies.Contains(group.Key);
+                    _quickRibbonItems.Add(new QuickRibbonItem(
+                        "repo-family",
+                        group.Key,
+                        group.Key,
+                        $"{group.Count()} repos",
+                        glyph,
+                        selected ? "#0F6CBD" : "#5B6577"));
                 }
                 break;
 
@@ -477,6 +498,22 @@ public partial class MainWindow : Window
 
         switch (item.Action)
         {
+            case "repo-all":
+                _activeRepositoryFamilies.Clear();
+                _moduleFilters["Repository Hub"] = "all";
+                RefreshProjectTree();
+                RefreshQuickRibbon();
+                _projectView?.Refresh();
+                break;
+            case "repo-family":
+                _moduleFilters["Repository Hub"] = "all";
+                if (!_activeRepositoryFamilies.Add(item.Key))
+                {
+                    _activeRepositoryFamilies.Remove(item.Key);
+                }
+                RefreshQuickRibbon();
+                _projectView?.Refresh();
+                break;
             case "filter":
                 _moduleFilters[_activeModule] = item.Key;
                 RefreshSecondaryNavigation();
@@ -991,6 +1028,7 @@ public partial class MainWindow : Window
 
         _viewModel.ApplyRepositoryList(list);
         ProjectsGrid.Items.Refresh();
+        _activeRepositoryFamilies.Clear();
         _moduleFilters["Repository Hub"] = "all";
         SelectWorkspaceTab("Repository Hub");
         SafeSave();
