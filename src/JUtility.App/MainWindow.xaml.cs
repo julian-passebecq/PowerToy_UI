@@ -318,6 +318,7 @@ public partial class MainWindow : Window
         _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
         _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.SortOrder), ListSortDirection.Ascending));
         SidebarResourceList.ItemsSource = _sidebarResourceView;
+        DashboardResourceList.ItemsSource = _sidebarResourceView;
 
         _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
         _captureView.Filter = item =>
