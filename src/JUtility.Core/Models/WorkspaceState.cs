@@ -100,7 +100,7 @@ public sealed class PortalEntry
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = "General";
-    public string IconKey { get; set; } = string.Empty;
+    public string IconKey { get; set; } = "↗";
     public string MainUrl { get; set; } = string.Empty;
     public bool IsPinnedToRibbon { get; set; }
     public bool IsFavorite { get; set; }
