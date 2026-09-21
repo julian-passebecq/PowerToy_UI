@@ -156,7 +156,7 @@
             <TextBlock Text="Portals" FontWeight="SemiBold" FontSize="14"/>
             <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click" AutomationProperties.Name="Add portal"/>
           </DockPanel>
-          <ItemsControl ItemsSource="{Binding Portals}">
+          <ItemsControl x:Name="SidebarPortalList" AutomationProperties.Name="Pinned or favorite portals">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
@@ -200,7 +200,7 @@
             <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14"/>
             <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click" AutomationProperties.Name="Add clipboard snippet"/>
           </DockPanel>
-          <ItemsControl ItemsSource="{Binding ClipboardSnippets}">
+          <ItemsControl x:Name="SidebarSnippetList" AutomationProperties.Name="Pinned clipboard snippets">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">

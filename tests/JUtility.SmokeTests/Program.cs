@@ -66,6 +66,38 @@ Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
     False(UrlNormalizer.TryNormalizeOptionalWebUrl("file:///c:/temp/test.txt", out _));
 });
 
+Check("Sidebar quick access only includes curated portals resources and snippets", () =>
+{
+    PortalEntry plainPortal = new();
+    PortalEntry pinnedPortal = new() { IsPinnedToRibbon = true };
+    PortalEntry favoritePortal = new() { IsFavorite = true };
+    False(SidebarQuickAccessPolicy.IncludePortal(plainPortal));
+    True(SidebarQuickAccessPolicy.IncludePortal(pinnedPortal));
+    True(SidebarQuickAccessPolicy.IncludePortal(favoritePortal));
+
+    WorkspaceResourceEntry plainResource = new();
+    WorkspaceResourceEntry pinnedResource = new() { IsPinned = true };
+    WorkspaceResourceEntry favoriteResource = new() { IsFavorite = true };
+    False(SidebarQuickAccessPolicy.IncludeResource(plainResource));
+    True(SidebarQuickAccessPolicy.IncludeResource(pinnedResource));
+    True(SidebarQuickAccessPolicy.IncludeResource(favoriteResource));
+
+    False(SidebarQuickAccessPolicy.IncludeSnippet(new ClipboardSnippetEntry()));
+    True(SidebarQuickAccessPolicy.IncludeSnippet(new ClipboardSnippetEntry { IsPinned = true }));
+});
+
+Check("Sidebar capture policy excludes archived and optionally completed captures", () =>
+{
+    StickyNoteEntry active = new();
+    StickyNoteEntry completed = new() { IsCompleted = true };
+    StickyNoteEntry archived = new() { IsArchived = true };
+
+    True(SidebarQuickAccessPolicy.IncludeCapture(active, includeCompleted: false));
+    False(SidebarQuickAccessPolicy.IncludeCapture(completed, includeCompleted: false));
+    True(SidebarQuickAccessPolicy.IncludeCapture(completed, includeCompleted: true));
+    False(SidebarQuickAccessPolicy.IncludeCapture(archived, includeCompleted: true));
+});
+
 Check("GitHub repository merge preserves manually maintained cockpit links and metadata", () =>
 {
     DateTimeOffset updated = new(2026, 9, 21, 18, 0, 0, TimeSpan.Zero);

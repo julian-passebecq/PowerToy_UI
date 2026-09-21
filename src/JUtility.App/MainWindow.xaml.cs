@@ -80,11 +80,13 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _activeCaptureSubjects = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
+    private ICollectionView? _sidebarPortalView;
     private ICollectionView? _resourceView;
     private ICollectionView? _captureView;
     private ICollectionView? _sidebarCaptureView;
     private ICollectionView? _sidebarResourceView;
     private ICollectionView? _snippetView;
+    private ICollectionView? _sidebarSnippetView;
     private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
     private string _repositorySearchText = string.Empty;
@@ -286,6 +288,15 @@ public partial class MainWindow : Window
         _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.Name), ListSortDirection.Ascending));
         PortalList.ItemsSource = _portalView;
 
+        _sidebarPortalView = new ListCollectionView((IList)_viewModel.Portals)
+        {
+            Filter = item => item is PortalEntry portal && SidebarQuickAccessPolicy.IncludePortal(portal),
+        };
+        _sidebarPortalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsPinnedToRibbon), ListSortDirection.Descending));
+        _sidebarPortalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsFavorite), ListSortDirection.Descending));
+        _sidebarPortalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.SortOrder), ListSortDirection.Ascending));
+        SidebarPortalList.ItemsSource = _sidebarPortalView;
+
         _resourceView = CollectionViewSource.GetDefaultView(_viewModel.Resources);
         _resourceView.Filter = item =>
             item is WorkspaceResourceEntry resource
@@ -303,7 +314,7 @@ public partial class MainWindow : Window
 
         _sidebarResourceView = new ListCollectionView((IList)_viewModel.Resources)
         {
-            Filter = item => item is WorkspaceResourceEntry resource && (resource.IsPinned || resource.IsFavorite),
+            Filter = item => item is WorkspaceResourceEntry resource && SidebarQuickAccessPolicy.IncludeResource(resource),
         };
         _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsPinned), ListSortDirection.Descending));
         _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
@@ -353,8 +364,7 @@ public partial class MainWindow : Window
         _sidebarCaptureView = new ListCollectionView((IList)_viewModel.Notes)
         {
             Filter = item => item is StickyNoteEntry note
-                && !note.IsArchived
-                && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted),
+                && SidebarQuickAccessPolicy.IncludeCapture(note, _viewModel.IncludeCompletedCaptures),
         };
         SidebarCaptureList.ItemsSource = _sidebarCaptureView;
 
@@ -382,6 +392,14 @@ public partial class MainWindow : Window
         _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.SortOrder), ListSortDirection.Ascending));
         _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.Title), ListSortDirection.Ascending));
         SnippetList.ItemsSource = _snippetView;
+
+        _sidebarSnippetView = new ListCollectionView((IList)_viewModel.ClipboardSnippets)
+        {
+            Filter = item => item is ClipboardSnippetEntry snippet && SidebarQuickAccessPolicy.IncludeSnippet(snippet),
+        };
+        _sidebarSnippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.SortOrder), ListSortDirection.Ascending));
+        _sidebarSnippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.Title), ListSortDirection.Ascending));
+        SidebarSnippetList.ItemsSource = _sidebarSnippetView;
 
         _promptView = CollectionViewSource.GetDefaultView(_viewModel.PromptModules);
         _promptView.Filter = item =>
@@ -1211,11 +1229,13 @@ public partial class MainWindow : Window
     {
         _projectView?.Refresh();
         _portalView?.Refresh();
+        _sidebarPortalView?.Refresh();
         _resourceView?.Refresh();
         _sidebarResourceView?.Refresh();
         _captureView?.Refresh();
         _sidebarCaptureView?.Refresh();
         _snippetView?.Refresh();
+        _sidebarSnippetView?.Refresh();
         _promptView?.Refresh();
         RefreshSecondaryNavigation();
         RefreshProjectTree();
@@ -1586,6 +1606,7 @@ public partial class MainWindow : Window
     {
         if (!_loaded) return;
         _portalView?.Refresh();
+        _sidebarPortalView?.Refresh();
         RefreshQuickRibbon();
         SafeSave();
     }
@@ -1594,6 +1615,7 @@ public partial class MainWindow : Window
     {
         if (!_loaded) return;
         _portalView?.Refresh();
+        _sidebarPortalView?.Refresh();
         SafeSave();
     }
 
@@ -1912,6 +1934,7 @@ public partial class MainWindow : Window
     {
         if (!_loaded) return;
         _snippetView?.Refresh();
+        _sidebarSnippetView?.Refresh();
         RefreshQuickRibbon();
         SafeSave();
     }
