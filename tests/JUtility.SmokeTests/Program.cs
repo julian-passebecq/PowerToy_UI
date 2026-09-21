@@ -66,6 +66,77 @@ Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
     False(UrlNormalizer.TryNormalizeOptionalWebUrl("file:///c:/temp/test.txt", out _));
 });
 
+Check("resource URL classifier recognizes common providers and kinds", () =>
+{
+    True(ResourceCatalogService.TryClassify("https://github.com/example/demo", out ResourceUrlClassification github));
+    Equal("GitHub", github.Provider);
+    Equal("Repository", github.Kind);
+    Equal("demo", github.SuggestedName);
+
+    True(ResourceCatalogService.TryClassify("https://drive.google.com/drive/folders/abc123", out ResourceUrlClassification drive));
+    Equal("Google Drive", drive.Provider);
+    Equal("Folder", drive.Kind);
+
+    True(ResourceCatalogService.TryClassify("https://docs.google.com/document/d/abc123/edit", out ResourceUrlClassification docs));
+    Equal("Google Drive", docs.Provider);
+    Equal("Document", docs.Kind);
+
+    True(ResourceCatalogService.TryClassify("https://www.dropbox.com/scl/fo/abc/example", out ResourceUrlClassification dropbox));
+    Equal("Dropbox", dropbox.Provider);
+    Equal("Folder", dropbox.Kind);
+
+    True(ResourceCatalogService.TryClassify("https://tenant.sharepoint.com/sites/team/Shared%20Documents", out ResourceUrlClassification sharepoint));
+    Equal("SharePoint", sharepoint.Provider);
+    Equal("Folder", sharepoint.Kind);
+
+    True(ResourceCatalogService.TryClassify("https://www.notion.so/workspace/Page-123456", out ResourceUrlClassification notion));
+    Equal("Notion", notion.Provider);
+    Equal("Page", notion.Kind);
+});
+
+Check("resource URL upsert deduplicates equivalent links", () =>
+{
+    List<WorkspaceResourceEntry> resources = [];
+
+    ResourceUpsertResult first = ResourceCatalogService.UpsertUrl(resources, "github.com/example/demo/");
+    ResourceUpsertResult second = ResourceCatalogService.UpsertUrl(resources, "https://GITHUB.com/example/demo");
+
+    True(first.Added);
+    False(second.Added);
+    True(resources.Count == 1);
+    True(ReferenceEquals(first.Resource, second.Resource));
+    Equal("GitHub", resources[0].Provider);
+    Equal("Repository", resources[0].Kind);
+});
+
+Check("repository resource import is idempotent and ignores archived projects", () =>
+{
+    List<WorkspaceResourceEntry> resources = [];
+    ProjectEntry active = new()
+    {
+        Name = "Active",
+        Category = "Atlas",
+        RepoUrl = "github.com/example/active",
+    };
+    ProjectEntry archived = new()
+    {
+        Name = "Archived",
+        RepoUrl = "https://github.com/example/archived",
+        IsArchived = true,
+    };
+
+    ResourceImportSummary first = ResourceCatalogService.ImportProjects(resources, [active, archived]);
+    ResourceImportSummary second = ResourceCatalogService.ImportProjects(resources, [active, archived]);
+
+    True(first.Added == 1 && first.Updated == 0 && first.Total == 1);
+    True(second.Added == 0 && second.Updated == 1 && second.Total == 1);
+    True(resources.Count == 1);
+    Equal("GitHub", resources[0].Provider);
+    Equal("Repository", resources[0].Kind);
+    Equal("Atlas", resources[0].Group);
+    True(resources[0].SourceProjectId == active.Id);
+});
+
 Check("prompt composer orders modules and resolves project variables", () =>
 {
     PromptModuleEntry third = new() { Title = "Third", SortOrder = 30, Body = "Server={{server}} Chat={{chatgpt}}" };
@@ -340,6 +411,32 @@ Check("null collection entries are ignored during normalization", () =>
         True(loaded.Portals.Count == 0);
         True(loaded.Resources.Count == 0);
         True(loaded.Notes.Count == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("v3 workspace migrates to schema v4 with an empty Resource Hub", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityV3ResourceMigration-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            Path.Combine(root, "workspace.json"),
+            "{\"SchemaVersion\":3,\"Projects\":[{\"Name\":\"LegacyProject\"}],\"Portals\":[],\"ClipboardSnippets\":[],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[]}");
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+        True(loaded.Resources.Count == 0);
+        True(loaded.Projects.Any(project => project.Name == "LegacyProject"));
     }
     finally
     {
