@@ -602,7 +602,7 @@
                     <StackPanel>
                       <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
                       <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
                         <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label"/>
                         <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Checked="PortalPinChanged_Click" Unchecked="PortalPinChanged_Click"/>
                         <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
@@ -758,7 +758,7 @@
                     <StackPanel>
                       <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
                       <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
                         <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags"/>
                         <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Checked="SnippetPinChanged_Click" Unchecked="SnippetPinChanged_Click"/>
                       </WrapPanel>
