@@ -176,7 +176,7 @@
 
           <DockPanel Margin="0,4">
             <TextBlock Text="Resources" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddResource_Click"/>
+            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddResource_Click" AutomationProperties.Name="Add resource"/>
           </DockPanel>
           <ItemsControl x:Name="SidebarResourceList" ItemsSource="{Binding Resources}">
             <ItemsControl.ItemTemplate>
@@ -198,7 +198,7 @@
 
           <DockPanel Margin="0,4">
             <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
+            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click" AutomationProperties.Name="Add clipboard snippet"/>
           </DockPanel>
           <ItemsControl ItemsSource="{Binding ClipboardSnippets}">
             <ItemsControl.ItemTemplate>
@@ -353,7 +353,7 @@
                             <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
                             <Button Content="Copy" Tag="{Binding}" Click="CopyRepoList_Click"/>
                             <Button Content="Open" Tag="{Binding}" Click="OpenRepoList_Click"/>
-                            <Button Content="×" Tag="{Binding}" Click="DeleteRepoList_Click"/>
+                            <Button Content="×" Tag="{Binding}" Click="DeleteRepoList_Click" AutomationProperties.Name="Delete saved repository list"/>
                           </WrapPanel>
                         </StackPanel>
                       </Border>
@@ -561,7 +561,7 @@
                                 <CheckBox IsChecked="{Binding CopyRepo, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include GitHub URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding RepoUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
-                                  <Button Content="↗" Tag="{Binding RepoUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding RepoUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22" AutomationProperties.Name="Open GitHub repository"/>
                                 </WrapPanel>
                               </DockPanel>
                             </Grid>
@@ -579,7 +579,7 @@
                                 <CheckBox IsChecked="{Binding CopySite, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include website URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding SiteUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
-                                  <Button Content="↗" Tag="{Binding SiteUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding SiteUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22" AutomationProperties.Name="Open website"/>
                                 </WrapPanel>
                               </DockPanel>
                             </Grid>
@@ -597,7 +597,7 @@
                                 <CheckBox IsChecked="{Binding CopyServer, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include server/hosting URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding ServerUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
-                                  <Button Content="↗" Tag="{Binding ServerUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding ServerUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22" AutomationProperties.Name="Open server or hosting"/>
                                 </WrapPanel>
                               </DockPanel>
                             </Grid>
@@ -615,7 +615,7 @@
                                 <CheckBox IsChecked="{Binding CopyChatGpt, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include ChatGPT URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding ChatGptUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
-                                  <Button Content="↗" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22" AutomationProperties.Name="Open ChatGPT conversation"/>
                                 </WrapPanel>
                               </DockPanel>
                             </Grid>
@@ -631,7 +631,7 @@
                             <WrapPanel>
                               <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
                               <Button Content="Archive / restore" Tag="{Binding}" Click="ArchiveProject_Click"/>
-                              <Button Content="×" Tag="{Binding}" Click="DeleteProject_Click"/>
+                              <Button Content="×" Tag="{Binding}" Click="DeleteProject_Click" AutomationProperties.Name="Delete project"/>
                             </WrapPanel>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -741,7 +741,7 @@
                               <WrapPanel>
                                 <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                                 <Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/>
-                                <Button Content="×" Tag="{Binding}" Click="DeletePortalLink_Click"/>
+                                <Button Content="×" Tag="{Binding}" Click="DeletePortalLink_Click" AutomationProperties.Name="Delete portal sub-link"/>
                               </WrapPanel>
                             </DataTemplate>
                           </DataGridTemplateColumn.CellTemplate>
