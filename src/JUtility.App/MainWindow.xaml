@@ -710,6 +710,7 @@
                       <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                       <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
                       <Button Content="Export" Click="ExportSelectedCapture_Click"/>
+                      <Button Content="Delete" Click="DeleteCapture_Click"/>
                     </WrapPanel>
                   </Grid>
                 </Grid>
