@@ -509,7 +509,12 @@ public partial class MainWindow : Window
 
     private void RefreshShellNavigation()
     {
-        CurrentModuleTitle.Text = _activeModule;
+        CurrentModuleTitle.Text = _activeModule switch
+        {
+            "Portals" => "Portal Launcher",
+            "Resources" => "Resource Hub",
+            _ => _activeModule,
+        };
         CurrentModuleSubtitle.Text = _activeModule switch
         {
             "Dashboard" => "Overview and recent work",
