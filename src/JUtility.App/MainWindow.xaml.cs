@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -71,6 +72,24 @@ public partial class MainWindow : Window
                 Hide();
             }
         }));
+    }
+
+    private void RepositoryHub_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Repository Hub");
+    private void PortalLauncher_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Portals");
+    private void Capture_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Capture");
+    private void Clipboard_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Clipboard");
+    private void PromptBuilder_Click(object sender, RoutedEventArgs e) => SelectWorkspaceTab("Prompt Builder");
+
+    private void SelectWorkspaceTab(string header)
+    {
+        foreach (object item in WorkspacePanel.Items)
+        {
+            if (item is TabItem tab && string.Equals(tab.Header?.ToString(), header, StringComparison.Ordinal))
+            {
+                WorkspacePanel.SelectedItem = tab;
+                return;
+            }
+        }
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
@@ -265,6 +284,63 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void AddPortal_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.AddPortal();
+        SafeSave();
+    }
+
+    private void DeletePortal_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal)
+        {
+            _viewModel.StatusText = "No portal selected";
+            return;
+        }
+
+        _viewModel.RemovePortal(portal);
+        SafeSave();
+    }
+
+    private void AddPortalLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal)
+        {
+            _viewModel.StatusText = "Create or select a portal first";
+            return;
+        }
+
+        _viewModel.AddPortalLink(portal);
+        PortalLinksGrid.Items.Refresh();
+        SafeSave();
+    }
+
+    private void AddSnippet_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.AddClipboardSnippet();
+        SafeSave();
+    }
+
+    private void DeleteSnippet_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedSnippet is not ClipboardSnippetEntry snippet)
+        {
+            _viewModel.StatusText = "No clipboard snippet selected";
+            return;
+        }
+
+        _viewModel.RemoveClipboardSnippet(snippet);
+        SafeSave();
+    }
+
+    private void CopySnippet_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedSnippet is ClipboardSnippetEntry snippet)
+        {
+            CopyText(snippet.Text, "Clipboard snippet copied");
+        }
+    }
+
     private void DeleteProject_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is ProjectEntry project)
@@ -368,11 +444,79 @@ public partial class MainWindow : Window
     {
         if (_viewModel.SelectedNote is StickyNoteEntry note)
         {
-            string text = string.IsNullOrWhiteSpace(note.Title)
-                ? note.Text
-                : note.Title.Trim() + Environment.NewLine + note.Text.Trim();
-            CopyText(text, "Note copied");
+            List<string> parts = [];
+            if (!string.IsNullOrWhiteSpace(note.Title)) parts.Add(note.Title.Trim());
+            if (!string.IsNullOrWhiteSpace(note.Subject)) parts.Add("Subject: " + note.Subject.Trim());
+            if (!string.IsNullOrWhiteSpace(note.Url)) parts.Add(note.Url.Trim());
+            if (!string.IsNullOrWhiteSpace(note.Text)) parts.Add(note.Text.Trim());
+            CopyText(string.Join(Environment.NewLine, parts), "Capture copied");
         }
+    }
+
+    private void ExportSelectedCapture_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedNote is not StickyNoteEntry note)
+        {
+            _viewModel.StatusText = "No capture selected";
+            return;
+        }
+
+        SaveFileDialog dialog = new()
+        {
+            Filter = "Markdown files (*.md)|*.md|JSON files (*.json)|*.json",
+            FileName = string.IsNullOrWhiteSpace(note.Title) ? "capture.md" : SanitizeFileName(note.Title) + ".md",
+        };
+
+        _suppressAutoHide = true;
+        try
+        {
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            if (string.Equals(Path.GetExtension(dialog.FileName), ".json", StringComparison.OrdinalIgnoreCase))
+            {
+                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(note, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            else
+            {
+                List<string> lines =
+                [
+                    "# " + (string.IsNullOrWhiteSpace(note.Title) ? "Capture" : note.Title.Trim()),
+                    "",
+                    $"- Type: {note.Kind}",
+                ];
+                if (!string.IsNullOrWhiteSpace(note.Subject)) lines.Add("- Subject: " + note.Subject.Trim());
+                if (!string.IsNullOrWhiteSpace(note.Status)) lines.Add("- Status: " + note.Status.Trim());
+                if (!string.IsNullOrWhiteSpace(note.Priority)) lines.Add("- Priority: " + note.Priority.Trim());
+                if (!string.IsNullOrWhiteSpace(note.Url)) lines.Add("- URL: " + note.Url.Trim());
+                if (!string.IsNullOrWhiteSpace(note.Labels)) lines.Add("- Labels: " + note.Labels.Trim());
+                lines.Add("");
+                lines.Add(note.Text ?? string.Empty);
+                File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, lines));
+            }
+
+            _viewModel.StatusText = "Capture exported";
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Capture export failed", MessageBoxImage.Error);
+        }
+        finally
+        {
+            _suppressAutoHide = false;
+        }
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        string safe = value.Trim();
+        foreach (char invalid in Path.GetInvalidFileNameChars())
+        {
+            safe = safe.Replace(invalid, '-');
+        }
+        return safe.Length == 0 ? "capture" : safe;
     }
 
     private void ArchiveNote_Click(object sender, RoutedEventArgs e)
