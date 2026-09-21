@@ -543,13 +543,23 @@
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="7">
-                            <StackPanel>
-                              <DockPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                              </DockPanel>
-                              <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
+                            <Grid>
+                              <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                              <Border Width="30" Height="30" CornerRadius="7" Background="#EAF3FF" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              </Border>
+                              <StackPanel Grid.Column="1" Margin="7,0">
+                                <DockPanel>
+                                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                  <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                </DockPanel>
+                                <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                              </StackPanel>
+                              <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
+                                <Button Content="⧉" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
+                              </StackPanel>
+                            </Grid>
                           </Border>
                         </DataTemplate>
                       </ListBox.ItemTemplate>
