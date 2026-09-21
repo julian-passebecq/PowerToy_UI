@@ -81,6 +81,16 @@ public sealed class WorkspaceStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string json = File.ReadAllText(path);
+
+        using (JsonDocument document = JsonDocument.Parse(json))
+        {
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.EnumerateObject().Any(property => KnownWorkspaceProperty(property.Name)))
+            {
+                throw new InvalidDataException("The selected file does not contain recognizable J Utility workspace data.");
+            }
+        }
+
         WorkspaceState imported = JsonSerializer.Deserialize<WorkspaceState>(json, JsonOptions)
             ?? throw new InvalidDataException("The selected file does not contain a valid workspace.");
 
@@ -88,6 +98,17 @@ public sealed class WorkspaceStore
         Save(normalized);
         return normalized;
     }
+
+    private static bool KnownWorkspaceProperty(string name) =>
+        name.Equals(nameof(WorkspaceState.SchemaVersion), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Preferences), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Projects), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.RepositoryLists), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Portals), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.ClipboardSnippets), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.PromptModules), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.RecentPrompts), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Notes), StringComparison.OrdinalIgnoreCase);
 
     public static void AddRecentPrompt(WorkspaceState state, string title, string text)
     {
