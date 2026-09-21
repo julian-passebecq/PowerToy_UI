@@ -263,6 +263,7 @@ public partial class MainWindow : Window
         RefreshProjectTree();
         RefreshQuickRibbon();
         RefreshCaptureBoard();
+        UpdateRepositorySelectionSummary();
         RefreshActiveView();
     }
 
@@ -699,6 +700,7 @@ public partial class MainWindow : Window
         RefreshProjectTree();
         RefreshQuickRibbon();
         RefreshCaptureBoard();
+        UpdateRepositorySelectionSummary();
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
@@ -1076,6 +1078,7 @@ public partial class MainWindow : Window
         }
 
         RefreshProjectGridSelection();
+        UpdateRepositorySelectionSummary();
         SafeSave();
     }
 
@@ -1094,7 +1097,14 @@ public partial class MainWindow : Window
             RefreshProjectGridSelection();
         }
 
+        UpdateRepositorySelectionSummary();
         SafeSave();
+    }
+
+    private void UpdateRepositorySelectionSummary()
+    {
+        int selected = _viewModel.Projects.Count(project => project.IncludeInCopyAll && !project.IsArchived);
+        SelectedRepoCountText.Text = $"{selected} selected";
     }
 
     private void RefreshProjectGridSelection()
