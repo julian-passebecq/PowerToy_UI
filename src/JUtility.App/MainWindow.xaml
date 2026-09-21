@@ -89,9 +89,9 @@
     </HierarchicalDataTemplate>
 
     <DataTemplate x:Key="QuickRibbonTemplate">
-      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="8,5" Margin="4,0" MinWidth="88" Background="White" BorderBrush="{StaticResource BorderBrush}">
+      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="9,6" Margin="4,0" MinWidth="104" Background="White" BorderBrush="{StaticResource BorderBrush}">
         <StackPanel Orientation="Horizontal">
-          <Border Width="28" Height="28" CornerRadius="6" Background="{Binding Accent}" Margin="0,0,7,0">
+          <Border Width="36" Height="36" CornerRadius="8" Background="{Binding Accent}" Margin="0,0,8,0">
             <TextBlock Text="{Binding Glyph}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
           </Border>
           <StackPanel VerticalAlignment="Center">
