@@ -26,9 +26,11 @@ internal static class WindowPlacementService
             return;
         }
 
-        int width = windowRect.Right - windowRect.Left;
-        int height = windowRect.Bottom - windowRect.Top;
         NativeRect work = monitorInfo.WorkArea;
+        int workWidth = Math.Max(1, work.Right - work.Left);
+        int workHeight = Math.Max(1, work.Bottom - work.Top);
+        int width = Math.Min(windowRect.Right - windowRect.Left, workWidth);
+        int height = Math.Min(windowRect.Bottom - windowRect.Top, workHeight);
 
         int x = cursor.X + gap;
         int y = cursor.Y + gap;
@@ -46,7 +48,33 @@ internal static class WindowPlacementService
         x = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - width));
         y = Math.Clamp(y, work.Top, Math.Max(work.Top, work.Bottom - height));
 
-        SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SwpNoSize | SwpNoZOrder | SwpNoActivate);
+        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SwpNoZOrder | SwpNoActivate);
+    }
+
+    public static void EnsureVisible(Window window)
+    {
+        IntPtr handle = new WindowInteropHelper(window).Handle;
+        if (handle == IntPtr.Zero || !GetWindowRect(handle, out Rect windowRect))
+        {
+            return;
+        }
+
+        IntPtr monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
+        MonitorInfo monitorInfo = new() { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
+        {
+            return;
+        }
+
+        NativeRect work = monitorInfo.WorkArea;
+        int workWidth = Math.Max(1, work.Right - work.Left);
+        int workHeight = Math.Max(1, work.Bottom - work.Top);
+        int width = Math.Min(Math.Max(1, windowRect.Right - windowRect.Left), workWidth);
+        int height = Math.Min(Math.Max(1, windowRect.Bottom - windowRect.Top), workHeight);
+        int x = Math.Clamp(windowRect.Left, work.Left, Math.Max(work.Left, work.Right - width));
+        int y = Math.Clamp(windowRect.Top, work.Top, Math.Max(work.Top, work.Bottom - height));
+
+        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SwpNoZOrder | SwpNoActivate);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -93,6 +121,9 @@ internal static class WindowPlacementService
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(Point point, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]
