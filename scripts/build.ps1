@@ -15,9 +15,9 @@ function Invoke-Dotnet {
 $repo = Split-Path -Parent $PSScriptRoot
 Push-Location $repo
 try {
-    Invoke-Dotnet @('restore', '.\JUtilityPalette.sln')
-    Invoke-Dotnet @('build', '.\JUtilityPalette.sln', '-c', 'Release', '--no-restore')
-    Invoke-Dotnet @('run', '--project', '.\tests\JUtility.SmokeTests\JUtility.SmokeTests.csproj', '-c', 'Release', '--no-build')
+    Invoke-Dotnet -Arguments @('restore', '.\JUtilityPalette.sln')
+    Invoke-Dotnet -Arguments @('build', '.\JUtilityPalette.sln', '-c', 'Release', '--no-restore')
+    Invoke-Dotnet -Arguments @('run', '--project', '.\tests\JUtility.SmokeTests\JUtility.SmokeTests.csproj', '-c', 'Release', '--no-build')
 }
 finally {
     Pop-Location
