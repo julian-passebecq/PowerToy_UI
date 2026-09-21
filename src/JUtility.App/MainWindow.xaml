@@ -368,7 +368,12 @@
                     <WrapPanel HorizontalAlignment="Right">
                       <Button Content="+ Project" Click="AddProject_Click"/>
                       <Button Content="Sync GitHub" Click="SyncGitHub_Click" ToolTip="Uses the authenticated GitHub CLI when available; otherwise imports public repositories."/>
-                      <Button Content="Copy all included" Click="CopyAll_Click"/>
+                      <Button Content="Copy all" Click="CopyAll_Click"/>
+                      <Button Content="GitHub" Click="CopyGithubColumn_Click"/>
+                      <Button Content="Websites" Click="CopyWebsiteColumn_Click"/>
+                      <Button Content="Servers" Click="CopyServerColumn_Click"/>
+                      <Button Content="ChatGPT" Click="CopyChatGptColumn_Click"/>
+                      <Button Content="Open selected" Click="OpenSelectedRepos_Click"/>
                       <CheckBox Content="Legacy Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" Margin="8,0"/>
                     </WrapPanel>
                   </DockPanel>
