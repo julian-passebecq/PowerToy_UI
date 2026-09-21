@@ -192,6 +192,33 @@ Check("backup recovery does not overwrite the good backup with corrupt primary",
     }
 });
 
+Check("empty primary workspace recovers from the last good backup", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityEmptyPrimary-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "BackupMarker", RepoUrl = "https://github.com/example/backup" });
+        store.Save(state);
+        state.Projects.Add(new ProjectEntry { Name = "SecondSave" });
+        store.Save(state);
+
+        File.WriteAllText(store.DataFilePath, "{}");
+        WorkspaceState recovered = store.Load();
+
+        True(recovered.Projects.Any(project => project.Name == "BackupMarker"));
+        False(recovered.Projects.Any(project => project.Name == "SecondSave"));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("empty object import is rejected without replacing the live workspace", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
