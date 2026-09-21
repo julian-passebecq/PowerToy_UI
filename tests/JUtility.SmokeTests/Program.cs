@@ -88,6 +88,32 @@ Check("prompt composer orders modules and resolves project variables", () =>
         text);
 });
 
+Check("prompt composer discovers and replaces arbitrary variables", () =>
+{
+    PromptModuleEntry module = new()
+    {
+        Title = "Custom",
+        SortOrder = 10,
+        Body = "Deploy {{environment}} in {{region}} for {{project}}",
+    };
+    ProjectEntry project = new() { Name = "Atlas" };
+
+    IReadOnlyList<string> variables = PromptComposer.FindVariables([module]);
+    True(variables.Contains("environment"));
+    True(variables.Contains("region"));
+
+    string text = PromptComposer.Compose(
+        [module],
+        project,
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["environment"] = "staging",
+            ["region"] = "eu-west",
+        });
+
+    Equal("Deploy staging in eu-west for Atlas", text);
+});
+
 Check("workspace store round-trips and creates backup", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilitySmoke-" + Guid.NewGuid().ToString("N"));
