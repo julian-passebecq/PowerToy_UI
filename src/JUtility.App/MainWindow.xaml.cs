@@ -120,6 +120,11 @@ public partial class MainWindow : Window
 
     private void MainWindow_Deactivated(object? sender, EventArgs e)
     {
+        if (_loaded && !_suppressAutoHide)
+        {
+            SafeSave();
+        }
+
         if (_suppressAutoHide
             || _temporaryPin
             || _viewModel.WindowBehavior != WindowBehaviorMode.Summon
