@@ -2003,10 +2003,20 @@ public partial class MainWindow : Window
                 {
                     _viewModel.Import(dialog.FileName);
                     _moduleFilters.Clear();
+                    _moduleSearchTerms.Clear();
                     _activeRepositoryFamilies.Clear();
                     _activeCaptureSubjects.Clear();
                     _repositorySearchText = string.Empty;
                     RepoSearchBox.Clear();
+                    _suppressShellSearchChange = true;
+                    try
+                    {
+                        ShellSearchBox.Clear();
+                    }
+                    finally
+                    {
+                        _suppressShellSearchChange = false;
+                    }
                     InitializeWorkspaceViews();
                     ApplyViewMode(_viewModel.ViewMode);
                     ApplyWindowBehavior();
