@@ -270,6 +270,22 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public string LastModule
+    {
+        get => _state.Preferences.LastModule;
+        set
+        {
+            string normalized = string.IsNullOrWhiteSpace(value) ? "Dashboard" : value.Trim();
+            if (string.Equals(_state.Preferences.LastModule, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _state.Preferences.LastModule = normalized;
+            RaisePropertyChanged();
+        }
+    }
+
     public string DataFilePath => _store.DataFilePath;
     public string DataDirectory => _store.DataDirectory;
 
