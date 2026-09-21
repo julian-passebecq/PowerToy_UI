@@ -42,6 +42,10 @@ public sealed class ProjectEntry
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = "Projects";
     public string Note { get; set; } = string.Empty;
+    public string GitHubFullName { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
+    public bool IsGitHubPrivate { get; set; }
+    public DateTimeOffset? GitHubUpdatedUtc { get; set; }
     public string RepoUrl { get; set; } = string.Empty;
     public string SiteUrl { get; set; } = string.Empty;
     public string ServerUrl { get; set; } = string.Empty;
