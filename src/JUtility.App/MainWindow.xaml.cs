@@ -296,6 +296,7 @@ public partial class MainWindow : Window
         _sidebarPortalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsFavorite), ListSortDirection.Descending));
         _sidebarPortalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.SortOrder), ListSortDirection.Ascending));
         SidebarPortalList.ItemsSource = _sidebarPortalView;
+        DashboardPortalList.ItemsSource = _sidebarPortalView;
 
         _resourceView = CollectionViewSource.GetDefaultView(_viewModel.Resources);
         _resourceView.Filter = item =>
