@@ -27,6 +27,23 @@ public sealed record ShellNavItem(string Key, string Label, int Count, bool IsAc
 public sealed record QuickRibbonItem(string Action, string Key, string Title, string Subtitle, string Glyph, string Accent, string Value = "");
 public sealed record CaptureBoardSection(string Key, string Title, int Count, IReadOnlyList<StickyNoteEntry> Items);
 public sealed record ProjectTreeNode(string Key, string Label, int Count, IReadOnlyList<ProjectTreeNode> Children);
+public sealed record CaptureExportEntry(
+    Guid Id,
+    CaptureKind Kind,
+    string Title,
+    string Subject,
+    string Text,
+    string Url,
+    string Labels,
+    string Status,
+    string Priority,
+    DateTimeOffset? DueUtc,
+    Guid? ProjectId,
+    string Project,
+    bool IsPinned,
+    bool IsCompleted,
+    DateTimeOffset CreatedUtc,
+    DateTimeOffset UpdatedUtc);
 
 public partial class MainWindow : Window
 {
@@ -1707,6 +1724,8 @@ public partial class MainWindow : Window
             List<string> parts = [];
             if (!string.IsNullOrWhiteSpace(note.Title)) parts.Add(note.Title.Trim());
             if (!string.IsNullOrWhiteSpace(note.Subject)) parts.Add("Subject: " + note.Subject.Trim());
+            string projectName = ResolveProjectName(note.ProjectId);
+            if (!string.IsNullOrWhiteSpace(projectName)) parts.Add("Project: " + projectName);
             if (!string.IsNullOrWhiteSpace(note.Url)) parts.Add(note.Url.Trim());
             if (!string.IsNullOrWhiteSpace(note.Text)) parts.Add(note.Text.Trim());
             CopyText(string.Join(Environment.NewLine, parts), "Capture copied");
@@ -1758,7 +1777,7 @@ public partial class MainWindow : Window
                 {
                     schemaVersion = 1,
                     exportedUtc = DateTimeOffset.UtcNow,
-                    captures,
+                    captures = captures.Select(BuildCaptureExport).ToArray(),
                 };
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(envelope, CaptureExportJsonOptions));
             }
@@ -1799,7 +1818,7 @@ public partial class MainWindow : Window
 
             if (string.Equals(Path.GetExtension(dialog.FileName), ".json", StringComparison.OrdinalIgnoreCase))
             {
-                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(note, CaptureExportJsonOptions));
+                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(BuildCaptureExport(note), CaptureExportJsonOptions));
             }
             else
             {
@@ -1818,7 +1837,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static IReadOnlyList<string> FormatCaptureMarkdown(StickyNoteEntry note)
+    private IReadOnlyList<string> FormatCaptureMarkdown(StickyNoteEntry note)
     {
         List<string> lines =
         [
@@ -1827,6 +1846,8 @@ public partial class MainWindow : Window
             $"- Type: {note.Kind}",
         ];
         if (!string.IsNullOrWhiteSpace(note.Subject)) lines.Add("- Subject: " + note.Subject.Trim());
+        string projectName = ResolveProjectName(note.ProjectId);
+        if (!string.IsNullOrWhiteSpace(projectName)) lines.Add("- Project: " + projectName);
         if (!string.IsNullOrWhiteSpace(note.Status)) lines.Add("- Status: " + note.Status.Trim());
         if (!string.IsNullOrWhiteSpace(note.Priority)) lines.Add("- Priority: " + note.Priority.Trim());
         if (note.DueUtc is not null) lines.Add("- Due: " + note.DueUtc.Value.ToString("O"));
@@ -1836,6 +1857,29 @@ public partial class MainWindow : Window
         lines.Add(note.Text ?? string.Empty);
         return lines;
     }
+
+    private CaptureExportEntry BuildCaptureExport(StickyNoteEntry note) => new(
+        note.Id,
+        note.Kind,
+        note.Title,
+        note.Subject,
+        note.Text,
+        note.Url,
+        note.Labels,
+        note.Status,
+        note.Priority,
+        note.DueUtc,
+        note.ProjectId,
+        ResolveProjectName(note.ProjectId),
+        note.IsPinned,
+        note.IsCompleted,
+        note.CreatedUtc,
+        note.UpdatedUtc);
+
+    private string ResolveProjectName(Guid? projectId) =>
+        projectId is Guid id
+            ? _viewModel.Projects.FirstOrDefault(project => project.Id == id)?.Name ?? string.Empty
+            : string.Empty;
 
     private static string SanitizeFileName(string value)
     {
