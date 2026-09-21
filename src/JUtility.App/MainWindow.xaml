@@ -225,6 +225,19 @@
               <TextBlock x:Name="CurrentModuleSubtitle" Text="Overview and recent work" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
             </StackPanel>
             <Button DockPanel.Dock="Right" x:Name="QuickAddButton" Content="+ Add" Click="QuickAdd_Click" Margin="8,0,0,0"/>
+            <TextBox DockPanel.Dock="Right"
+                     x:Name="ShellSearchBox"
+                     Width="250"
+                     Height="32"
+                     Margin="8,0,0,0"
+                     VerticalContentAlignment="Center"
+                     ToolTip="Search the current module (Ctrl+K)"
+                     TextChanged="ShellSearchBox_TextChanged"/>
+            <TextBlock DockPanel.Dock="Right"
+                       Text="Search"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource MutedBrush}"
+                       Margin="8,0,0,0"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
               <ItemsControl x:Name="QuickRibbon" ItemTemplate="{StaticResource QuickRibbonTemplate}">
                 <ItemsControl.ItemsPanel>
