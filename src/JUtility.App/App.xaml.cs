@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 
@@ -5,6 +6,8 @@ namespace JUtility.App;
 
 public partial class App : Application
 {
+    private const int SwShow = 5;
+    private const int SwRestore = 9;
     private Mutex? _singleInstanceMutex;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -16,11 +19,15 @@ public partial class App : Application
 
         if (!createdNew)
         {
-            MessageBox.Show(
-                "J Utility Palette is already running. Use the existing window or summon it with your configured mouse shortcut.",
-                "J Utility Palette",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            if (!TryActivateExistingWindow())
+            {
+                MessageBox.Show(
+                    "J Utility Palette is already running. Use the existing window or summon it with your configured mouse shortcut.",
+                    "J Utility Palette",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+
             Shutdown();
             return;
         }
@@ -46,4 +53,29 @@ public partial class App : Application
 
         base.OnExit(e);
     }
+
+    private static bool TryActivateExistingWindow()
+    {
+        IntPtr window = FindWindow(null, "J Utility Palette · Power Ops");
+        if (window == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        ShowWindow(window, SwShow);
+        ShowWindow(window, SwRestore);
+        SetForegroundWindow(window);
+        return true;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr FindWindow(string? className, string? windowName);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr window, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
 }
