@@ -372,6 +372,11 @@ public partial class MainWindow : Window
         if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0
             && e.Key == System.Windows.Input.Key.K)
         {
+            if (!ShellSearchBox.IsEnabled)
+            {
+                return;
+            }
+
             e.Handled = true;
             ShellSearchBox.Focus();
             ShellSearchBox.SelectAll();
