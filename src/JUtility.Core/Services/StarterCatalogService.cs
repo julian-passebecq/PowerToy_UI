@@ -72,7 +72,8 @@ public static class StarterCatalogService
         foreach (PortalTemplate template in PortalTemplates)
         {
             bool exists = portals.Any(portal =>
-                ResourceCatalogService.UrlsEquivalent(portal.MainUrl, template.MainUrl));
+                ResourceCatalogService.UrlsEquivalent(portal.MainUrl, template.MainUrl)
+                || string.Equals((portal.Name ?? string.Empty).Trim(), template.Name, StringComparison.OrdinalIgnoreCase));
 
             if (exists)
             {

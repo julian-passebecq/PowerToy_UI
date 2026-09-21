@@ -229,6 +229,26 @@ Check("starter catalog adds common cockpit portals and snippets idempotently", (
     True(snippets.Count == snippetCount);
 });
 
+Check("starter catalog respects an existing service portal even when its main path differs", () =>
+{
+    PortalEntry existingVercel = new()
+    {
+        Name = "Vercel",
+        Category = "My deploy",
+        MainUrl = "https://vercel.com/",
+        IsPinnedToRibbon = false,
+    };
+    List<PortalEntry> portals = [existingVercel];
+    List<ClipboardSnippetEntry> snippets = [];
+
+    StarterCatalogService.Merge(portals, snippets);
+
+    True(portals.Count(portal => portal.Name.Equals("Vercel", StringComparison.OrdinalIgnoreCase)) == 1);
+    Equal("https://vercel.com/", existingVercel.MainUrl);
+    Equal("My deploy", existingVercel.Category);
+    False(existingVercel.IsPinnedToRibbon);
+});
+
 Check("fresh workspace seed includes the starter cockpit", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityStarterSeed-" + Guid.NewGuid().ToString("N"));
