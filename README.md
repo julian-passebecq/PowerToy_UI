@@ -115,6 +115,25 @@ dotnet run --project .\src\JUtility.App\JUtility.App.csproj
 
 GitHub Actions builds the full WPF solution on `windows-latest` and runs package-free smoke/regression checks.
 
+## Self-contained Windows package
+
+Create a portable Windows x64 package that does not require a preinstalled .NET runtime:
+
+```powershell
+.\scripts\publish.ps1 -Runtime win-x64
+```
+
+Output:
+
+```text
+artifacts\PowerOps-win-x64\
+artifacts\PowerOps-win-x64.zip
+```
+
+Run `JUtilityPalette.exe` from the extracted folder. The package does not embed the user's workspace or credentials; the workspace remains under `%LOCALAPPDATA%\JUtilityPalette`.
+
+The Windows CI workflow also supports a manual **workflow_dispatch** run that builds and uploads the same x64 ZIP as an artifact.
+
 ## Architecture
 
 - `JUtility.Core` — models, local workspace persistence, URL normalization, project clipboard formatting, prompt composition.
