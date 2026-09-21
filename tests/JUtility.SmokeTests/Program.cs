@@ -623,6 +623,93 @@ Check("save refuses to overwrite an externally replaced future-schema primary", 
     }
 });
 
+Check("backup-copy failure leaves primary unchanged and cleans save temp", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityBackupCopyFailure-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "StablePrimary" });
+        store.Save(state);
+
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        if (File.Exists(store.BackupFilePath))
+        {
+            File.Delete(store.BackupFilePath);
+        }
+        Directory.CreateDirectory(store.BackupFilePath);
+
+        state.Projects.Add(new ProjectEntry { Name = "MustNotPublish" });
+        bool threw = false;
+        try
+        {
+            store.Save(state);
+        }
+        catch (IOException)
+        {
+            threw = true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+        True(Directory.Exists(store.BackupFilePath));
+        True(Directory.GetFiles(root, "workspace.save.*.tmp").Length == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("save with locked primary publishes nothing and cleans save temp", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedSave-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "StableBeforeLock" });
+        store.Save(state);
+
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+        state.Projects.Add(new ProjectEntry { Name = "MustNotPublish" });
+
+        bool threw = false;
+        using (FileStream held = new(store.DataFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            try
+            {
+                store.Save(state);
+            }
+            catch (IOException)
+            {
+                threw = true;
+            }
+        }
+
+        True(threw);
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+        True(Directory.GetFiles(root, "workspace.save.*.tmp").Length == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("locked primary does not fall back to backup or rewrite files", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedPrimary-" + Guid.NewGuid().ToString("N"));
