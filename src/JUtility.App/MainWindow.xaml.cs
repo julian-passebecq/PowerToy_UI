@@ -548,24 +548,84 @@ public partial class MainWindow : Window
         {
             case "Repository Hub":
                 _viewModel.AddProject();
+                ApplyCurrentRepositoryContext(_viewModel.Projects.Last());
                 break;
             case "Portals":
                 _viewModel.AddPortal();
+                ApplyCurrentCategory(_viewModel.SelectedPortal, GetModuleFilter("Portals"));
                 break;
             case "Clipboard":
                 _viewModel.AddClipboardSnippet();
+                ApplyCurrentCategory(_viewModel.SelectedSnippet, GetModuleFilter("Clipboard"));
                 break;
             case "Prompt Builder":
                 _viewModel.AddPromptModule();
                 break;
             default:
                 _viewModel.AddNote();
+                ApplyCurrentCaptureKind(_viewModel.SelectedNote);
                 if (_activeModule == "Dashboard") SelectWorkspaceTab("Capture");
                 break;
         }
 
         RefreshAfterDataChange();
         SafeSave();
+    }
+
+    private void ApplyCurrentRepositoryContext(ProjectEntry project)
+    {
+        if (_activeRepositoryFamilies.Count == 1)
+        {
+            project.Category = _activeRepositoryFamilies.First();
+            project.Subcategory = "Misc";
+            return;
+        }
+
+        string filter = GetModuleFilter("Repository Hub");
+        if (filter.StartsWith("family:", StringComparison.OrdinalIgnoreCase))
+        {
+            project.Category = filter["family:".Length..];
+            project.Subcategory = "Misc";
+        }
+        else if (filter.StartsWith("sub:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = filter["sub:".Length..].Split('|', 2);
+            if (parts.Length == 2)
+            {
+                project.Category = parts[0];
+                project.Subcategory = parts[1];
+            }
+        }
+    }
+
+    private static void ApplyCurrentCategory(PortalEntry? item, string filter)
+    {
+        if (item is not null && filter != "all")
+        {
+            item.Category = filter;
+        }
+    }
+
+    private static void ApplyCurrentCategory(ClipboardSnippetEntry? item, string filter)
+    {
+        if (item is not null && filter != "all")
+        {
+            item.Category = filter;
+        }
+    }
+
+    private void ApplyCurrentCaptureKind(StickyNoteEntry? note)
+    {
+        if (note is null)
+        {
+            return;
+        }
+
+        string filter = GetModuleFilter("Capture");
+        if (filter != "all" && Enum.TryParse(filter, ignoreCase: true, out CaptureKind kind))
+        {
+            note.Kind = kind;
+        }
     }
 
     private void RefreshCaptureBoard()
@@ -809,6 +869,7 @@ public partial class MainWindow : Window
     private void AddProject_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddProject();
+        ApplyCurrentRepositoryContext(_viewModel.Projects.Last());
         RefreshAfterDataChange();
         SafeSave();
     }
@@ -843,6 +904,7 @@ public partial class MainWindow : Window
     private void AddPortal_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddPortal();
+        ApplyCurrentCategory(_viewModel.SelectedPortal, GetModuleFilter("Portals"));
         RefreshAfterDataChange();
         SafeSave();
     }
@@ -898,6 +960,7 @@ public partial class MainWindow : Window
     private void AddSnippet_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddClipboardSnippet();
+        ApplyCurrentCategory(_viewModel.SelectedSnippet, GetModuleFilter("Clipboard"));
         RefreshAfterDataChange();
         SafeSave();
     }
@@ -1234,6 +1297,7 @@ public partial class MainWindow : Window
     private void AddNote_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddNote();
+        ApplyCurrentCaptureKind(_viewModel.SelectedNote);
         RefreshAfterDataChange();
         SafeSave();
     }
