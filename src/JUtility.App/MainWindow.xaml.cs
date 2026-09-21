@@ -59,18 +59,40 @@ public partial class MainWindow : Window
         _summonService.Triggered += SummonService_Triggered;
         Loaded += MainWindow_Loaded;
         Deactivated += MainWindow_Deactivated;
-        Closing += (_, _) =>
+        Closing += MainWindow_Closing;
+        Closed += (_, _) => _summonService.Dispose();
+    }
+
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        try
         {
+            _viewModel.Save();
+        }
+        catch (Exception ex)
+        {
+            bool previous = _suppressAutoHide;
+            _suppressAutoHide = true;
             try
             {
-                _viewModel.Save();
+                MessageBoxResult result = MessageBox.Show(
+                    this,
+                    $"The workspace could not be saved.\n\n{ex.Message}\n\nClose anyway and keep the last successfully saved workspace?",
+                    "Save failed",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+
+                if (result != MessageBoxResult.Yes)
+                {
+                    e.Cancel = true;
+                }
             }
-            catch
+            finally
             {
-                // Do not block window close if storage is temporarily unavailable.
+                _suppressAutoHide = previous;
             }
-        };
-        Closed += (_, _) => _summonService.Dispose();
+        }
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
