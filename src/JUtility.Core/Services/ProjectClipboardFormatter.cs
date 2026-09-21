@@ -12,6 +12,8 @@ public static class ProjectClipboardFormatter
         AddIf(parts, project.CopyName, project.Name);
         AddIf(parts, project.CopyRepo, project.RepoUrl);
         AddIf(parts, project.CopySite, project.SiteUrl);
+        AddIf(parts, project.CopyServer, project.ServerUrl);
+        AddIf(parts, project.CopyChatGpt, project.ChatGptUrl);
         AddIf(parts, project.CopyExtra, project.ExtraUrl);
         return string.Join(" ", parts);
     }
