@@ -236,6 +236,7 @@ public static class ResourceCatalogService
         }
 
         string? candidate = segments
+            .AsEnumerable()
             .Reverse()
             .FirstOrDefault(segment => !string.IsNullOrWhiteSpace(segment)
                 && !segment.Equals("view", StringComparison.OrdinalIgnoreCase)
