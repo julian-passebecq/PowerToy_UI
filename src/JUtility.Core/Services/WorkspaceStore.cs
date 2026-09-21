@@ -147,6 +147,7 @@ public sealed class WorkspaceStore
 
         state.Preferences ??= new AppPreferences();
         state.Projects = (state.Projects ?? []).Where(item => item is not null).ToList();
+        state.RepositoryLists = (state.RepositoryLists ?? []).Where(item => item is not null).ToList();
         state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
         state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
         state.PromptModules = (state.PromptModules ?? []).Where(item => item is not null).ToList();
@@ -169,6 +170,13 @@ public sealed class WorkspaceStore
             project.Name = NormalizeText(project.Name, "Untitled project");
             project.Category = NormalizeText(project.Category, "Projects");
             project.ExtraLabel = NormalizeText(project.ExtraLabel, "Extra");
+        }
+
+        foreach (RepositoryListEntry list in state.RepositoryLists)
+        {
+            list.Name = NormalizeText(list.Name, "Untitled list");
+            list.Category = NormalizeText(list.Category, "Saved lists");
+            list.Items = (list.Items ?? []).Where(item => item is not null).ToList();
         }
 
         foreach (PortalEntry portal in state.Portals)
