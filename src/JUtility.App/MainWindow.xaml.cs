@@ -991,6 +991,28 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void Category_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        switch ((sender as FrameworkElement)?.DataContext)
+        {
+            case PortalEntry:
+                _portalView?.Refresh();
+                break;
+            case ClipboardSnippetEntry:
+                _snippetView?.Refresh();
+                break;
+        }
+
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        SafeSave();
+    }
+
     private void PortalPinChanged_Click(object sender, RoutedEventArgs e)
     {
         if (!_loaded) return;
