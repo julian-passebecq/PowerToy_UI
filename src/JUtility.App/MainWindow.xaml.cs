@@ -2076,6 +2076,19 @@ public partial class MainWindow : Window
             return;
         }
 
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete saved repository list '{list.Name}'?\n\nRepository projects themselves are not deleted.",
+            "Delete saved repository list",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         _viewModel.RemoveRepositoryList(list);
         SafeSave();
     }
