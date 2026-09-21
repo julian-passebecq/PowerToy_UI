@@ -160,13 +160,15 @@ public partial class MainWindow : Window
 
     private void MainWindow_Deactivated(object? sender, EventArgs e)
     {
+        bool saveSucceeded = true;
         if (_loaded && !_suppressAutoHide)
         {
             CaptureCurrentWindowPlacement();
-            SafeSave();
+            saveSucceeded = SafeSave();
         }
 
-        if (_suppressAutoHide
+        if (!saveSucceeded
+            || _suppressAutoHide
             || _temporaryPin
             || _viewModel.WindowBehavior != WindowBehaviorMode.Summon
             || !_viewModel.HideOnFocusLoss)
