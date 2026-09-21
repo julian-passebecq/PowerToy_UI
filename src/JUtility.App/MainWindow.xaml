@@ -437,7 +437,7 @@
                     </WrapPanel>
                   </DockPanel>
 
-                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2">
+                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2" CellEditEnding="ProjectsGrid_CellEditEnding">
                     <DataGrid.Columns>
                       <DataGridTemplateColumn Header="✓" Width="36">
                         <DataGridTemplateColumn.CellTemplate>
