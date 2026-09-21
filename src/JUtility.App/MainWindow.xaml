@@ -576,7 +576,10 @@
                         <TextBlock Text="Capture" FontSize="20" FontWeight="SemiBold"/>
                         <TextBlock Text="Inbox · To-do · Notes · Bookmarks · Read later · Transcript" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
-                      <Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
+                      <WrapPanel HorizontalAlignment="Right">
+                        <Button Content="+ Capture" Click="AddNote_Click"/>
+                        <Button Content="Export all" Click="ExportCaptures_Click"/>
+                      </WrapPanel>
                     </DockPanel>
 
                     <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8">
