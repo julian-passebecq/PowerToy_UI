@@ -117,6 +117,7 @@ public partial class MainWindow : Window
     {
         try
         {
+            CaptureCurrentWindowPlacement();
             _viewModel.Save();
         }
         catch (Exception ex)
@@ -161,6 +162,7 @@ public partial class MainWindow : Window
     {
         if (_loaded && !_suppressAutoHide)
         {
+            CaptureCurrentWindowPlacement();
             SafeSave();
         }
 
@@ -1217,6 +1219,11 @@ public partial class MainWindow : Window
 
     private void SetViewMode(WorkspaceViewMode mode)
     {
+        if (_loaded)
+        {
+            CaptureCurrentWindowPlacement();
+        }
+
         _viewModel.ViewMode = mode;
         ApplyViewMode(mode);
         SafeSave();
@@ -1224,38 +1231,81 @@ public partial class MainWindow : Window
 
     private void ApplyViewMode(WorkspaceViewMode mode)
     {
+        double defaultWidth;
+        double defaultHeight;
+
         if (mode == WorkspaceViewMode.Sidebar)
         {
             SidebarPanel.Visibility = Visibility.Visible;
             PowerOpsShell.Visibility = Visibility.Collapsed;
             MinWidth = 360;
             MinHeight = 520;
-            Width = 390;
-            Height = Math.Max(700, Math.Min(Height, 900));
-            return;
-        }
-
-        SidebarPanel.Visibility = Visibility.Collapsed;
-        PowerOpsShell.Visibility = Visibility.Visible;
-
-        if (mode == WorkspaceViewMode.Compact)
-        {
-            MinWidth = 760;
-            MinHeight = 560;
-            PrimaryNavColumn.Width = new GridLength(155);
-            SecondaryNavColumn.Width = new GridLength(0);
-            Width = Math.Max(1040, Width);
-            Height = Math.Max(760, Height);
+            defaultWidth = 390;
+            defaultHeight = 760;
         }
         else
         {
-            MinWidth = 900;
-            MinHeight = 600;
-            PrimaryNavColumn.Width = new GridLength(185);
-            SecondaryNavColumn.Width = new GridLength(220);
-            Width = Math.Max(1480, Width);
-            Height = Math.Max(900, Height);
+            SidebarPanel.Visibility = Visibility.Collapsed;
+            PowerOpsShell.Visibility = Visibility.Visible;
+
+            if (mode == WorkspaceViewMode.Compact)
+            {
+                MinWidth = 760;
+                MinHeight = 560;
+                PrimaryNavColumn.Width = new GridLength(155);
+                SecondaryNavColumn.Width = new GridLength(0);
+                defaultWidth = 1040;
+                defaultHeight = 760;
+            }
+            else
+            {
+                MinWidth = 900;
+                MinHeight = 600;
+                PrimaryNavColumn.Width = new GridLength(185);
+                SecondaryNavColumn.Width = new GridLength(220);
+                defaultWidth = 1480;
+                defaultHeight = 900;
+            }
         }
+
+        WindowPlacementState placement = _viewModel.GetWindowPlacement(mode);
+        Width = placement.HasSize ? Math.Max(MinWidth, placement.Width) : defaultWidth;
+        Height = placement.HasSize ? Math.Max(MinHeight, placement.Height) : defaultHeight;
+
+        bool cursorPositionOwnsSummon =
+            _viewModel.WindowBehavior == WindowBehaviorMode.Summon
+            && _viewModel.OpenNearCursor;
+
+        if (placement.HasPosition && !cursorPositionOwnsSummon)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = placement.Left;
+            Top = placement.Top;
+        }
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            new Action(() => WindowPlacementService.EnsureVisible(this)));
+    }
+
+    private void CaptureCurrentWindowPlacement()
+    {
+        if (!_loaded || WindowState != WindowState.Normal || ActualWidth <= 0 || ActualHeight <= 0)
+        {
+            return;
+        }
+
+        bool includePosition =
+            _viewModel.WindowBehavior != WindowBehaviorMode.Summon
+            || !_viewModel.OpenNearCursor;
+
+        _viewModel.UpdateWindowPlacement(
+            _viewModel.ViewMode,
+            ActualWidth,
+            ActualHeight,
+            Left,
+            Top,
+            includePosition);
     }
 
     private void WindowBehavior_Changed(object sender, SelectionChangedEventArgs e)
