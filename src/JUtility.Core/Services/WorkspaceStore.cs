@@ -301,6 +301,52 @@ public sealed class WorkspaceStore
         state.RecentPrompts = (state.RecentPrompts ?? []).Where(item => item is not null).ToList();
         state.Notes = (state.Notes ?? []).Where(item => item is not null).ToList();
 
+        ValidateEnum(state.Preferences.LastView, "Preferences.LastView");
+        ValidateEnum(state.Preferences.WindowBehavior, "Preferences.WindowBehavior");
+        ValidateEnum(state.Preferences.SummonMouseBinding, "Preferences.SummonMouseBinding");
+
+        ValidateUniqueIds(state.Projects, item => item.Id, "Projects");
+        ValidateUniqueIds(state.RepositoryLists, item => item.Id, "RepositoryLists");
+        ValidateUniqueIds(state.Portals, item => item.Id, "Portals");
+        ValidateUniqueIds(state.Resources, item => item.Id, "Resources");
+        ValidateUniqueIds(state.ClipboardSnippets, item => item.Id, "ClipboardSnippets");
+        ValidateUniqueIds(state.PromptModules, item => item.Id, "PromptModules");
+        ValidateUniqueIds(state.RecentPrompts, item => item.Id, "RecentPrompts");
+        ValidateUniqueIds(state.Notes, item => item.Id, "Notes");
+
+        foreach (RepositoryListEntry list in state.RepositoryLists)
+        {
+            foreach (RepositoryListItemEntry item in list.Items)
+            {
+                if (item.ProjectId == Guid.Empty)
+                {
+                    throw new InvalidDataException($"RepositoryLists '{list.Name}' contains an empty ProjectId.");
+                }
+            }
+        }
+
+        foreach (PortalEntry portal in state.Portals)
+        {
+            ValidateUniqueIds(portal.Links, item => item.Id, $"Portals[{portal.Name}].Links");
+        }
+
+        foreach (WorkspaceResourceEntry resource in state.Resources)
+        {
+            if (resource.SourceProjectId == Guid.Empty)
+            {
+                throw new InvalidDataException($"Resource '{resource.Name}' contains an empty SourceProjectId.");
+            }
+        }
+
+        foreach (StickyNoteEntry note in state.Notes)
+        {
+            ValidateEnum(note.Kind, $"Notes[{note.Title}].Kind");
+            if (note.ProjectId == Guid.Empty)
+            {
+                throw new InvalidDataException($"Capture '{note.Title}' contains an empty ProjectId.");
+            }
+        }
+
         if (incomingSchemaVersion < 2
             && state.Preferences.AlwaysOnTop
             && state.Preferences.WindowBehavior == WindowBehaviorMode.Normal)
@@ -366,7 +412,54 @@ public sealed class WorkspaceStore
             module.Category = NormalizeText(module.Category, "General");
         }
 
+        foreach (RecentPromptEntry prompt in state.RecentPrompts)
+        {
+            prompt.Title = NormalizeText(prompt.Title, "Prompt");
+            prompt.Text = prompt.Text?.Trim() ?? string.Empty;
+        }
+
+        state.RecentPrompts = state.RecentPrompts
+            .Where(prompt => prompt.Text.Length > 0)
+            .GroupBy(prompt => prompt.Text, StringComparer.Ordinal)
+            .Select(group => group.OrderByDescending(prompt => prompt.CreatedUtc).First())
+            .OrderByDescending(prompt => prompt.CreatedUtc)
+            .Take(MaxRecentPrompts)
+            .ToList();
+
         return state;
+    }
+
+    private static void ValidateUniqueIds<T>(
+        IEnumerable<T> items,
+        Func<T, Guid> idSelector,
+        string collectionName)
+    {
+        HashSet<Guid> seen = [];
+        int index = 0;
+        foreach (T item in items)
+        {
+            Guid id = idSelector(item);
+            if (id == Guid.Empty)
+            {
+                throw new InvalidDataException($"{collectionName}[{index}] has an empty Id.");
+            }
+
+            if (!seen.Add(id))
+            {
+                throw new InvalidDataException($"{collectionName} contains duplicate Id '{id}'.");
+            }
+
+            index++;
+        }
+    }
+
+    private static void ValidateEnum<TEnum>(TEnum value, string field)
+        where TEnum : struct, Enum
+    {
+        if (!Enum.IsDefined(value))
+        {
+            throw new InvalidDataException($"{field} contains unsupported value '{value}'.");
+        }
     }
 
     private static string NormalizeText(string? value, string fallback) =>
