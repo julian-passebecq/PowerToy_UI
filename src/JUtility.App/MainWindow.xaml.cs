@@ -2153,24 +2153,29 @@ public partial class MainWindow : Window
             return;
         }
 
+        int opened = 0;
         foreach (string url in urls)
         {
-            if (UrlNormalizer.TryNormalizeOptionalWebUrl(url, out string normalized) && !string.IsNullOrWhiteSpace(normalized))
+            if (!UrlNormalizer.TryNormalizeOptionalWebUrl(url, out string normalized)
+                || string.IsNullOrWhiteSpace(normalized))
             {
-                try
-                {
-                    Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
-                }
-                catch
-                {
-                    // Continue opening the remaining selected repositories.
-                }
+                continue;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
+                opened++;
+            }
+            catch
+            {
+                // Continue opening the remaining selected repositories.
             }
         }
 
         _viewModel.StatusText = urls.Length == 20
-            ? "Opened the first 20 selected repositories"
-            : $"Opened {urls.Length} selected repositories";
+            ? $"Opened {opened} of the first 20 selected repositories"
+            : $"Opened {opened} of {urls.Length} selected repositories";
     }
 
     private void OpenUrl_Click(object sender, RoutedEventArgs e)
