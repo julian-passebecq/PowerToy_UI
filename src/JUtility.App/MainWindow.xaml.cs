@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -52,6 +53,7 @@ public partial class MainWindow : Window
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
     private ICollectionView? _captureView;
+    private ICollectionView? _sidebarCaptureView;
     private ICollectionView? _snippetView;
     private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
@@ -224,6 +226,14 @@ public partial class MainWindow : Window
                 || _activeCaptureSubjects.Contains(string.IsNullOrWhiteSpace(note.Subject) ? "Uncategorized" : note.Subject.Trim());
         };
         CaptureList.ItemsSource = _captureView;
+
+        _sidebarCaptureView = new ListCollectionView((IList)_viewModel.Notes)
+        {
+            Filter = item => item is StickyNoteEntry note
+                && !note.IsArchived
+                && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted),
+        };
+        SidebarCaptureList.ItemsSource = _sidebarCaptureView;
 
         _snippetView = CollectionViewSource.GetDefaultView(_viewModel.ClipboardSnippets);
         _snippetView.Filter = item =>
@@ -814,6 +824,7 @@ public partial class MainWindow : Window
         _projectView?.Refresh();
         _portalView?.Refresh();
         _captureView?.Refresh();
+        _sidebarCaptureView?.Refresh();
         _snippetView?.Refresh();
         _promptView?.Refresh();
         RefreshSecondaryNavigation();
@@ -1539,6 +1550,7 @@ public partial class MainWindow : Window
 
         note.UpdatedUtc = DateTimeOffset.UtcNow;
         _captureView?.Refresh();
+        _sidebarCaptureView?.Refresh();
         RefreshSecondaryNavigation();
         RefreshQuickRibbon();
         RefreshCaptureBoard();
