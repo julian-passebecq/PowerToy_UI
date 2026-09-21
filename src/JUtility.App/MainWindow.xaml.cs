@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -27,6 +28,13 @@ public sealed record ProjectTreeNode(string Key, string Label, int Count, IReadO
 
 public partial class MainWindow : Window
 {
+    private static readonly JsonSerializerOptions CaptureExportJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     private readonly MainViewModel _viewModel;
     private readonly GlobalMouseSummonService _summonService = new();
     private bool _temporaryPin;
@@ -1630,7 +1638,7 @@ public partial class MainWindow : Window
                     exportedUtc = DateTimeOffset.UtcNow,
                     captures,
                 };
-                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(envelope, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(envelope, CaptureExportJsonOptions));
             }
 
             _viewModel.StatusText = $"Exported {captures.Length} captures";
@@ -1669,7 +1677,7 @@ public partial class MainWindow : Window
 
             if (string.Equals(Path.GetExtension(dialog.FileName), ".json", StringComparison.OrdinalIgnoreCase))
             {
-                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(note, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(note, CaptureExportJsonOptions));
             }
             else
             {
