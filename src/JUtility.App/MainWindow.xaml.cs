@@ -893,6 +893,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ProjectsGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            RefreshProjectTree();
+            RefreshQuickRibbon();
+            _projectView?.Refresh();
+            SafeSave();
+        }));
+    }
+
     private void ProjectIncludeChanged_Click(object sender, RoutedEventArgs e)
     {
         if (_refreshingProjectSelection
