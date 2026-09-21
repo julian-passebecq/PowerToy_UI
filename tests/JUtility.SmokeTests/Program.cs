@@ -973,6 +973,81 @@ Check("v3 workspace migrates to schema v4 with an empty Resource Hub", () =>
     }
 });
 
+Check("recognizable schema-less workspace is treated as legacy v1", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilitySchemaLessLegacy-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            Path.Combine(root, "workspace.json"),
+            """
+            {
+              "Preferences": { "AlwaysOnTop": true },
+              "Projects": [],
+              "PromptModules": [],
+              "RecentPrompts": [],
+              "Notes": []
+            }
+            """);
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+        True(loaded.Preferences.WindowBehavior == WindowBehaviorMode.AlwaysOnTop);
+        True(loaded.Preferences.AlwaysOnTop);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("explicit invalid schema zero is rejected without rewriting source", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilitySchemaZero-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "workspace.json");
+        string invalid = """
+        {
+          "SchemaVersion": 0,
+          "Projects": [],
+          "PromptModules": [],
+          "RecentPrompts": [],
+          "Notes": []
+        }
+        """;
+        File.WriteAllText(path, invalid);
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(invalid, File.ReadAllText(path));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("v1 always-on-top preference migrates to window behavior mode", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityMigration-" + Guid.NewGuid().ToString("N"));
