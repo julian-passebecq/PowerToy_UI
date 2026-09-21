@@ -105,6 +105,7 @@ public sealed class WorkspaceStore
         || name.Equals(nameof(WorkspaceState.Projects), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.RepositoryLists), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Portals), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Resources), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.ClipboardSnippets), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.PromptModules), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.RecentPrompts), StringComparison.OrdinalIgnoreCase)
@@ -178,6 +179,7 @@ public sealed class WorkspaceStore
         state.Projects = (state.Projects ?? []).Where(item => item is not null).ToList();
         state.RepositoryLists = (state.RepositoryLists ?? []).Where(item => item is not null).ToList();
         state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
+        state.Resources = (state.Resources ?? []).Where(item => item is not null).ToList();
         state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
         state.PromptModules = (state.PromptModules ?? []).Where(item => item is not null).ToList();
         state.RecentPrompts = (state.RecentPrompts ?? []).Where(item => item is not null).ToList();
@@ -221,6 +223,14 @@ public sealed class WorkspaceStore
             {
                 link.Label = NormalizeText(link.Label, "Link");
             }
+        }
+
+        foreach (WorkspaceResourceEntry resource in state.Resources)
+        {
+            resource.Name = NormalizeText(resource.Name, "Untitled resource");
+            resource.Provider = NormalizeText(resource.Provider, "Other");
+            resource.Kind = NormalizeText(resource.Kind, "Link");
+            resource.Group = NormalizeText(resource.Group, "General");
         }
 
         foreach (ClipboardSnippetEntry snippet in state.ClipboardSnippets)
