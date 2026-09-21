@@ -1783,11 +1783,21 @@ public partial class MainWindow : Window
         {
             if (dialog.ShowDialog(this) == true)
             {
-                _viewModel.Import(dialog.FileName);
-                InitializeWorkspaceViews();
-                ApplyViewMode(_viewModel.ViewMode);
-                ApplyWindowBehavior();
-                ApplyExtraColumnVisibility();
+                bool wasLoaded = _loaded;
+                _loaded = false;
+                try
+                {
+                    _viewModel.Import(dialog.FileName);
+                    InitializeWorkspaceViews();
+                    ApplyViewMode(_viewModel.ViewMode);
+                    ApplyWindowBehavior();
+                    ApplyExtraColumnVisibility();
+                }
+                finally
+                {
+                    _loaded = wasLoaded;
+                }
+
                 RefreshAfterDataChange();
             }
         }
