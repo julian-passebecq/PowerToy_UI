@@ -324,6 +324,12 @@ public sealed class WorkspaceStore
         }
 
         state.Preferences ??= new AppPreferences();
+        state.Preferences.SidebarPlacement ??= new WindowPlacementState();
+        state.Preferences.CompactPlacement ??= new WindowPlacementState();
+        state.Preferences.ExpandedPlacement ??= new WindowPlacementState();
+        NormalizeWindowPlacement(state.Preferences.SidebarPlacement);
+        NormalizeWindowPlacement(state.Preferences.CompactPlacement);
+        NormalizeWindowPlacement(state.Preferences.ExpandedPlacement);
         state.Projects = (state.Projects ?? []).Where(item => item is not null).ToList();
         state.RepositoryLists = (state.RepositoryLists ?? []).Where(item => item is not null).ToList();
         state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
@@ -483,6 +489,34 @@ public sealed class WorkspaceStore
             .ToList();
 
         return state;
+    }
+
+    private static void NormalizeWindowPlacement(WindowPlacementState placement)
+    {
+        if (!placement.HasSize
+            || !double.IsFinite(placement.Width)
+            || !double.IsFinite(placement.Height)
+            || placement.Width <= 0
+            || placement.Height <= 0)
+        {
+            placement.HasSize = false;
+            placement.Width = 0;
+            placement.Height = 0;
+        }
+        else
+        {
+            placement.Width = Math.Clamp(placement.Width, 360, 10000);
+            placement.Height = Math.Clamp(placement.Height, 400, 10000);
+        }
+
+        if (!placement.HasPosition
+            || !double.IsFinite(placement.Left)
+            || !double.IsFinite(placement.Top))
+        {
+            placement.HasPosition = false;
+            placement.Left = 0;
+            placement.Top = 0;
+        }
     }
 
     private static void ValidateUniqueIds<T>(
