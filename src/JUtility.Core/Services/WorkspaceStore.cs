@@ -145,7 +145,15 @@ public sealed class WorkspaceStore
                 return false;
             }
 
-            state = JsonSerializer.Deserialize<WorkspaceState>(File.ReadAllText(path), JsonOptions);
+            string json = File.ReadAllText(path);
+            using JsonDocument document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.EnumerateObject().Any(property => KnownWorkspaceProperty(property.Name)))
+            {
+                return false;
+            }
+
+            state = JsonSerializer.Deserialize<WorkspaceState>(json, JsonOptions);
             return state is not null;
         }
         catch (JsonException)
