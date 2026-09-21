@@ -1392,6 +1392,16 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void CaptureDueDateChanged_Click(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        SafeSave();
+    }
+
     private void CaptureSubject_LostFocus(object sender, RoutedEventArgs e)
     {
         if (!_loaded)
