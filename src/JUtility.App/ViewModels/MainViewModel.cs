@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject
         _store = new WorkspaceStore();
         _state = _store.Load();
         Projects = new ObservableCollection<ProjectEntry>(_state.Projects);
+        RepositoryLists = new ObservableCollection<RepositoryListEntry>(_state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         Portals = new ObservableCollection<PortalEntry>(_state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ClipboardSnippets = new ObservableCollection<ClipboardSnippetEntry>(_state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
         PromptModules = new ObservableCollection<PromptModuleEntry>(_state.PromptModules.OrderBy(item => item.SortOrder));
@@ -34,6 +35,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public ObservableCollection<ProjectEntry> Projects { get; }
+    public ObservableCollection<RepositoryListEntry> RepositoryLists { get; }
     public ObservableCollection<PortalEntry> Portals { get; }
     public ObservableCollection<ClipboardSnippetEntry> ClipboardSnippets { get; }
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
@@ -349,6 +351,7 @@ public sealed class MainViewModel : ObservableObject
     {
         _state = _store.Import(path);
         ReplaceCollection(Projects, _state.Projects);
+        ReplaceCollection(RepositoryLists, _state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         ReplaceCollection(Portals, _state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ReplaceCollection(ClipboardSnippets, _state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
         ReplaceCollection(PromptModules, _state.PromptModules.OrderBy(item => item.SortOrder));
@@ -370,6 +373,7 @@ public sealed class MainViewModel : ObservableObject
     private void SyncState()
     {
         _state.Projects = Projects.ToList();
+        _state.RepositoryLists = RepositoryLists.ToList();
         _state.Portals = Portals.ToList();
         _state.ClipboardSnippets = ClipboardSnippets.ToList();
         _state.PromptModules = PromptModules.ToList();
