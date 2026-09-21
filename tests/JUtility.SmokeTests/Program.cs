@@ -490,6 +490,45 @@ Check("save never rotates malformed primary bytes over last-known-good backup", 
     }
 });
 
+Check("save refuses to overwrite an externally replaced future-schema primary", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityFuturePrimarySaveGuard-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "BeforeFuture" });
+        store.Save(state);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+
+        string future = "{\"SchemaVersion\":999,\"Projects\":[{\"Name\":\"ExternalFuture\"}],\"Notes\":[]}";
+        File.WriteAllText(store.DataFilePath, future);
+        state.Projects.Add(new ProjectEntry { Name = "MustNotPublish" });
+
+        bool threw = false;
+        try
+        {
+            store.Save(state);
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(future, File.ReadAllText(store.DataFilePath));
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+        True(Directory.GetFiles(root, "workspace.save.*.tmp").Length == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("locked primary does not fall back to backup or rewrite files", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedPrimary-" + Guid.NewGuid().ToString("N"));
