@@ -67,9 +67,11 @@ A one-click library for premade prompts, commands, URLs, signatures, fragments, 
 
 ### Prompt Builder
 
-The existing modular prompt composer remains separate from the quick Clipboard surface. It supports ordered modules, recent prompt history, and project variables including:
+The existing modular prompt composer remains separate from the quick Clipboard surface. It supports ordered modules, recent prompt history, and built-in project variables including:
 
 `{{project}}`, `{{repo}}`, `{{site}}`, `{{server}}`, `{{chatgpt}}`, and `{{extra}}`.
+
+Any other placeholder such as `{{environment}}` or `{{region}}` is detected automatically and exposed as an input in Prompt Builder before preview/copy.
 
 ## Window modes
 
