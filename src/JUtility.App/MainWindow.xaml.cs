@@ -737,6 +737,21 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void DeletePortalLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal
+            || (sender as FrameworkElement)?.Tag is not PortalLinkEntry link)
+        {
+            return;
+        }
+
+        portal.Links.Remove(link);
+        portal.UpdatedUtc = DateTimeOffset.UtcNow;
+        PortalLinksGrid.Items.Refresh();
+        _viewModel.StatusText = "Portal sub-link removed";
+        SafeSave();
+    }
+
     private void AddSnippet_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddClipboardSnippet();
@@ -903,7 +918,70 @@ public partial class MainWindow : Window
     }
 
     private void CopyAll_Click(object sender, RoutedEventArgs e) =>
-        CopyText(ProjectClipboardFormatter.FormatAll(_viewModel.Projects), "Included projects copied");
+        CopyText(ProjectClipboardFormatter.FormatAll(_viewModel.Projects), "Selected repository URLs copied");
+
+    private void CopyGithubColumn_Click(object sender, RoutedEventArgs e) =>
+        CopyProjectLinkColumn(project => project.RepoUrl, project => project.CopyRepo, "GitHub URLs");
+
+    private void CopyWebsiteColumn_Click(object sender, RoutedEventArgs e) =>
+        CopyProjectLinkColumn(project => project.SiteUrl, project => project.CopySite, "website URLs");
+
+    private void CopyServerColumn_Click(object sender, RoutedEventArgs e) =>
+        CopyProjectLinkColumn(project => project.ServerUrl, project => project.CopyServer, "server URLs");
+
+    private void CopyChatGptColumn_Click(object sender, RoutedEventArgs e) =>
+        CopyProjectLinkColumn(project => project.ChatGptUrl, project => project.CopyChatGpt, "ChatGPT URLs");
+
+    private void CopyProjectLinkColumn(
+        Func<ProjectEntry, string> valueSelector,
+        Func<ProjectEntry, bool> includeSelector,
+        string label)
+    {
+        string[] values = _viewModel.Projects
+            .Where(project => project.IncludeInCopyAll && !project.IsArchived && includeSelector(project))
+            .Select(valueSelector)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        CopyText(string.Join(Environment.NewLine, values), $"{values.Length} {label} copied");
+    }
+
+    private void OpenSelectedRepos_Click(object sender, RoutedEventArgs e)
+    {
+        string[] urls = _viewModel.Projects
+            .Where(project => project.IncludeInCopyAll && !project.IsArchived && !string.IsNullOrWhiteSpace(project.RepoUrl))
+            .Select(project => project.RepoUrl)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToArray();
+
+        if (urls.Length == 0)
+        {
+            _viewModel.StatusText = "No repository rows selected";
+            return;
+        }
+
+        foreach (string url in urls)
+        {
+            if (UrlNormalizer.TryNormalizeOptionalWebUrl(url, out string normalized) && !string.IsNullOrWhiteSpace(normalized))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
+                }
+                catch
+                {
+                    // Continue opening the remaining selected repositories.
+                }
+            }
+        }
+
+        _viewModel.StatusText = urls.Length == 20
+            ? "Opened the first 20 selected repositories"
+            : $"Opened {urls.Length} selected repositories";
+    }
 
     private void OpenUrl_Click(object sender, RoutedEventArgs e)
     {
