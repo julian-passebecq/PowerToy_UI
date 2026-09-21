@@ -32,8 +32,145 @@
         </StackPanel>
       </ScrollViewer>
       <TabControl x:Name="WorkspacePanel" Background="Transparent" BorderThickness="0">
-        <TabItem Header="Projects"><Grid Margin="6"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel Grid.Row="0" Margin="0,0,0,8"><WrapPanel><Button Content="Add project" Click="AddProject_Click"/><Button Content="Copy all included" Click="CopyAll_Click"/></WrapPanel><CheckBox Content="Show Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" HorizontalAlignment="Right"/></DockPanel><DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White"><DataGrid.Columns><DataGridCheckBoxColumn Header="All" Binding="{Binding IncludeInCopyAll}" Width="42"/><DataGridTextColumn Header="Name" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="1.3*"/><DataGridTextColumn Header="Repo" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="2*"/><DataGridTextColumn Header="Site" Binding="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Width="2*"/><DataGridTextColumn x:Name="ExtraUrlColumn" Header="Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/><DataGridCheckBoxColumn Header="Archived" Binding="{Binding IsArchived}" Width="70"/><DataGridTemplateColumn Header="Copy" Width="145"><DataGridTemplateColumn.CellTemplate><DataTemplate><WrapPanel><CheckBox Content="N" IsChecked="{Binding CopyName}" Margin="2"/><CheckBox Content="R" IsChecked="{Binding CopyRepo}" Margin="2"/><CheckBox Content="S" IsChecked="{Binding CopySite}" Margin="2"/><CheckBox Content="E" IsChecked="{Binding CopyExtra}" Margin="2"/></WrapPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn><DataGridTemplateColumn Header="Actions" Width="300"><DataGridTemplateColumn.CellTemplate><DataTemplate><WrapPanel><Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/><Button Content="Copy R" Tag="{Binding RepoUrl}" Click="CopyValue_Click"/><Button Content="Site" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/><Button Content="Copy S" Tag="{Binding SiteUrl}" Click="CopyValue_Click"/><Button Content="Extra" Tag="{Binding ExtraUrl}" Click="OpenUrl_Click"/><Button Content="Copy E" Tag="{Binding ExtraUrl}" Click="CopyValue_Click"/><Button Content="Row" Tag="{Binding}" Click="CopyRow_Click"/><Button Content="Del" Tag="{Binding}" Click="DeleteProject_Click"/></WrapPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid><TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Open buttons open. Copy buttons copy. Hiding Extra keeps its data."/></Grid></TabItem>
-        <TabItem Header="Prompts"><Grid Margin="6"><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions><Grid Grid.Column="0" Margin="0,0,8,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel><TextBlock Text="Reusable modules" FontSize="15" FontWeight="SemiBold"/><Button Content="Add" HorizontalAlignment="Right" Click="AddModule_Click"/></DockPanel><ListBox Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6"><ListBox.ItemTemplate><DataTemplate><Border Padding="5"><StackPanel><DockPanel><CheckBox IsChecked="{Binding IsEnabled}"/><TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="190"/><Button Content="Up" Tag="{Binding}" Click="MoveModuleUp_Click"/><Button Content="Down" Tag="{Binding}" Click="MoveModuleDown_Click"/></DockPanel><TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Grid.Row="2" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Text="Use {{project}}, {{repo}}, {{site}}, or {{extra}}. Unknown variables remain visible."/></Grid><Grid Grid.Column="1" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="150"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/><WrapPanel><Button Content="Preview" Click="PreviewPrompt_Click"/><Button Content="Copy prompt" Click="ComposeCopy_Click"/><Button Content="Copy + project" Click="ComposeCopyProject_Click"/></WrapPanel></StackPanel><TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/><TextBlock Grid.Row="2" Text="Recent prompts" FontWeight="SemiBold"/><ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox></Grid></Grid></TabItem>
+        <TabItem Header="Dashboard">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12">
+              <TextBlock Text="Power Ops Dashboard" FontSize="24" FontWeight="SemiBold"/>
+              <TextBlock Text="Quick access to project links, portals, captures, and reusable clipboard content." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,14"/>
+              <UniformGrid Columns="4">
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Repositories" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Projects.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Portals" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Portals.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Captures" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Notes.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Clipboard snippets" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding ClipboardSnippets.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+              </UniformGrid>
+              <TextBlock Text="Modules" FontSize="16" FontWeight="SemiBold" Margin="4,18,4,6"/>
+              <WrapPanel>
+                <Button Content="Repository Hub" Click="RepositoryHub_Click"/>
+                <Button Content="Portal Launcher" Click="PortalLauncher_Click"/>
+                <Button Content="Capture" Click="Capture_Click"/>
+                <Button Content="Clipboard" Click="Clipboard_Click"/>
+                <Button Content="Prompt Builder" Click="PromptBuilder_Click"/>
+              </WrapPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Repository Hub">
+          <Grid Margin="6">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <DockPanel Grid.Row="0" Margin="0,0,0,8">
+              <WrapPanel>
+                <Button Content="Add project" Click="AddProject_Click"/>
+                <Button Content="Copy all included" Click="CopyAll_Click"/>
+              </WrapPanel>
+              <CheckBox Content="Show legacy Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" HorizontalAlignment="Right"/>
+            </DockPanel>
+            <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
+              <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="All" Binding="{Binding IncludeInCopyAll}" Width="42"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
+                <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                <DataGridTextColumn Header="Repo" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.6*"/>
+                <DataGridTextColumn Header="Website" Binding="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
+                <DataGridTextColumn Header="Server" Binding="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
+                <DataGridTextColumn Header="ChatGPT" Binding="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
+                <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
+                <DataGridCheckBoxColumn Header="Archived" Binding="{Binding IsArchived}" Width="70"/>
+                <DataGridTemplateColumn Header="Copy" Width="220">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <WrapPanel>
+                        <CheckBox Content="N" IsChecked="{Binding CopyName}" Margin="2"/>
+                        <CheckBox Content="R" IsChecked="{Binding CopyRepo}" Margin="2"/>
+                        <CheckBox Content="W" IsChecked="{Binding CopySite}" Margin="2"/>
+                        <CheckBox Content="S" IsChecked="{Binding CopyServer}" Margin="2"/>
+                        <CheckBox Content="G" IsChecked="{Binding CopyChatGpt}" Margin="2"/>
+                        <CheckBox Content="E" IsChecked="{Binding CopyExtra}" Margin="2"/>
+                      </WrapPanel>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Actions" Width="390">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <WrapPanel>
+                        <Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/>
+                        <Button Content="Web" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/>
+                        <Button Content="Server" Tag="{Binding ServerUrl}" Click="OpenUrl_Click"/>
+                        <Button Content="ChatGPT" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click"/>
+                        <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
+                        <Button Content="Del" Tag="{Binding}" Click="DeleteProject_Click"/>
+                      </WrapPanel>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Repository rows can carry GitHub, website, server/hosting, and ChatGPT links. Copy switches control the combined clipboard row."/>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Portals">
+          <Grid Margin="6">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="0.78*"/><ColumnDefinition Width="1.7*"/></Grid.ColumnDefinitions>
+            <Grid Grid.Column="0" Margin="0,0,8,0">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <DockPanel>
+                <StackPanel><TextBlock Text="Portal Launcher" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="Main portals and project sub-links" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
+                <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click"/>
+              </DockPanel>
+              <ListBox Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Border Padding="7">
+                      <StackPanel>
+                        <DockPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}"/></DockPanel>
+                        <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Button Grid.Row="2" Content="Delete selected portal" Click="DeletePortal_Click"/>
+            </Grid>
+            <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedPortal}">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <StackPanel>
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="SemiBold"/>
+                <WrapPanel>
+                  <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                  <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key"/>
+                  <CheckBox Content="Pin to ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8"/>
+                  <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
+                </WrapPanel>
+                <DockPanel>
+                  <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL"/>
+                  <WrapPanel DockPanel.Dock="Right">
+                    <Button Content="Open main" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
+                    <Button Content="Copy" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
+                  </WrapPanel>
+                </DockPanel>
+              </StackPanel>
+              <DockPanel Grid.Row="1" Margin="0,10,0,4"><TextBlock Text="Saved sub-links" FontWeight="SemiBold" VerticalAlignment="Center"/><Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/></DockPanel>
+              <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                  <DataGridTextColumn Header="Project" Binding="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                  <DataGridTextColumn Header="URL" Binding="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
+                  <DataGridTextColumn Header="Note" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
+                  <DataGridTemplateColumn Header="Actions" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate><WrapPanel><Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/><Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/></WrapPanel></DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                </DataGrid.Columns>
+              </DataGrid>
+              <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Portal cards do not use multi-select: open the main portal directly or open a saved project-specific sub-link."/>
+            </Grid>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Prompt Builder"><Grid Margin="6"><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions><Grid Grid.Column="0" Margin="0,0,8,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel><TextBlock Text="Reusable modules" FontSize="15" FontWeight="SemiBold"/><Button Content="Add" HorizontalAlignment="Right" Click="AddModule_Click"/></DockPanel><ListBox Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6"><ListBox.ItemTemplate><DataTemplate><Border Padding="5"><StackPanel><DockPanel><CheckBox IsChecked="{Binding IsEnabled}"/><TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="190"/><Button Content="Up" Tag="{Binding}" Click="MoveModuleUp_Click"/><Button Content="Down" Tag="{Binding}" Click="MoveModuleDown_Click"/></DockPanel><TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Grid.Row="2" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Text="Use {{project}}, {{repo}}, {{site}}, or {{extra}}. Unknown variables remain visible."/></Grid><Grid Grid.Column="1" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="150"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/><WrapPanel><Button Content="Preview" Click="PreviewPrompt_Click"/><Button Content="Copy prompt" Click="ComposeCopy_Click"/><Button Content="Copy + project" Click="ComposeCopyProject_Click"/></WrapPanel></StackPanel><TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/><TextBlock Grid.Row="2" Text="Recent prompts" FontWeight="SemiBold"/><ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox></Grid></Grid></TabItem>
         <TabItem Header="Notes"><Grid Margin="6"><Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1.5*"/></Grid.ColumnDefinitions><StackPanel Margin="0,0,8,0"><DockPanel><TextBlock Text="Sticky notes" FontSize="15" FontWeight="SemiBold"/><Button Content="New" HorizontalAlignment="Right" Click="AddNote_Click"/></DockPanel><ListBox ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" DisplayMemberPath="Title" Margin="0,6"/></StackPanel><Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedNote}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><StackPanel><TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/><TextBox Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma-separated labels"/></StackPanel><TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/><WrapPanel Grid.Row="2"><CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6"/><Button Content="Copy note" Click="CopyNote_Click"/><Button Content="Archive / restore" Click="ArchiveNote_Click"/></WrapPanel></Grid></Grid></TabItem>
         <TabItem Header="Settings">
           <StackPanel Margin="12" MaxWidth="720" HorizontalAlignment="Left">
