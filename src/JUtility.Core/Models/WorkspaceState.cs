@@ -36,6 +36,7 @@ public sealed class AppPreferences
     public bool ShowExtraColumn { get; set; } = true;
     public bool IncludeCompletedCaptures { get; set; }
     public string GitHubOwner { get; set; } = "julian-passebecq";
+    public string LastModule { get; set; } = "Dashboard";
 }
 
 public sealed class ProjectEntry
