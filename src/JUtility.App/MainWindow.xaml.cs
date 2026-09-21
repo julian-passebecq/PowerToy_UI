@@ -451,6 +451,10 @@ public partial class MainWindow : Window
             _ => "+ Capture",
         };
 
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Capture" or "Clipboard" or "Prompt Builder";
+        ShellSearchBox.IsEnabled = searchableModule;
+        ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
+
         bool repositoryModule = _activeModule == "Repository Hub";
         RepoSavedListsPanel.Visibility = repositoryModule ? Visibility.Visible : Visibility.Collapsed;
         RepositoryTree.Visibility = repositoryModule ? Visibility.Visible : Visibility.Collapsed;
