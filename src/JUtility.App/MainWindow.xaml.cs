@@ -1552,6 +1552,13 @@ public partial class MainWindow : Window
 
     private void ResourceList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        if (e.OriginalSource is DependencyObject source
+            && FindVisualAncestor<Button>(source) is not null)
+        {
+            // Buttons inside a resource card own their click behavior; do not also open the row.
+            return;
+        }
+
         if (_viewModel.SelectedResource is not WorkspaceResourceEntry resource
             || string.IsNullOrWhiteSpace(resource.Url))
         {
@@ -1560,6 +1567,23 @@ public partial class MainWindow : Window
 
         OpenUrlValue(resource.Url);
         e.Handled = true;
+    }
+
+    private static T? FindVisualAncestor<T>(DependencyObject? element)
+        where T : DependencyObject
+    {
+        DependencyObject? current = element;
+        while (current is not null)
+        {
+            if (current is T match)
+            {
+                return match;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 
     private void ResourceList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
