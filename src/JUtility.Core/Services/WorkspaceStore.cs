@@ -192,6 +192,7 @@ public sealed class WorkspaceStore
         {
             project.Name = NormalizeText(project.Name, "Untitled project");
             project.Category = NormalizeText(project.Category, "Projects");
+            project.Subcategory = NormalizeText(project.Subcategory, "Misc");
             project.ExtraLabel = NormalizeText(project.ExtraLabel, "Extra");
         }
 
