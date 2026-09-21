@@ -454,6 +454,42 @@ Check("workspace save normalizes a detached snapshot without mutating caller obj
     }
 });
 
+Check("save never rotates malformed primary bytes over last-known-good backup", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityBackupRotationGuard-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "GoodGeneration" });
+        store.Save(state);
+        state.Projects.Add(new ProjectEntry { Name = "NewestGeneration" });
+        store.Save(state);
+
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+        True(backupBefore.Contains("GoodGeneration", StringComparison.Ordinal));
+        False(backupBefore.Contains("NewestGeneration", StringComparison.Ordinal));
+
+        File.WriteAllText(store.DataFilePath, "{externally-corrupt");
+        state.Projects.Add(new ProjectEntry { Name = "RecoveredFromMemory" });
+        store.Save(state);
+
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+        string[] evidence = Directory.GetFiles(root, "workspace.invalid.*.json");
+        True(evidence.Any(path => File.ReadAllText(path) == "{externally-corrupt"));
+
+        WorkspaceState loaded = store.Load();
+        True(loaded.Projects.Any(project => project.Name == "RecoveredFromMemory"));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("locked primary does not fall back to backup or rewrite files", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedPrimary-" + Guid.NewGuid().ToString("N"));
