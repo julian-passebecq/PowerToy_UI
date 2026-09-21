@@ -94,6 +94,43 @@ Check("resource URL classifier recognizes common providers and kinds", () =>
     Equal("Page", notion.Kind);
 });
 
+Check("Resource Hub provider and group filters combine instead of overriding each other", () =>
+{
+    WorkspaceResourceEntry githubAtlas = new()
+    {
+        Name = "Atlas repo",
+        Provider = "GitHub",
+        Kind = "Repository",
+        Group = "Atlas",
+        Url = "https://github.com/example/atlas",
+        IsFavorite = true,
+    };
+    WorkspaceResourceEntry driveAtlas = new()
+    {
+        Name = "Atlas docs",
+        Provider = "Google Drive",
+        Kind = "Folder",
+        Group = "Atlas",
+        Url = "https://drive.google.com/drive/folders/atlas",
+        IsPinned = true,
+    };
+    HashSet<string> githubOnly = new(StringComparer.OrdinalIgnoreCase) { "GitHub" };
+
+    True(ResourceCatalogService.MatchesFilter(githubAtlas, githubOnly, "group:Atlas", ""));
+    False(ResourceCatalogService.MatchesFilter(driveAtlas, githubOnly, "group:Atlas", ""));
+    True(ResourceCatalogService.MatchesFilter(githubAtlas, githubOnly, "favorites", ""));
+    False(ResourceCatalogService.MatchesFilter(driveAtlas, githubOnly, "pinned", ""));
+    True(ResourceCatalogService.MatchesFilter(githubAtlas, null, "all", "atlas repo"));
+    False(ResourceCatalogService.MatchesFilter(githubAtlas, null, "all", "dropbox"));
+});
+
+Check("resource URL classifier recognizes OneDrive short links", () =>
+{
+    True(ResourceCatalogService.TryClassify("https://1drv.ms/f/s!example", out ResourceUrlClassification oneDrive));
+    Equal("OneDrive", oneDrive.Provider);
+    Equal("Folder", oneDrive.Kind);
+});
+
 Check("resource URL upsert deduplicates equivalent links", () =>
 {
     List<WorkspaceResourceEntry> resources = [];
