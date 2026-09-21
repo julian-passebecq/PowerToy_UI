@@ -22,6 +22,7 @@ public sealed record ShellNavItem(string Key, string Label, int Count, bool IsAc
 }
 
 public sealed record QuickRibbonItem(string Action, string Key, string Title, string Subtitle, string Glyph, string Accent, string Value = "");
+public sealed record CaptureBoardSection(string Key, string Title, int Count, IReadOnlyList<StickyNoteEntry> Items);
 
 public partial class MainWindow : Window
 {
@@ -33,6 +34,7 @@ public partial class MainWindow : Window
     private bool _refreshingProjectSelection;
     private readonly ObservableCollection<ShellNavItem> _secondaryNavItems = [];
     private readonly ObservableCollection<QuickRibbonItem> _quickRibbonItems = [];
+    private readonly ObservableCollection<CaptureBoardSection> _captureBoardSections = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
@@ -47,6 +49,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         SecondaryNav.ItemsSource = _secondaryNavItems;
         QuickRibbon.ItemsSource = _quickRibbonItems;
+        CaptureBoard.ItemsSource = _captureBoardSections;
 
         _summonService.Triggered += SummonService_Triggered;
         Loaded += MainWindow_Loaded;
@@ -201,6 +204,7 @@ public partial class MainWindow : Window
         UpdatePrimaryNavSelection();
         RefreshSecondaryNavigation();
         RefreshQuickRibbon();
+        RefreshCaptureBoard();
         RefreshActiveView();
     }
 
@@ -455,6 +459,34 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void RefreshCaptureBoard()
+    {
+        _captureBoardSections.Clear();
+        foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
+        {
+            StickyNoteEntry[] items = _viewModel.Notes
+                .Where(note => !note.IsArchived && note.Kind == kind)
+                .OrderByDescending(note => note.IsPinned)
+                .ThenByDescending(note => note.UpdatedUtc)
+                .Take(3)
+                .ToArray();
+
+            int count = _viewModel.Notes.Count(note => !note.IsArchived && note.Kind == kind);
+            _captureBoardSections.Add(new CaptureBoardSection(kind.ToString(), CaptureKindLabel(kind), count, items));
+        }
+    }
+
+    private void DashboardCaptureKind_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string key)
+        {
+            return;
+        }
+
+        _moduleFilters["Capture"] = key;
+        SelectWorkspaceTab("Capture");
+    }
+
     private void RefreshAfterDataChange()
     {
         _projectView?.Refresh();
@@ -463,6 +495,7 @@ public partial class MainWindow : Window
         _snippetView?.Refresh();
         RefreshSecondaryNavigation();
         RefreshQuickRibbon();
+        RefreshCaptureBoard();
     }
 
     private void Sidebar_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Sidebar);
