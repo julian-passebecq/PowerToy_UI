@@ -730,6 +730,7 @@
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right">
                         <Button Content="Import repos" Click="ImportRepositoryResources_Click" ToolTip="Create/update GitHub resource links from Repository Hub"/>
+                        <Button Content="+ Clipboard URL" Click="CaptureResourceClipboardUrl_Click" ToolTip="Create a quick link from the current clipboard URL"/>
                         <Button Content="+ Resource" Click="AddResource_Click"/>
                       </WrapPanel>
                     </DockPanel>
