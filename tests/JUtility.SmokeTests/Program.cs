@@ -919,6 +919,46 @@ Check("backup-file import can be prepared before current edits rotate the backup
     }
 });
 
+Check("locked export destination preserves previous export and cleans temp", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityLockedExport-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        string exportPath = Path.Combine(root, "portable.json");
+        File.WriteAllText(exportPath, "previous-export");
+
+        bool threw = false;
+        using (FileStream held = new(exportPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            try
+            {
+                store.Export(state, exportPath);
+            }
+            catch (IOException)
+            {
+                threw = true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                threw = true;
+            }
+        }
+
+        True(threw);
+        Equal("previous-export", File.ReadAllText(exportPath));
+        True(Directory.GetFiles(root, ".portable.json.*.tmp").Length == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("empty object import is rejected without replacing the live workspace", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
