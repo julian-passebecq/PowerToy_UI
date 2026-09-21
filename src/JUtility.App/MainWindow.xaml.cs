@@ -1228,8 +1228,10 @@ public partial class MainWindow : Window
         {
             SidebarPanel.Visibility = Visibility.Visible;
             PowerOpsShell.Visibility = Visibility.Collapsed;
+            MinWidth = 360;
+            MinHeight = 520;
             Width = 390;
-            Height = Math.Max(Height, 700);
+            Height = Math.Max(700, Math.Min(Height, 900));
             return;
         }
 
@@ -1238,17 +1240,21 @@ public partial class MainWindow : Window
 
         if (mode == WorkspaceViewMode.Compact)
         {
+            MinWidth = 760;
+            MinHeight = 560;
             PrimaryNavColumn.Width = new GridLength(155);
             SecondaryNavColumn.Width = new GridLength(0);
-            Width = 1040;
-            Height = 760;
+            Width = Math.Max(1040, Width);
+            Height = Math.Max(760, Height);
         }
         else
         {
+            MinWidth = 900;
+            MinHeight = 600;
             PrimaryNavColumn.Width = new GridLength(185);
             SecondaryNavColumn.Width = new GridLength(220);
-            Width = 1480;
-            Height = 900;
+            Width = Math.Max(1480, Width);
+            Height = Math.Max(900, Height);
         }
     }
 
