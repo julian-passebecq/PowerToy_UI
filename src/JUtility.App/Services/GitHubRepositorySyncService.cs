@@ -30,7 +30,20 @@ internal static class GitHubRepositorySyncService
     {
         string normalizedOwner = string.IsNullOrWhiteSpace(owner) ? "julian-passebecq" : owner.Trim();
 
-        IReadOnlyList<GitHubRepositorySnapshot>? fromGh = await TryFetchWithGitHubCliAsync(normalizedOwner, cancellationToken);
+        IReadOnlyList<GitHubRepositorySnapshot>? fromGh = null;
+        using (CancellationTokenSource ghTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            ghTimeout.CancelAfter(TimeSpan.FromSeconds(20));
+            try
+            {
+                fromGh = await TryFetchWithGitHubCliAsync(normalizedOwner, ghTimeout.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // A stalled gh process should not block the public API fallback.
+            }
+        }
+
         if (fromGh is { Count: > 0 })
         {
             return new GitHubRepositoryFetchResult(fromGh, "GitHub CLI");
@@ -129,7 +142,10 @@ internal static class GitHubRepositorySyncService
         string owner,
         CancellationToken cancellationToken)
     {
-        using HttpClient client = new();
+        using HttpClient client = new()
+        {
+            Timeout = TimeSpan.FromSeconds(30),
+        };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("JUtilityPalette", "1.0"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
