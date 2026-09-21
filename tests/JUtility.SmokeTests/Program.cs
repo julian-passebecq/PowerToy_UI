@@ -42,12 +42,21 @@ Check("repository rows support server and ChatGPT links", () =>
         ProjectClipboardFormatter.FormatRow(project));
 });
 
-Check("copy all excludes disabled and archived rows", () =>
+Check("copy all emits URLs only and excludes disabled and archived rows", () =>
 {
-    ProjectEntry included = new() { Name = "A", CopyName = true, IncludeInCopyAll = true };
-    ProjectEntry disabled = new() { Name = "B", CopyName = true, IncludeInCopyAll = false };
-    ProjectEntry archived = new() { Name = "C", CopyName = true, IncludeInCopyAll = true, IsArchived = true };
-    Equal("A", ProjectClipboardFormatter.FormatAll([included, disabled, archived]));
+    ProjectEntry included = new()
+    {
+        Name = "A",
+        RepoUrl = "https://github.com/example/a",
+        SiteUrl = "https://a.example/",
+        CopyName = true,
+        CopyRepo = true,
+        CopySite = true,
+        IncludeInCopyAll = true,
+    };
+    ProjectEntry disabled = new() { Name = "B", RepoUrl = "https://github.com/example/b", CopyRepo = true, IncludeInCopyAll = false };
+    ProjectEntry archived = new() { Name = "C", RepoUrl = "https://github.com/example/c", CopyRepo = true, IncludeInCopyAll = true, IsArchived = true };
+    Equal("https://github.com/example/a https://a.example/", ProjectClipboardFormatter.FormatAll([included, disabled, archived]));
 });
 
 Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
