@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
@@ -33,6 +34,27 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+
+        try
+        {
+            MainWindow window = new();
+            MainWindow = window;
+            window.Show();
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            string dataDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "JUtilityPalette");
+
+            MessageBox.Show(
+                $"Power Ops could not open the local workspace.\n\n{ex.Message}\n\nNo reset was performed. Your workspace files were left in:\n{dataDirectory}",
+                "Power Ops workspace could not be opened",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            Shutdown(2);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
