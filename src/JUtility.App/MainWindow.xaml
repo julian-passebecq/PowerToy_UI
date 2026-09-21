@@ -608,7 +608,6 @@
                                 <StackPanel Grid.Column="1" Margin="8,0">
                                   <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
-                                    <TextBlock Text=" ★" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}" Foreground="#D97706"/>
                                   </StackPanel>
                                   <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
                                   <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
