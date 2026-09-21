@@ -97,8 +97,8 @@ internal sealed class GlobalMouseSummonService : IDisposable
             if (message == WmXButtonUp && _suppressXButtonUp != 0)
             {
                 MouseLowLevelHookStruct data = Marshal.PtrToStructure<MouseLowLevelHookStruct>(lParam);
-                ushort button = (ushort)((data.MouseData >> 16) & 0xffff);
-                if (button == _suppressXButtonUp)
+                ushort releasedButton = (ushort)((data.MouseData >> 16) & 0xffff);
+                if (releasedButton == _suppressXButtonUp)
                 {
                     _suppressXButtonUp = 0;
                     return (IntPtr)1;
