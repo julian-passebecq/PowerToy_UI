@@ -96,6 +96,12 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
     {
         WorkspaceStore store = new(root);
         WorkspaceState state = store.Load();
+        ProjectEntry linkedProject = state.Projects.First();
+        state.RepositoryLists.Add(new RepositoryListEntry
+        {
+            Name = "Foil Core",
+            Items = [new RepositoryListItemEntry { ProjectId = linkedProject.Id, IncludeRepo = true, IncludeSite = false }],
+        });
         state.Portals.Add(new PortalEntry
         {
             Name = "Vercel",
@@ -115,6 +121,7 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
         store.Save(state);
 
         WorkspaceState loaded = store.Load();
+        True(loaded.RepositoryLists.Any(item => item.Name == "Foil Core" && item.Items.Count == 1));
         True(loaded.Portals.Any(item => item.Name == "Vercel" && item.Links.Count == 1));
         True(loaded.ClipboardSnippets.Any(item => item.Title == "Debug prompt"));
         True(loaded.Notes.Any(item => item.Kind == CaptureKind.Transcript && item.Url.Contains("example.com")));
