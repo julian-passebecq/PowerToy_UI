@@ -337,7 +337,7 @@
                 <Separator Margin="0,0,0,8"/>
                 <TextBlock Text="SAVED LISTS" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="SemiBold"/>
                 <DockPanel Margin="0,5,0,6">
-                  <TextBox x:Name="NewRepoListName" MinWidth="112" ToolTip="List name"/>
+                  <TextBox x:Name="NewRepoListName" MinWidth="112" ToolTip="List name" AutomationProperties.Name="Saved repository list name"/>
                   <Button Content="Save" Click="SaveRepoList_Click"/>
                 </DockPanel>
                 <ItemsControl ItemsSource="{Binding RepositoryLists}">
@@ -522,7 +522,7 @@
                     </StackPanel>
                     <WrapPanel HorizontalAlignment="Right">
                       <TextBlock x:Name="SelectedRepoCountText" Text="0 selected" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
-                      <TextBox x:Name="RepoSearchBox" Width="210" ToolTip="Search repository name, description, category, language…" TextChanged="RepoSearch_TextChanged"/>
+                      <TextBox x:Name="RepoSearchBox" Width="210" ToolTip="Search repository name, description, category, language…" TextChanged="RepoSearch_TextChanged" AutomationProperties.Name="Repository search"/>
                       <Button Content="+ Project" Click="AddProject_Click"/>
                       <Button Content="Sync GitHub" Click="SyncGitHub_Click" ToolTip="Uses the authenticated GitHub CLI when available; otherwise imports public repositories."/>
                       <Button Content="Copy all" Click="CopyAll_Click"/>
@@ -708,15 +708,15 @@
                   <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedPortal}">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
-                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
+                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" AutomationProperties.Name="Portal name"/>
                       <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
-                        <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label"/>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus" AutomationProperties.Name="Portal category"/>
+                        <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label" AutomationProperties.Name="Portal icon key"/>
                         <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Click="PortalPinChanged_Click"/>
                         <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8" Click="PortalFavoriteChanged_Click"/>
                       </WrapPanel>
                       <DockPanel>
-                        <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL"/>
+                        <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL" AutomationProperties.Name="Main portal URL"/>
                         <WrapPanel DockPanel.Dock="Right">
                           <Button Content="Open main ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
                           <Button Content="Copy" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
@@ -729,7 +729,7 @@
                       <Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/>
                     </DockPanel>
 
-                    <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
+                    <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" AutomationProperties.Name="Portal project links">
                       <DataGrid.Columns>
                         <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
                         <DataGridTextColumn Header="Project" Binding="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
@@ -804,25 +804,27 @@
                   <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedResource}">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
-                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
+                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" AutomationProperties.Name="Resource name"/>
                       <WrapPanel>
                         <ComboBox Width="180"
                                   IsEditable="True"
                                   ItemsSource="{Binding DataContext.ResourceProviderOptions, RelativeSource={RelativeSource AncestorType=Window}}"
                                   Text="{Binding Provider, UpdateSourceTrigger=PropertyChanged}"
                                   ToolTip="Provider"
+                                  AutomationProperties.Name="Resource provider"
                                   LostFocus="Category_LostFocus"/>
                         <ComboBox Width="160"
                                   IsEditable="True"
                                   ItemsSource="{Binding DataContext.ResourceKindOptions, RelativeSource={RelativeSource AncestorType=Window}}"
                                   Text="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
-                                  ToolTip="Resource kind"/>
-                        <TextBox Width="190" Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}" ToolTip="Project / group / topic" LostFocus="Category_LostFocus"/>
+                                  ToolTip="Resource kind"
+                                  AutomationProperties.Name="Resource kind"/>
+                        <TextBox Width="190" Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}" ToolTip="Project / group / topic" LostFocus="Category_LostFocus" AutomationProperties.Name="Resource project or group"/>
                         <CheckBox Content="Pin to ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="ResourceStateChanged_Click"/>
                         <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8" Click="ResourceStateChanged_Click"/>
                       </WrapPanel>
                       <DockPanel>
-                        <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Resource URL"/>
+                        <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Resource URL" AutomationProperties.Name="Resource URL"/>
                         <WrapPanel DockPanel.Dock="Right">
                           <Button Content="Open ↗" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                           <Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/>
@@ -831,7 +833,7 @@
                     </StackPanel>
 
                     <TextBlock Grid.Row="1" Text="Notes" FontWeight="SemiBold" Margin="3,10,3,3"/>
-                    <TextBox Grid.Row="2" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3"/>
+                    <TextBox Grid.Row="2" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3" AutomationProperties.Name="Resource notes"/>
 
                     <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
                                Text="Use Resource Hub for exact destinations such as a Google Drive folder, Dropbox folder, GitHub repository, Notion page or shared document. Portal Launcher remains for service home pages."/>
@@ -888,26 +890,29 @@
                                   ItemsSource="{Binding DataContext.CaptureKindOptions, RelativeSource={RelativeSource AncestorType=Window}}"
                                   SelectedItem="{Binding Kind}"
                                   SelectionChanged="CaptureKindChanged_Click"
-                                  ToolTip="Capture type"/>
+                                  ToolTip="Capture type"
+                                  AutomationProperties.Name="Capture type"/>
                         <TextBox x:Name="CaptureTitleBox" Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title" AutomationProperties.Name="Capture title"/>
                       </WrapPanel>
                       <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus"/>
+                        <TextBox Width="190" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus" AutomationProperties.Name="Capture subject"/>
                         <ComboBox Width="190"
                                   ItemsSource="{Binding DataContext.Projects, RelativeSource={RelativeSource AncestorType=Window}}"
                                   DisplayMemberPath="Name"
                                   SelectedValuePath="Id"
                                   SelectedValue="{Binding ProjectId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  ToolTip="Associated project"/>
-                        <TextBox Width="190" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
-                        <TextBox Width="110" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
-                        <TextBox Width="110" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
+                                  ToolTip="Associated project"
+                                  AutomationProperties.Name="Capture project"/>
+                        <TextBox Width="190" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels" AutomationProperties.Name="Capture labels"/>
+                        <TextBox Width="110" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status" AutomationProperties.Name="Capture status"/>
+                        <TextBox Width="110" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority" AutomationProperties.Name="Capture priority"/>
                         <DatePicker Width="145"
                                     SelectedDate="{Binding DataContext.SelectedNoteDueDate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                     SelectedDateChanged="CaptureDueDateChanged_Click"
-                                    ToolTip="Due date"/>
+                                    ToolTip="Due date"
+                                    AutomationProperties.Name="Capture due date"/>
                       </WrapPanel>
-                      <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL"/>
+                      <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL" AutomationProperties.Name="Capture source URL"/>
                     </StackPanel>
 
                     <TextBox x:Name="CaptureBodyBox" Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220" AutomationProperties.Name="Capture body"/>
@@ -962,15 +967,15 @@
                   <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedSnippet}">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
-                      <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
+                      <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" AutomationProperties.Name="Clipboard snippet title"/>
                       <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
-                        <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags"/>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus" AutomationProperties.Name="Clipboard snippet category"/>
+                        <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags" AutomationProperties.Name="Clipboard snippet tags"/>
                         <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="SnippetPinChanged_Click"/>
                       </WrapPanel>
                     </StackPanel>
 
-                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/>
+                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" AutomationProperties.Name="Clipboard snippet text"/>
 
                     <WrapPanel Grid.Row="2">
                       <Button Content="Copy now" Click="CopySnippet_Click"/>
@@ -1000,13 +1005,13 @@
                           <Border Padding="5">
                             <StackPanel>
                               <DockPanel>
-                                <CheckBox IsChecked="{Binding IsEnabled}"/>
-                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="170"/>
-                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="Category" LostFocus="Category_LostFocus"/>
-                                <Button Content="↑" Tag="{Binding}" Click="MoveModuleUp_Click"/>
-                                <Button Content="↓" Tag="{Binding}" Click="MoveModuleDown_Click"/>
+                                <CheckBox IsChecked="{Binding IsEnabled}" AutomationProperties.Name="Enable prompt module"/>
+                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="170" AutomationProperties.Name="Prompt module title"/>
+                                <TextBox Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="Category" LostFocus="Category_LostFocus" AutomationProperties.Name="Prompt module category"/>
+                                <Button Content="↑" Tag="{Binding}" Click="MoveModuleUp_Click" AutomationProperties.Name="Move prompt module up"/>
+                                <Button Content="↓" Tag="{Binding}" Click="MoveModuleDown_Click" AutomationProperties.Name="Move prompt module down"/>
                               </DockPanel>
-                              <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" LostFocus="PromptModuleBody_LostFocus"/>
+                              <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" LostFocus="PromptModuleBody_LostFocus" AutomationProperties.Name="Prompt module body"/>
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -1020,7 +1025,7 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="160"/></Grid.RowDefinitions>
                     <StackPanel>
                       <TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/>
-                      <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/>
+                      <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name" AutomationProperties.Name="Prompt project context"/>
                       <DockPanel Margin="3,5,3,0">
                         <TextBlock Text="Custom variables" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button Content="Refresh" HorizontalAlignment="Right" Click="RefreshPromptVariables_Click"/>
@@ -1031,7 +1036,7 @@
                             <DataTemplate>
                               <DockPanel Margin="0,2">
                                 <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
-                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder"/>
+                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder" AutomationProperties.Name="Prompt variable value"/>
                               </DockPanel>
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
@@ -1043,9 +1048,9 @@
                         <Button Content="Copy + project" Click="ComposeCopyProject_Click"/>
                       </WrapPanel>
                     </StackPanel>
-                    <TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/>
+                    <TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" AutomationProperties.Name="Prompt preview"/>
                     <TextBlock Grid.Row="2" Text="Recent prompts" FontWeight="SemiBold"/>
-                    <ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}">
+                    <ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}" AutomationProperties.Name="Recent prompts">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <DockPanel Margin="4">
@@ -1071,10 +1076,10 @@
                     <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"/>
                     <TextBlock Text="Window behavior" FontSize="16" FontWeight="SemiBold" Margin="0,16,0,3"/>
                     <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8"/>
-                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed"/>
+                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed" AutomationProperties.Name="Window behavior"/>
 
                     <TextBlock Text="Summon trigger" FontWeight="SemiBold" Margin="0,14,0,3"/>
-                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SummonBindingOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SummonMouseBinding, Mode=TwoWay}" SelectionChanged="SummonBinding_Changed"/>
+                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SummonBindingOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SummonMouseBinding, Mode=TwoWay}" SelectionChanged="SummonBinding_Changed" AutomationProperties.Name="Summon trigger"/>
                     <CheckBox Content="Hide when focus is lost" IsChecked="{Binding HideOnFocusLoss}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed" Margin="0,8,0,0"/>
                     <CheckBox Content="Open near the mouse cursor" IsChecked="{Binding OpenNearCursor}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed"/>
                     <WrapPanel Margin="0,6,0,0">
