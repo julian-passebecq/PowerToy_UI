@@ -1535,9 +1535,18 @@ public partial class MainWindow : Window
             return false;
         }
 
-        Clipboard.SetText(text);
-        _viewModel.StatusText = successStatus;
-        return true;
+        try
+        {
+            Clipboard.SetText(text);
+            _viewModel.StatusText = successStatus;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Clipboard copy failed";
+            ShowOwnedMessage(ex.Message, "Clipboard unavailable", MessageBoxImage.Warning);
+            return false;
+        }
     }
 
     private void ShowOwnedMessage(string message, string title, MessageBoxImage image)
