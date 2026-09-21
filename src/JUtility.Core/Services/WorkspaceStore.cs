@@ -159,7 +159,42 @@ public sealed class WorkspaceStore
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        File.WriteAllText(path, JsonSerializer.Serialize(Normalize(CloneState(state)), JsonOptions));
+
+        string destination = Path.GetFullPath(path);
+        if (PathsEqual(destination, DataFilePath) || PathsEqual(destination, BackupFilePath))
+        {
+            throw new InvalidOperationException("Export cannot target the active workspace primary or backup file.");
+        }
+
+        string? destinationDirectory = Path.GetDirectoryName(destination);
+        if (string.IsNullOrWhiteSpace(destinationDirectory) || !Directory.Exists(destinationDirectory))
+        {
+            throw new DirectoryNotFoundException("The export destination directory does not exist.");
+        }
+
+        WorkspaceState normalized = Normalize(CloneState(state));
+        string tempPath = Path.Combine(
+            destinationDirectory,
+            $".{Path.GetFileName(destination)}.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(normalized, JsonOptions));
+            File.Move(tempPath, destination, overwrite: true);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(tempPath);
+        }
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
     }
 
     public WorkspaceState Import(string path)
