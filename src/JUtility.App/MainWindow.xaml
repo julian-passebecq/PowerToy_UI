@@ -719,10 +719,16 @@
                         <TextBox Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title"/>
                       </WrapPanel>
                       <WrapPanel>
-                        <TextBox Width="220" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus"/>
-                        <TextBox Width="220" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
-                        <TextBox Width="120" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
-                        <TextBox Width="120" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
+                        <TextBox Width="190" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus"/>
+                        <ComboBox Width="190"
+                                  ItemsSource="{Binding DataContext.Projects, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  DisplayMemberPath="Name"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding ProjectId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  ToolTip="Associated project"/>
+                        <TextBox Width="190" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
+                        <TextBox Width="110" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
+                        <TextBox Width="110" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
                         <DatePicker Width="145"
                                     SelectedDate="{Binding DataContext.SelectedNoteDueDate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
                                     SelectedDateChanged="CaptureDueDateChanged_Click"
@@ -737,6 +743,7 @@
                       <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6" Click="CaptureItemStateChanged_Click"/>
                       <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6" Click="CaptureItemStateChanged_Click"/>
                       <Button Content="Copy capture" Click="CopyNote_Click"/>
+                      <Button Content="Copy URL" Tag="{Binding Url}" Click="CopyValue_Click"/>
                       <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                       <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
                       <Button Content="Export" Click="ExportSelectedCapture_Click"/>
