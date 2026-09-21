@@ -32,6 +32,7 @@ public sealed class MainViewModel : ObservableObject
     private WorkspaceState _state;
     private ProjectEntry? _selectedPromptProject;
     private PortalEntry? _selectedPortal;
+    private WorkspaceResourceEntry? _selectedResource;
     private ClipboardSnippetEntry? _selectedSnippet;
     private StickyNoteEntry? _selectedNote;
     private string _promptPreview = string.Empty;
@@ -44,6 +45,7 @@ public sealed class MainViewModel : ObservableObject
         Projects = new ObservableCollection<ProjectEntry>(_state.Projects);
         RepositoryLists = new ObservableCollection<RepositoryListEntry>(_state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         Portals = new ObservableCollection<PortalEntry>(_state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
+        Resources = new ObservableCollection<WorkspaceResourceEntry>(_state.Resources.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ClipboardSnippets = new ObservableCollection<ClipboardSnippetEntry>(_state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
         PromptModules = new ObservableCollection<PromptModuleEntry>(_state.PromptModules.OrderBy(item => item.SortOrder));
         Notes = new ObservableCollection<StickyNoteEntry>(_state.Notes);
@@ -51,6 +53,7 @@ public sealed class MainViewModel : ObservableObject
         PromptVariables = new ObservableCollection<PromptVariableInput>();
         SelectedPromptProject = Projects.FirstOrDefault(project => !project.IsArchived);
         SelectedPortal = Portals.FirstOrDefault();
+        SelectedResource = Resources.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
     }
@@ -58,6 +61,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<ProjectEntry> Projects { get; }
     public ObservableCollection<RepositoryListEntry> RepositoryLists { get; }
     public ObservableCollection<PortalEntry> Portals { get; }
+    public ObservableCollection<WorkspaceResourceEntry> Resources { get; }
     public ObservableCollection<ClipboardSnippetEntry> ClipboardSnippets { get; }
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
     public ObservableCollection<StickyNoteEntry> Notes { get; }
@@ -85,6 +89,12 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _selectedPortal;
         set => SetProperty(ref _selectedPortal, value);
+    }
+
+    public WorkspaceResourceEntry? SelectedResource
+    {
+        get => _selectedResource;
+        set => SetProperty(ref _selectedResource, value);
     }
 
     public ClipboardSnippetEntry? SelectedSnippet
@@ -452,6 +462,75 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Project added";
     }
 
+    public void AddResource()
+    {
+        WorkspaceResourceEntry resource = new()
+        {
+            Name = "New resource",
+            Provider = "Other",
+            Kind = "Link",
+            Group = "General",
+            SortOrder = Resources.Count == 0 ? 10 : Resources.Max(item => item.SortOrder) + 10,
+            UpdatedUtc = DateTimeOffset.UtcNow,
+        };
+        Resources.Add(resource);
+        SelectedResource = resource;
+        StatusText = "Resource added";
+    }
+
+    public void RemoveResource(WorkspaceResourceEntry resource)
+    {
+        Resources.Remove(resource);
+        if (ReferenceEquals(SelectedResource, resource))
+        {
+            SelectedResource = Resources.FirstOrDefault();
+        }
+        StatusText = "Resource removed";
+    }
+
+    public RepositoryMergeSummary ImportRepositoryResources()
+    {
+        int added = 0;
+        int updated = 0;
+
+        foreach (ProjectEntry project in Projects.Where(project => !project.IsArchived && !string.IsNullOrWhiteSpace(project.RepoUrl)))
+        {
+            WorkspaceResourceEntry? existing = Resources.FirstOrDefault(resource =>
+                resource.SourceProjectId == project.Id
+                || (!string.IsNullOrWhiteSpace(resource.Url)
+                    && string.Equals(resource.Url.TrimEnd('/'), project.RepoUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)));
+
+            if (existing is null)
+            {
+                Resources.Add(new WorkspaceResourceEntry
+                {
+                    Name = project.Name,
+                    Provider = "GitHub",
+                    Kind = "Repository",
+                    Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category,
+                    Url = project.RepoUrl,
+                    SourceProjectId = project.Id,
+                    SortOrder = Resources.Count == 0 ? 10 : Resources.Max(item => item.SortOrder) + 10,
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                });
+                added++;
+                continue;
+            }
+
+            existing.Name = project.Name;
+            existing.Provider = "GitHub";
+            existing.Kind = "Repository";
+            existing.Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category;
+            existing.Url = project.RepoUrl;
+            existing.SourceProjectId = project.Id;
+            existing.UpdatedUtc = DateTimeOffset.UtcNow;
+            updated++;
+        }
+
+        StatusText = $"Resource sync: {added} added, {updated} updated";
+        return new RepositoryMergeSummary(added, updated, Resources.Count);
+    }
+
     public void AddPortal()
     {
         PortalEntry portal = new()
@@ -617,6 +696,12 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
+        foreach (WorkspaceResourceEntry resource in Resources.Where(resource => resource.SourceProjectId == project.Id))
+        {
+            resource.SourceProjectId = null;
+            resource.UpdatedUtc = DateTimeOffset.UtcNow;
+        }
+
         Projects.Remove(project);
         if (ReferenceEquals(SelectedPromptProject, project))
         {
@@ -759,12 +844,14 @@ public sealed class MainViewModel : ObservableObject
         ReplaceCollection(Projects, _state.Projects);
         ReplaceCollection(RepositoryLists, _state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         ReplaceCollection(Portals, _state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
+        ReplaceCollection(Resources, _state.Resources.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ReplaceCollection(ClipboardSnippets, _state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
         ReplaceCollection(PromptModules, _state.PromptModules.OrderBy(item => item.SortOrder));
         ReplaceCollection(Notes, _state.Notes);
         ReplaceCollection(RecentPrompts, _state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
         SelectedPromptProject = Projects.FirstOrDefault(project => !project.IsArchived);
         SelectedPortal = Portals.FirstOrDefault();
+        SelectedResource = Resources.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
         PromptVariables.Clear();
@@ -784,6 +871,7 @@ public sealed class MainViewModel : ObservableObject
         _state.Projects = Projects.ToList();
         _state.RepositoryLists = RepositoryLists.ToList();
         _state.Portals = Portals.ToList();
+        _state.Resources = Resources.ToList();
         _state.ClipboardSnippets = ClipboardSnippets.ToList();
         _state.PromptModules = PromptModules.ToList();
         _state.Notes = Notes.ToList();
