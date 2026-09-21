@@ -70,8 +70,10 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _activeCaptureSubjects = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
+    private ICollectionView? _resourceView;
     private ICollectionView? _captureView;
     private ICollectionView? _sidebarCaptureView;
+    private ICollectionView? _sidebarResourceView;
     private ICollectionView? _snippetView;
     private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
@@ -265,6 +267,43 @@ public partial class MainWindow : Window
         _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.Name), ListSortDirection.Ascending));
         PortalList.ItemsSource = _portalView;
 
+        _resourceView = CollectionViewSource.GetDefaultView(_viewModel.Resources);
+        _resourceView.Filter = item =>
+        {
+            if (item is not WorkspaceResourceEntry resource) return false;
+
+            string shellSearch = GetModuleSearch("Resources");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string haystack = string.Join(" ", resource.Name, resource.Provider, resource.Kind, resource.Group, resource.Url, resource.Note);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            string filter = GetModuleFilter("Resources");
+            if (filter == "all") return true;
+            if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase)) return resource.IsFavorite;
+            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return resource.IsPinned;
+            return string.Equals(resource.Provider, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        _resourceView.SortDescriptions.Clear();
+        _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
+        _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsPinned), ListSortDirection.Descending));
+        _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.SortOrder), ListSortDirection.Ascending));
+        _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.Name), ListSortDirection.Ascending));
+        ResourceList.ItemsSource = _resourceView;
+
+        _sidebarResourceView = new ListCollectionView((IList)_viewModel.Resources)
+        {
+            Filter = item => item is WorkspaceResourceEntry resource && (resource.IsPinned || resource.IsFavorite),
+        };
+        _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsPinned), ListSortDirection.Descending));
+        _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
+        _sidebarResourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.SortOrder), ListSortDirection.Ascending));
+        SidebarResourceList.ItemsSource = _sidebarResourceView;
+
         _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
         _captureView.Filter = item =>
         {
@@ -447,7 +486,7 @@ public partial class MainWindow : Window
     private static string NormalizeModule(string? module)
     {
         string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
-        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
             ? normalized
             : "Dashboard";
     }
@@ -460,6 +499,7 @@ public partial class MainWindow : Window
             "Dashboard" => "Overview and recent work",
             "Repository Hub" => "GitHub, website, server and ChatGPT links",
             "Portals" => "Direct-open services and project sub-links",
+            "Resources" => "Exact folders, repositories, documents and dashboards",
             "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
             "Clipboard" => "One-click reusable text",
             "Prompt Builder" => "Compose reusable instruction modules",
@@ -471,13 +511,14 @@ public partial class MainWindow : Window
         {
             "Repository Hub" => "+ Project",
             "Portals" => "+ Portal",
+            "Resources" => "+ Resource",
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
             "Prompt Builder" => "+ Module",
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Capture" or "Clipboard" or "Prompt Builder";
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -535,6 +576,20 @@ public partial class MainWindow : Window
                 Add("pinned", "Pinned to ribbon", _viewModel.Portals.Count(portal => portal.IsPinnedToRibbon));
                 foreach (IGrouping<string, PortalEntry> group in _viewModel.Portals
                     .GroupBy(portal => string.IsNullOrWhiteSpace(portal.Category) ? "General" : portal.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Resources":
+                SecondaryTitle.Text = "Resource providers";
+                SecondaryHint.Text = "Filter exact destinations";
+                Add("all", "All resources", _viewModel.Resources.Count);
+                Add("favorites", "Favorites", _viewModel.Resources.Count(resource => resource.IsFavorite));
+                Add("pinned", "Pinned to ribbon", _viewModel.Resources.Count(resource => resource.IsPinned));
+                foreach (IGrouping<string, WorkspaceResourceEntry> group in _viewModel.Resources
+                    .GroupBy(resource => string.IsNullOrWhiteSpace(resource.Provider) ? "Other" : resource.Provider, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
                 {
                     Add(group.Key, group.Key, group.Count());
@@ -690,6 +745,7 @@ public partial class MainWindow : Window
         {
             case "Repository Hub": _projectView?.Refresh(); break;
             case "Portals": _portalView?.Refresh(); break;
+            case "Resources": _resourceView?.Refresh(); break;
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
@@ -741,6 +797,22 @@ public partial class MainWindow : Window
                 }
                 break;
 
+            case "Resources":
+                IEnumerable<WorkspaceResourceEntry> pinnedResources = _viewModel.Resources.Where(resource => resource.IsPinned);
+                if (!pinnedResources.Any())
+                {
+                    pinnedResources = _viewModel.Resources
+                        .OrderByDescending(resource => resource.IsFavorite)
+                        .ThenBy(resource => resource.SortOrder)
+                        .Take(7);
+                }
+                foreach (WorkspaceResourceEntry resource in pinnedResources.Take(8))
+                {
+                    string glyph = FirstGlyph(resource.Provider, "R");
+                    _quickRibbonItems.Add(new QuickRibbonItem("resource", resource.Id.ToString(), resource.Name, resource.Provider, glyph, "#5B5FC7", resource.Url));
+                }
+                break;
+
             case "Capture":
                 string captureFilter = GetModuleFilter("Capture");
                 IEnumerable<StickyNoteEntry> captureScope = captureFilter.Equals("archived", StringComparison.OrdinalIgnoreCase)
@@ -789,6 +861,11 @@ public partial class MainWindow : Window
                 {
                     string glyph = FirstGlyph(!string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey : portal.Name);
                     _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, "Portal", glyph, "#107C10", portal.MainUrl));
+                }
+                foreach (WorkspaceResourceEntry resource in _viewModel.Resources.Where(resource => resource.IsPinned).Take(3))
+                {
+                    string glyph = FirstGlyph(resource.Provider, "R");
+                    _quickRibbonItems.Add(new QuickRibbonItem("resource", resource.Id.ToString(), resource.Name, resource.Provider, glyph, "#5B5FC7", resource.Url));
                 }
                 foreach (ClipboardSnippetEntry snippet in _viewModel.ClipboardSnippets.Where(snippet => snippet.IsPinned).Take(3))
                 {
@@ -853,6 +930,9 @@ public partial class MainWindow : Window
             case "portal":
                 OpenUrlValue(item.Value);
                 break;
+            case "resource":
+                OpenUrlValue(item.Value);
+                break;
             case "snippet":
                 CopyText(item.Value, "Pinned snippet copied");
                 break;
@@ -873,6 +953,10 @@ public partial class MainWindow : Window
             case "Portals":
                 _viewModel.AddPortal();
                 ApplyCurrentCategory(_viewModel.SelectedPortal, GetModuleFilter("Portals"));
+                break;
+            case "Resources":
+                _viewModel.AddResource();
+                ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
                 break;
             case "Clipboard":
                 _viewModel.AddClipboardSnippet();
@@ -969,6 +1053,28 @@ public partial class MainWindow : Window
         item.Category = filter;
     }
 
+    private static void ApplyCurrentResourceProvider(WorkspaceResourceEntry? resource, string filter)
+    {
+        if (resource is null || filter == "all")
+        {
+            return;
+        }
+
+        if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase))
+        {
+            resource.IsFavorite = true;
+            return;
+        }
+
+        if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            resource.IsPinned = true;
+            return;
+        }
+
+        resource.Provider = filter;
+    }
+
     private void ApplyCurrentCaptureKind(StickyNoteEntry? note)
     {
         if (note is null)
@@ -1027,6 +1133,8 @@ public partial class MainWindow : Window
     {
         _projectView?.Refresh();
         _portalView?.Refresh();
+        _resourceView?.Refresh();
+        _sidebarResourceView?.Refresh();
         _captureView?.Refresh();
         _sidebarCaptureView?.Refresh();
         _snippetView?.Refresh();
@@ -1291,6 +1399,10 @@ public partial class MainWindow : Window
             case PortalEntry:
                 _portalView?.Refresh();
                 break;
+            case WorkspaceResourceEntry:
+                _resourceView?.Refresh();
+                _sidebarResourceView?.Refresh();
+                break;
             case ClipboardSnippetEntry:
                 _snippetView?.Refresh();
                 break;
@@ -1370,6 +1482,64 @@ public partial class MainWindow : Window
         portal.UpdatedUtc = DateTimeOffset.UtcNow;
         PortalLinksGrid.Items.Refresh();
         _viewModel.StatusText = "Portal sub-link removed";
+        SafeSave();
+    }
+
+    private void AddResource_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.AddResource();
+        ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
+        RefreshAfterDataChange();
+        SelectWorkspaceTab("Resources");
+        SafeSave();
+    }
+
+    private void ImportRepositoryResources_Click(object sender, RoutedEventArgs e)
+    {
+        RepositoryMergeSummary summary = _viewModel.ImportRepositoryResources();
+        RefreshAfterDataChange();
+        _viewModel.StatusText = $"Resource sync: {summary.Added} added, {summary.Updated} updated";
+        SafeSave();
+    }
+
+    private void ResourceStateChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded || (sender as FrameworkElement)?.DataContext is not WorkspaceResourceEntry resource)
+        {
+            return;
+        }
+
+        resource.UpdatedUtc = DateTimeOffset.UtcNow;
+        _resourceView?.Refresh();
+        _sidebarResourceView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        SafeSave();
+    }
+
+    private void DeleteResource_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedResource is not WorkspaceResourceEntry resource)
+        {
+            _viewModel.StatusText = "No resource selected";
+            return;
+        }
+
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete resource '{resource.Name}'?\n\nOnly the local quick link is removed; the original item is untouched.",
+            "Delete resource",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _viewModel.RemoveResource(resource);
+        RefreshAfterDataChange();
         SafeSave();
     }
 
