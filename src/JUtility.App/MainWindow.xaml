@@ -564,11 +564,12 @@
 
                       <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
 
-                      <DataGridTemplateColumn Header="" Width="118">
+                      <DataGridTemplateColumn Header="" Width="230">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
                             <WrapPanel>
                               <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
+                              <Button Content="Archive / restore" Tag="{Binding}" Click="ArchiveProject_Click"/>
                               <Button Content="×" Tag="{Binding}" Click="DeleteProject_Click"/>
                             </WrapPanel>
                           </DataTemplate>
