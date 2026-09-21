@@ -43,6 +43,7 @@ The September 11 handover below is historical. Its compile blocker has been repa
 
 ### Power Ops shell
 
+- Sidebar quick access is curated to pinned/favorite portals/resources, pinned snippets and active captures; Manage actions open Compact editors instead of creating dead-end items;
 - Expanded / Compact / Sidebar layouts retained;
 - primary module navigation;
 - module-specific second navigation panel;
@@ -60,6 +61,7 @@ The September 11 handover below is historical. Its compile blocker has been repa
 
 ### Repository Hub
 
+- GitHub sync preservation is regression-tested so custom Website / Server / ChatGPT / category / subcategory / notes survive refresh;
 - GitHub / Website / Server / ChatGPT link columns;
 - project family + subcategory tree;
 - multi-family ribbon filtering;
@@ -75,6 +77,7 @@ The September 11 handover below is historical. Its compile blocker has been repa
 
 ### Portal Launcher
 
+- Starter Pack adds common service portals to fresh or existing workspaces idempotently without overwriting customized entries;
 - main portal URL + category + icon key;
 - favorites and ribbon pins;
 - project-specific sub-links;

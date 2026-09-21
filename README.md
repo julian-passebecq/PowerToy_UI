@@ -182,4 +182,4 @@ The Windows CI workflow also supports a manual **workflow_dispatch** run that bu
 - `JUtility.App` — WPF shell, Windows integration, summon behavior, GitHub discovery, browser/clipboard actions.
 - `JUtility.SmokeTests` — isolated workspace and core behavior regression checks.
 
-See [docs/POWER_OPS_SUITE.md](docs/POWER_OPS_SUITE.md) for the current product boundary and navigation model.
+See [docs/POWER_OPS_SUITE.md](docs/POWER_OPS_SUITE.md) for the current product boundary and navigation model. The implementation checklist is tracked in [docs/REQUIREMENTS_AUDIT.md](docs/REQUIREMENTS_AUDIT.md).
