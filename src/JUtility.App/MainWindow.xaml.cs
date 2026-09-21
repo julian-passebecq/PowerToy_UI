@@ -279,35 +279,12 @@ public partial class MainWindow : Window
 
         _resourceView = CollectionViewSource.GetDefaultView(_viewModel.Resources);
         _resourceView.Filter = item =>
-        {
-            if (item is not WorkspaceResourceEntry resource) return false;
-
-            string shellSearch = GetModuleSearch("Resources");
-            if (!string.IsNullOrWhiteSpace(shellSearch))
-            {
-                string haystack = string.Join(" ", resource.Name, resource.Provider, resource.Kind, resource.Group, resource.Url, resource.Note);
-                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-            }
-
-            if (_activeResourceProviders.Count > 0 && !_activeResourceProviders.Contains(resource.Provider))
-            {
-                return false;
-            }
-
-            string filter = GetModuleFilter("Resources");
-            if (filter == "all") return true;
-            if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase)) return resource.IsFavorite;
-            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return resource.IsPinned;
-            if (filter.StartsWith("group:", StringComparison.OrdinalIgnoreCase))
-            {
-                return string.Equals(resource.Group, filter["group:".Length..], StringComparison.OrdinalIgnoreCase);
-            }
-
-            return true;
-        };
+            item is WorkspaceResourceEntry resource
+            && ResourceCatalogService.MatchesFilter(
+                resource,
+                _activeResourceProviders,
+                GetModuleFilter("Resources"),
+                GetModuleSearch("Resources"));
         _resourceView.SortDescriptions.Clear();
         _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
         _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsPinned), ListSortDirection.Descending));
