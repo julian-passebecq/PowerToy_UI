@@ -199,6 +199,38 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public WindowPlacementState GetWindowPlacement(WorkspaceViewMode mode) => mode switch
+    {
+        WorkspaceViewMode.Sidebar => _state.Preferences.SidebarPlacement,
+        WorkspaceViewMode.Compact => _state.Preferences.CompactPlacement,
+        WorkspaceViewMode.Expanded => _state.Preferences.ExpandedPlacement,
+        _ => _state.Preferences.CompactPlacement,
+    };
+
+    public void UpdateWindowPlacement(
+        WorkspaceViewMode mode,
+        double width,
+        double height,
+        double left,
+        double top,
+        bool includePosition)
+    {
+        WindowPlacementState placement = GetWindowPlacement(mode);
+        if (double.IsFinite(width) && double.IsFinite(height) && width > 0 && height > 0)
+        {
+            placement.Width = width;
+            placement.Height = height;
+            placement.HasSize = true;
+        }
+
+        if (includePosition && double.IsFinite(left) && double.IsFinite(top))
+        {
+            placement.Left = left;
+            placement.Top = top;
+            placement.HasPosition = true;
+        }
+    }
+
     public WindowBehaviorMode WindowBehavior
     {
         get => _state.Preferences.WindowBehavior;
