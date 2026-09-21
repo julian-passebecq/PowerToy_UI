@@ -697,6 +697,10 @@
                         <TextBox Width="220" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
                         <TextBox Width="120" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
                         <TextBox Width="120" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
+                        <DatePicker Width="145"
+                                    SelectedDate="{Binding DataContext.SelectedNoteDueDate, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                    SelectedDateChanged="CaptureDueDateChanged_Click"
+                                    ToolTip="Due date"/>
                       </WrapPanel>
                       <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL"/>
                     </StackPanel>
