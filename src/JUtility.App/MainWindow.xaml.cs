@@ -401,6 +401,17 @@ public partial class MainWindow : Window
         _projectView?.Refresh();
     }
 
+    private static string ProjectFamilyAccent(string family) => family.ToLowerInvariant() switch
+    {
+        "foil" => "#D99316",
+        "atlas" => "#1F70D8",
+        "datapass" => "#12965F",
+        "fabric" => "#7B3FD0",
+        "infra" => "#66758A",
+        "portfolio" => "#D12C7F",
+        _ => "#5B6577",
+    };
+
     private static string CaptureKindLabel(CaptureKind kind) => kind switch
     {
         CaptureKind.QuickNote => "Quick notes",
@@ -466,7 +477,7 @@ public partial class MainWindow : Window
                         group.Key,
                         $"{group.Count()} repos",
                         glyph,
-                        selected ? "#0F6CBD" : "#5B6577"));
+                        selected ? ProjectFamilyAccent(group.Key) : "#9AA6B2"));
                 }
                 break;
 
