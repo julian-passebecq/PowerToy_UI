@@ -1354,6 +1354,13 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ResetWindowLayouts_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ResetWindowPlacements();
+        ApplyViewMode(_viewModel.ViewMode);
+        SafeSave(showError: true);
+    }
+
     private void TemporaryPin_Changed(object sender, RoutedEventArgs e)
     {
         _temporaryPin = TemporaryPinCheck.IsChecked == true;
