@@ -42,6 +42,7 @@ public sealed class ProjectEntry
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = "Projects";
+    public string Subcategory { get; set; } = "Misc";
     public string Note { get; set; } = string.Empty;
     public string GitHubFullName { get; set; } = string.Empty;
     public string Language { get; set; } = string.Empty;
