@@ -1710,6 +1710,61 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CaptureClipboardUrl_Click(object sender, RoutedEventArgs e)
+    {
+        string clipboardText;
+        try
+        {
+            if (!Clipboard.ContainsText())
+            {
+                _viewModel.StatusText = "Clipboard does not contain text";
+                return;
+            }
+
+            clipboardText = Clipboard.GetText().Trim();
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Clipboard unavailable";
+            ShowOwnedMessage(ex.Message, "Clipboard unavailable", MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!UrlNormalizer.TryNormalizeOptionalWebUrl(clipboardText, out string normalized)
+            || string.IsNullOrWhiteSpace(normalized))
+        {
+            _viewModel.StatusText = "Clipboard text is not a web URL";
+            return;
+        }
+
+        PrepareCaptureAddContext();
+        _viewModel.AddNote();
+        if (_viewModel.SelectedNote is not StickyNoteEntry note)
+        {
+            return;
+        }
+
+        note.Kind = CaptureKind.Bookmark;
+        note.Url = normalized;
+        note.Title = Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri)
+            ? uri.Host.Replace("www.", string.Empty, StringComparison.OrdinalIgnoreCase)
+            : "Saved URL";
+        note.UpdatedUtc = DateTimeOffset.UtcNow;
+
+        if (_activeCaptureSubjects.Count == 1)
+        {
+            string subject = _activeCaptureSubjects.First();
+            note.Subject = subject.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : subject;
+        }
+
+        SelectWorkspaceTab("Capture");
+        RefreshAfterDataChange();
+        SafeSave();
+        _viewModel.StatusText = "Clipboard URL captured as bookmark";
+    }
+
     private void AddNote_Click(object sender, RoutedEventArgs e)
     {
         PrepareCaptureAddContext();
