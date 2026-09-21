@@ -693,7 +693,7 @@
                         <TextBox Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title"/>
                       </WrapPanel>
                       <WrapPanel>
-                        <TextBox Width="220" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category"/>
+                        <TextBox Width="220" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus"/>
                         <TextBox Width="220" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
                         <TextBox Width="120" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
                         <TextBox Width="120" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
