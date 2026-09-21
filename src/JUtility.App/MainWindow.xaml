@@ -552,6 +552,7 @@
                               <WrapPanel>
                                 <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                                 <Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/>
+                                <Button Content="×" Tag="{Binding}" Click="DeletePortalLink_Click"/>
                               </WrapPanel>
                             </DataTemplate>
                           </DataGridTemplateColumn.CellTemplate>
