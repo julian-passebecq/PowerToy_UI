@@ -1,290 +1,720 @@
 <Window x:Class="JUtility.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="J Utility Palette" Width="900" Height="760" MinWidth="360" MinHeight="520"
-        WindowStartupLocation="CenterScreen" Background="{StaticResource PanelBrush}">
+        Title="J Utility Palette · Power Ops"
+        Width="1440" Height="900" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PanelBrush}">
+  <Window.Resources>
+    <Style x:Key="PrimaryNavButtonStyle" TargetType="Button">
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="12,9"/>
+      <Setter Property="Margin" Value="0,2"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+              <ContentPresenter VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#EAF3FF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="SecondaryNavButtonStyle" TargetType="Button">
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="Margin" Value="0,1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+              <ContentPresenter/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#F0F5FB"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="WorkspaceTabControlStyle" TargetType="TabControl">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabControl">
+            <Border Background="{TemplateBinding Background}">
+              <ContentPresenter ContentSource="SelectedContent"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <DataTemplate x:Key="SecondaryNavTemplate">
+      <Button Style="{StaticResource SecondaryNavButtonStyle}" Tag="{Binding Key}" Click="SecondaryNav_Click">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Text="{Binding Label}" FontWeight="{Binding Weight}"/>
+          <Border Grid.Column="1" Background="#EEF2F7" CornerRadius="8" Padding="6,1">
+            <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+          </Border>
+        </Grid>
+      </Button>
+    </DataTemplate>
+
+    <DataTemplate x:Key="QuickRibbonTemplate">
+      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="8,5" Margin="4,0" MinWidth="88" Background="White" BorderBrush="{StaticResource BorderBrush}">
+        <StackPanel Orientation="Horizontal">
+          <Border Width="28" Height="28" CornerRadius="6" Background="{Binding Accent}" Margin="0,0,7,0">
+            <TextBlock Text="{Binding Glyph}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedBrush}" FontSize="10" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+          </StackPanel>
+        </StackPanel>
+      </Button>
+    </DataTemplate>
+  </Window.Resources>
+
   <Grid>
-    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,9">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Left"><TextBlock Text="J Utility Palette" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Prompts, project links, and temporary notes" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
+        <StackPanel DockPanel.Dock="Left">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Power Ops" FontSize="18" FontWeight="SemiBold"/>
+            <Border Background="#EAF3FF" CornerRadius="5" Padding="6,2" Margin="8,0,0,0">
+              <TextBlock Text="J Utility Palette" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock Text="Repositories · portals · capture · clipboard" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+        </StackPanel>
+
         <WrapPanel HorizontalAlignment="Right">
-          <Button Content="Sidebar" Click="Sidebar_Click"/><Button Content="Compact" Click="Compact_Click"/><Button Content="Expanded" Click="Expanded_Click"/>
+          <Button Content="Sidebar" Click="Sidebar_Click"/>
+          <Button Content="Compact" Click="Compact_Click"/>
+          <Button Content="Expanded" Click="Expanded_Click"/>
           <TextBlock Text="Window" VerticalAlignment="Center" Margin="10,0,4,0" Foreground="{StaticResource MutedBrush}"/>
-          <ComboBox Width="132" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed"/>
-          <CheckBox x:Name="TemporaryPinCheck" Content="Keep open" Margin="8,0,4,0" VerticalAlignment="Center" Checked="TemporaryPin_Changed" Unchecked="TemporaryPin_Changed"/>
+          <ComboBox Width="132"
+                    ItemsSource="{Binding WindowBehaviorOptions}"
+                    DisplayMemberPath="Label"
+                    SelectedValuePath="Value"
+                    SelectedValue="{Binding WindowBehavior, Mode=TwoWay}"
+                    SelectionChanged="WindowBehavior_Changed"/>
+          <CheckBox x:Name="TemporaryPinCheck" Content="Keep open" Margin="8,0,4,0" VerticalAlignment="Center"
+                    Checked="TemporaryPin_Changed" Unchecked="TemporaryPin_Changed"/>
           <Button Content="Save" Click="Save_Click"/>
         </WrapPanel>
       </DockPanel>
     </Border>
-    <Grid Grid.Row="1" Margin="10">
-      <ScrollViewer x:Name="SidebarPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+
+    <Grid Grid.Row="1">
+      <ScrollViewer x:Name="SidebarPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Margin="10">
         <StackPanel>
-          <DockPanel><TextBlock Text="Projects" FontWeight="SemiBold" FontSize="15"/><Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddProject_Click"/></DockPanel>
-          <ItemsControl ItemsSource="{Binding Projects}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,4"><StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><WrapPanel><Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/><Button Content="Copy R" Tag="{Binding RepoUrl}" Click="CopyValue_Click"/><Button Content="Site" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/><Button Content="Copy S" Tag="{Binding SiteUrl}" Click="CopyValue_Click"/><Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/></WrapPanel></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-          <Separator Margin="0,8"/>
-          <TextBlock Text="Prompt modules" FontWeight="SemiBold" FontSize="15"/>
-          <ItemsControl ItemsSource="{Binding PromptModules}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Title}" IsChecked="{Binding IsEnabled}" Margin="3"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-          <Button Content="Compose + copy" Click="ComposeCopy_Click"/>
-          <Separator Margin="0,8"/>
-          <DockPanel><TextBlock Text="Notes" FontWeight="SemiBold" FontSize="15"/><Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddNote_Click"/></DockPanel>
-          <ItemsControl ItemsSource="{Binding Notes}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="#FFFBEA" BorderBrush="#E6DFAF" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,4"><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxHeight="70" Foreground="{StaticResource MutedBrush}"/></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          <TextBlock Text="Quick access" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Open a portal, copy a snippet, or capture something, then get out of the way." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
+
+          <DockPanel Margin="0,8,0,4">
+            <TextBlock Text="Portals" FontWeight="SemiBold" FontSize="14"/>
+            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click"/>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Portals}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                  <DockPanel>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                    </StackPanel>
+                    <Button Content="Open" Tag="{Binding MainUrl}" Click="OpenUrl_Click" HorizontalAlignment="Right"/>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Separator Margin="0,10"/>
+
+          <DockPanel Margin="0,4">
+            <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14"/>
+            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding ClipboardSnippets}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                  <DockPanel>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                    </StackPanel>
+                    <Button Content="Copy" Tag="{Binding Text}" Click="CopyValue_Click" HorizontalAlignment="Right"/>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Separator Margin="0,10"/>
+
+          <DockPanel Margin="0,4">
+            <TextBlock Text="Capture" FontWeight="SemiBold" FontSize="14"/>
+            <Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Notes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="#FFFBEA" BorderBrush="#E6DFAF" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                  <StackPanel>
+                    <DockPanel>
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                    </DockPanel>
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </ScrollViewer>
-      <TabControl x:Name="WorkspacePanel" Background="Transparent" BorderThickness="0">
-        <TabItem Header="Dashboard">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="12">
-              <TextBlock Text="Power Ops Dashboard" FontSize="24" FontWeight="SemiBold"/>
-              <TextBlock Text="Quick access to project links, portals, captures, and reusable clipboard content." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,14"/>
-              <UniformGrid Columns="4">
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Repositories" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Projects.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Portals" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Portals.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Captures" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Notes.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Clipboard snippets" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding ClipboardSnippets.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-              </UniformGrid>
-              <TextBlock Text="Modules" FontSize="16" FontWeight="SemiBold" Margin="4,18,4,6"/>
-              <WrapPanel>
-                <Button Content="Repository Hub" Click="RepositoryHub_Click"/>
-                <Button Content="Portal Launcher" Click="PortalLauncher_Click"/>
-                <Button Content="Capture" Click="Capture_Click"/>
-                <Button Content="Clipboard" Click="Clipboard_Click"/>
-                <Button Content="Prompt Builder" Click="PromptBuilder_Click"/>
-              </WrapPanel>
+
+      <Grid x:Name="PowerOpsShell">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#FBFCFE" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Left" Width="185" Margin="4,0,8,0">
+              <TextBlock x:Name="CurrentModuleTitle" Text="Dashboard" FontSize="15" FontWeight="SemiBold"/>
+              <TextBlock x:Name="CurrentModuleSubtitle" Text="Overview and recent work" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
             </StackPanel>
-          </ScrollViewer>
-        </TabItem>
+            <Button DockPanel.Dock="Right" x:Name="QuickAddButton" Content="+ Add" Click="QuickAdd_Click" Margin="8,0,0,0"/>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+              <ItemsControl x:Name="QuickRibbon" ItemTemplate="{StaticResource QuickRibbonTemplate}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
 
-        <TabItem Header="Repository Hub">
-          <Grid Margin="6">
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="0,0,0,8">
-              <WrapPanel>
-                <Button Content="Add project" Click="AddProject_Click"/>
-                <Button Content="Copy all included" Click="CopyAll_Click"/>
-              </WrapPanel>
-              <CheckBox Content="Show legacy Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" HorizontalAlignment="Right"/>
+        <Grid Grid.Row="1">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="185"/>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
+            <DockPanel>
+              <StackPanel x:Name="PrimaryNavPanel" DockPanel.Dock="Top">
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Dashboard" Click="PrimaryNav_Click" Content="▦  Dashboard"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Repository Hub" Click="PrimaryNav_Click" Content="◫  Repository Hub"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Portals" Click="PrimaryNav_Click" Content="↗  Portal Launcher"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Prompt Builder" Click="PrimaryNav_Click" Content="⌘  Prompt Builder"/>
+                <Separator Margin="0,8"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Settings" Click="PrimaryNav_Click" Content="⚙  Settings"/>
+              </StackPanel>
+              <StackPanel DockPanel.Dock="Bottom" Margin="4,12,4,2">
+                <TextBlock Text="Local-first workspace" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                <TextBlock Text="No cloud sync required" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+              </StackPanel>
             </DockPanel>
-            <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
-              <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="All" Binding="{Binding IncludeInCopyAll}" Width="42"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
-                <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
-                <DataGridTextColumn Header="Repo" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.6*"/>
-                <DataGridTextColumn Header="Website" Binding="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
-                <DataGridTextColumn Header="Server" Binding="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
-                <DataGridTextColumn Header="ChatGPT" Binding="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.5*"/>
-                <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
-                <DataGridCheckBoxColumn Header="Archived" Binding="{Binding IsArchived}" Width="70"/>
-                <DataGridTemplateColumn Header="Copy" Width="220">
-                  <DataGridTemplateColumn.CellTemplate>
-                    <DataTemplate>
-                      <WrapPanel>
-                        <CheckBox Content="N" IsChecked="{Binding CopyName}" Margin="2"/>
-                        <CheckBox Content="R" IsChecked="{Binding CopyRepo}" Margin="2"/>
-                        <CheckBox Content="W" IsChecked="{Binding CopySite}" Margin="2"/>
-                        <CheckBox Content="S" IsChecked="{Binding CopyServer}" Margin="2"/>
-                        <CheckBox Content="G" IsChecked="{Binding CopyChatGpt}" Margin="2"/>
-                        <CheckBox Content="E" IsChecked="{Binding CopyExtra}" Margin="2"/>
-                      </WrapPanel>
-                    </DataTemplate>
-                  </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Actions" Width="390">
-                  <DataGridTemplateColumn.CellTemplate>
-                    <DataTemplate>
-                      <WrapPanel>
-                        <Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/>
-                        <Button Content="Web" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/>
-                        <Button Content="Server" Tag="{Binding ServerUrl}" Click="OpenUrl_Click"/>
-                        <Button Content="ChatGPT" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click"/>
-                        <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
-                        <Button Content="Del" Tag="{Binding}" Click="DeleteProject_Click"/>
-                      </WrapPanel>
-                    </DataTemplate>
-                  </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-              </DataGrid.Columns>
-            </DataGrid>
-            <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Repository rows can carry GitHub, website, server/hosting, and ChatGPT links. Copy switches control the combined clipboard row."/>
-          </Grid>
-        </TabItem>
+          </Border>
 
-        <TabItem Header="Portals">
-          <Grid Margin="6">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.78*"/><ColumnDefinition Width="1.7*"/></Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Margin="0,0,8,0">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <DockPanel>
-                <StackPanel><TextBlock Text="Portal Launcher" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="Main portals and project sub-links" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
-                <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click"/>
-              </DockPanel>
-              <ListBox Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8">
-                <ListBox.ItemTemplate>
-                  <DataTemplate>
-                    <Border Padding="7">
-                      <StackPanel>
-                        <DockPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}"/></DockPanel>
-                        <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-              <Button Grid.Row="2" Content="Delete selected portal" Click="DeletePortal_Click"/>
-            </Grid>
-            <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedPortal}">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Border Grid.Column="1" Background="#F8FAFD" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
               <StackPanel>
-                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="SemiBold"/>
-                <WrapPanel>
-                  <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
-                  <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key"/>
-                  <CheckBox Content="Pin to ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8"/>
-                  <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
-                </WrapPanel>
-                <DockPanel>
-                  <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL"/>
-                  <WrapPanel DockPanel.Dock="Right">
-                    <Button Content="Open main" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
-                    <Button Content="Copy" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
-                  </WrapPanel>
+                <TextBlock x:Name="SecondaryTitle" Text="Overview" FontSize="12" FontWeight="SemiBold"/>
+                <TextBlock x:Name="SecondaryHint" Text="Choose a section" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,2,0,8"/>
+              </StackPanel>
+
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="SecondaryNav" ItemTemplate="{StaticResource SecondaryNavTemplate}"/>
+              </ScrollViewer>
+
+              <StackPanel Grid.Row="2" x:Name="RepoSavedListsPanel" Visibility="Collapsed" Margin="0,10,0,0">
+                <Separator Margin="0,0,0,8"/>
+                <TextBlock Text="SAVED LISTS" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="SemiBold"/>
+                <DockPanel Margin="0,5,0,6">
+                  <TextBox x:Name="NewRepoListName" MinWidth="112" ToolTip="List name"/>
+                  <Button Content="Save" Click="SaveRepoList_Click"/>
                 </DockPanel>
+                <ItemsControl ItemsSource="{Binding RepositoryLists}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="6" Margin="0,2">
+                        <StackPanel>
+                          <DockPanel>
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Items.Count}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                          </DockPanel>
+                          <WrapPanel>
+                            <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
+                            <Button Content="Copy" Tag="{Binding}" Click="CopyRepoList_Click"/>
+                            <Button Content="×" Tag="{Binding}" Click="DeleteRepoList_Click"/>
+                          </WrapPanel>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </StackPanel>
-              <DockPanel Grid.Row="1" Margin="0,10,0,4"><TextBlock Text="Saved sub-links" FontWeight="SemiBold" VerticalAlignment="Center"/><Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/></DockPanel>
-              <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
-                <DataGrid.Columns>
-                  <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
-                  <DataGridTextColumn Header="Project" Binding="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
-                  <DataGridTextColumn Header="URL" Binding="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
-                  <DataGridTextColumn Header="Note" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
-                  <DataGridTemplateColumn Header="Actions" Width="130">
-                    <DataGridTemplateColumn.CellTemplate>
-                      <DataTemplate><WrapPanel><Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/><Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/></WrapPanel></DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                  </DataGridTemplateColumn>
-                </DataGrid.Columns>
-              </DataGrid>
-              <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Portal cards do not use multi-select: open the main portal directly or open a saved project-specific sub-link."/>
             </Grid>
-          </Grid>
-        </TabItem>
+          </Border>
 
-        <TabItem Header="Prompt Builder"><Grid Margin="6"><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions><Grid Grid.Column="0" Margin="0,0,8,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel><TextBlock Text="Reusable modules" FontSize="15" FontWeight="SemiBold"/><Button Content="Add" HorizontalAlignment="Right" Click="AddModule_Click"/></DockPanel><ListBox Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6"><ListBox.ItemTemplate><DataTemplate><Border Padding="5"><StackPanel><DockPanel><CheckBox IsChecked="{Binding IsEnabled}"/><TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="190"/><Button Content="Up" Tag="{Binding}" Click="MoveModuleUp_Click"/><Button Content="Down" Tag="{Binding}" Click="MoveModuleDown_Click"/></DockPanel><TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Grid.Row="2" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Text="Use {{project}}, {{repo}}, {{site}}, {{server}}, {{chatgpt}}, or {{extra}}. Unknown variables remain visible."/></Grid><Grid Grid.Column="1" Margin="8,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="150"/></Grid.RowDefinitions><StackPanel><TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/><WrapPanel><Button Content="Preview" Click="PreviewPrompt_Click"/><Button Content="Copy prompt" Click="ComposeCopy_Click"/><Button Content="Copy + project" Click="ComposeCopyProject_Click"/></WrapPanel></StackPanel><TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/><TextBlock Grid.Row="2" Text="Recent prompts" FontWeight="SemiBold"/><ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox></Grid></Grid></TabItem>
-        <TabItem Header="Clipboard">
-          <Grid Margin="6">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Margin="0,0,8,0">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <DockPanel>
-                <StackPanel><TextBlock Text="Clipboard Library" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="Premade prompts and reusable text" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
-                <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
-              </DockPanel>
-              <ListBox Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8">
-                <ListBox.ItemTemplate>
-                  <DataTemplate>
-                    <Border Padding="7">
+          <Border Grid.Column="2" Background="{StaticResource PanelBrush}">
+            <TabControl x:Name="WorkspacePanel" Style="{StaticResource WorkspaceTabControlStyle}">
+              <TabItem Header="Dashboard">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel Margin="16">
+                    <TextBlock Text="Dashboard" FontSize="26" FontWeight="SemiBold"/>
+                    <TextBlock Text="Recent work and quick access. Editing stays inside the dedicated modules." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,14"/>
+                    <UniformGrid Columns="4">
+                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Repositories" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Projects.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Portals" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Portals.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Captures" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Notes.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Clipboard" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding ClipboardSnippets.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                    </UniformGrid>
+
+                    <Grid Margin="4,16,4,0">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+
+                      <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+                        <StackPanel>
+                          <DockPanel><TextBlock Text="Portals" FontSize="15" FontWeight="SemiBold"/><Button Content="+ Add" HorizontalAlignment="Right" Click="AddPortal_Click"/></DockPanel>
+                          <ItemsControl ItemsSource="{Binding Portals}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <DockPanel Margin="0,5">
+                                  <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                  </StackPanel>
+                                  <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click" HorizontalAlignment="Right"/>
+                                </DockPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+
+                      <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
+                        <StackPanel>
+                          <DockPanel><TextBlock Text="Pinned / recent captures" FontSize="15" FontWeight="SemiBold"/><Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/></DockPanel>
+                          <ItemsControl ItemsSource="{Binding Notes}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,6">
+                                  <StackPanel>
+                                    <DockPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/></DockPanel>
+                                    <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                  </StackPanel>
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </Grid>
+                  </StackPanel>
+                </ScrollViewer>
+              </TabItem>
+
+              <TabItem Header="Repository Hub">
+                <Grid Margin="12">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                    <StackPanel>
+                      <TextBlock Text="Repository Hub" FontSize="20" FontWeight="SemiBold"/>
+                      <TextBlock Text="One project row, four primary links: GitHub, website, server, ChatGPT." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    </StackPanel>
+                    <WrapPanel HorizontalAlignment="Right">
+                      <Button Content="+ Project" Click="AddProject_Click"/>
+                      <Button Content="Copy all included" Click="CopyAll_Click"/>
+                      <CheckBox Content="Legacy Extra" IsChecked="{Binding ShowExtraColumn}" Checked="ShowExtra_Changed" Unchecked="ShowExtra_Changed" Margin="8,0"/>
+                    </WrapPanel>
+                  </DockPanel>
+
+                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2">
+                    <DataGrid.Columns>
+                      <DataGridCheckBoxColumn Header="✓" Binding="{Binding IncludeInCopyAll}" Width="36"/>
+                      <DataGridTextColumn Header="Project" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                      <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                      <DataGridTextColumn Header="GitHub" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="210"/>
+                      <DataGridTextColumn Header="Website" Binding="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
+                      <DataGridTextColumn Header="Server" Binding="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
+                      <DataGridTextColumn Header="ChatGPT" Binding="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
+                      <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                      <DataGridTemplateColumn Header="Include" Width="210">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <WrapPanel>
+                              <CheckBox Content="Repo" IsChecked="{Binding CopyRepo}" Margin="2"/>
+                              <CheckBox Content="Web" IsChecked="{Binding CopySite}" Margin="2"/>
+                              <CheckBox Content="Server" IsChecked="{Binding CopyServer}" Margin="2"/>
+                              <CheckBox Content="Chat" IsChecked="{Binding CopyChatGpt}" Margin="2"/>
+                            </WrapPanel>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTemplateColumn Header="Actions" Width="350">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <WrapPanel>
+                              <Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/>
+                              <Button Content="Web" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/>
+                              <Button Content="Server" Tag="{Binding ServerUrl}" Click="OpenUrl_Click"/>
+                              <Button Content="Chat" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click"/>
+                              <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
+                              <Button Content="Del" Tag="{Binding}" Click="DeleteProject_Click"/>
+                            </WrapPanel>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                  </DataGrid>
+
+                  <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Select a project with ✓. Available Repo/Web/Server/Chat links are included by their switches. Saved lists on the left preserve those per-link choices."/>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Portals">
+                <Grid Margin="12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.7*"/></Grid.ColumnDefinitions>
+
+                  <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <DockPanel>
                       <StackPanel>
-                        <DockPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}"/></DockPanel>
-                        <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="Portal Launcher" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Direct-open services; no selection workflow." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-              <Button Grid.Row="2" Content="Delete selected snippet" Click="DeleteSnippet_Click"/>
-            </Grid>
-            <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedSnippet}">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <StackPanel>
-                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="16" FontWeight="SemiBold"/>
-                <WrapPanel>
-                  <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
-                  <TextBox Width="260" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags"/>
-                  <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="8"/>
-                </WrapPanel>
-              </StackPanel>
-              <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/>
-              <WrapPanel Grid.Row="2">
-                <Button Content="Copy now" Click="CopySnippet_Click"/>
-                <TextBlock Text="Use Prompt Builder when several reusable modules must be composed together." VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8"/>
-              </WrapPanel>
-            </Grid>
-          </Grid>
-        </TabItem>
+                      <Button Content="+ Portal" HorizontalAlignment="Right" Click="AddPortal_Click"/>
+                    </DockPanel>
 
-        <TabItem Header="Capture">
-          <Grid Margin="6">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.82*"/><ColumnDefinition Width="1.55*"/></Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Margin="0,0,8,0">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-              <DockPanel>
-                <StackPanel><TextBlock Text="Capture" FontSize="16" FontWeight="SemiBold"/><TextBlock Text="Inbox, to-do, notes, bookmarks, read later, transcripts" Foreground="{StaticResource MutedBrush}" FontSize="11"/></StackPanel>
-                <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddNote_Click"/>
-              </DockPanel>
-              <ListBox Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8">
-                <ListBox.ItemTemplate>
-                  <DataTemplate>
-                    <Border Padding="7">
+                    <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Border Padding="7">
+                            <StackPanel>
+                              <DockPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              </DockPanel>
+                              <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Button Grid.Row="2" Content="Delete selected portal" Click="DeletePortal_Click"/>
+                  </Grid>
+
+                  <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedPortal}">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel>
+                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
+                      <WrapPanel>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                        <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label"/>
+                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Checked="PortalPinChanged_Click" Unchecked="PortalPinChanged_Click"/>
+                        <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
+                      </WrapPanel>
+                      <DockPanel>
+                        <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL"/>
+                        <WrapPanel DockPanel.Dock="Right">
+                          <Button Content="Open main ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
+                          <Button Content="Copy" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
+                        </WrapPanel>
+                      </DockPanel>
+                    </StackPanel>
+
+                    <DockPanel Grid.Row="1" Margin="0,10,0,4">
+                      <TextBlock Text="Project-specific sub-links" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                      <Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/>
+                    </DockPanel>
+
+                    <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White">
+                      <DataGrid.Columns>
+                        <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                        <DataGridTextColumn Header="Project" Binding="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                        <DataGridTextColumn Header="URL" Binding="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
+                        <DataGridTextColumn Header="Note" Binding="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Width="1.2*"/>
+                        <DataGridTemplateColumn Header="Actions" Width="140">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                              <WrapPanel>
+                                <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
+                                <Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/>
+                              </WrapPanel>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                      </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Top-ribbon portal icons open the main URL immediately. Sub-links remain attached to this service for project-specific navigation."/>
+                  </Grid>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Capture">
+                <Grid Margin="12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
+
+                  <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <DockPanel>
                       <StackPanel>
-                        <DockPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold"/><TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}"/></DockPanel>
-                        <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Capture" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Inbox · To-do · Notes · Bookmarks · Read later · Transcript" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-            <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedNote}">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-              <StackPanel>
-                <WrapPanel>
-                  <ComboBox Width="140" ItemsSource="{Binding DataContext.CaptureKindOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Kind}" ToolTip="Capture type"/>
-                  <TextBox Width="300" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title"/>
-                </WrapPanel>
-                <WrapPanel>
-                  <TextBox Width="220" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category"/>
-                  <TextBox Width="220" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
-                  <TextBox Width="120" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
-                  <TextBox Width="120" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
-                </WrapPanel>
-                <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL"/>
-              </StackPanel>
-              <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="180"/>
-              <WrapPanel Grid.Row="2">
-                <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6"/>
-                <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6"/>
-                <Button Content="Copy capture" Click="CopyNote_Click"/>
-                <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
-                <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
-                <Button Content="Export capture" Click="ExportSelectedCapture_Click"/>
-              </WrapPanel>
-            </Grid>
-          </Grid>
-        </TabItem>
-        <TabItem Header="Settings">
-          <StackPanel Margin="12" MaxWidth="720" HorizontalAlignment="Left">
-            <TextBlock Text="Window behavior" FontSize="16" FontWeight="SemiBold"/>
-            <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8"/>
-            <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed"/>
+                      <Button Content="+ Capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
+                    </DockPanel>
 
-            <TextBlock Text="Summon trigger" FontWeight="SemiBold" Margin="0,14,0,3"/>
-            <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SummonBindingOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SummonMouseBinding, Mode=TwoWay}" SelectionChanged="SummonBinding_Changed"/>
-            <CheckBox Content="Hide when focus is lost" IsChecked="{Binding HideOnFocusLoss}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed" Margin="0,8,0,0"/>
-            <CheckBox Content="Open near the mouse cursor" IsChecked="{Binding OpenNearCursor}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed"/>
-            <Button Content="Hide now to test summon" Width="190" HorizontalAlignment="Left" Click="HideNow_Click" Margin="0,6,0,0"/>
-            <TextBlock Text="The configured mouse action is consumed while Summon mode is active, so Mouse 4/5 will not also trigger browser Back/Forward. Ctrl + middle click keeps ordinary middle-click behavior available." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,0"/>
+                    <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Border Padding="7">
+                            <StackPanel>
+                              <DockPanel>
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              </DockPanel>
+                              <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Text="{Binding Text}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
 
-            <Separator Margin="0,16,0,12"/>
-            <TextBlock Text="Local-first storage" FontSize="16" FontWeight="SemiBold"/>
-            <TextBlock Text="Data file" FontWeight="SemiBold" Margin="0,12,0,0"/>
-            <TextBox Text="{Binding DataFilePath, Mode=OneWay}" IsReadOnly="True"/>
-            <WrapPanel><Button Content="Open data folder" Click="OpenDataFolder_Click"/><Button Content="Export JSON" Click="Export_Click"/><Button Content="Import JSON" Click="Import_Click"/></WrapPanel>
-          </StackPanel>
-        </TabItem>
-      </TabControl>
+                  <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedNote}">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel>
+                      <WrapPanel>
+                        <ComboBox Width="145"
+                                  ItemsSource="{Binding DataContext.CaptureKindOptions, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  SelectedItem="{Binding Kind}"
+                                  SelectionChanged="CaptureKindChanged_Click"
+                                  ToolTip="Capture type"/>
+                        <TextBox Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title"/>
+                      </WrapPanel>
+                      <WrapPanel>
+                        <TextBox Width="220" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category"/>
+                        <TextBox Width="220" Text="{Binding Labels, UpdateSourceTrigger=PropertyChanged}" ToolTip="Labels"/>
+                        <TextBox Width="120" Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" ToolTip="Status"/>
+                        <TextBox Width="120" Text="{Binding Priority, UpdateSourceTrigger=PropertyChanged}" ToolTip="Priority"/>
+                      </WrapPanel>
+                      <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL"/>
+                    </StackPanel>
+
+                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220"/>
+
+                    <WrapPanel Grid.Row="2">
+                      <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6"/>
+                      <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6"/>
+                      <Button Content="Copy capture" Click="CopyNote_Click"/>
+                      <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
+                      <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
+                      <Button Content="Export" Click="ExportSelectedCapture_Click"/>
+                    </WrapPanel>
+                  </Grid>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Clipboard">
+                <Grid Margin="12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
+
+                  <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <DockPanel>
+                      <StackPanel>
+                        <TextBlock Text="Clipboard Library" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="One-click reusable text and premade prompts" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      </StackPanel>
+                      <Button Content="+ Snippet" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
+                    </DockPanel>
+
+                    <ListBox x:Name="SnippetList" Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Border Padding="7">
+                            <StackPanel>
+                              <DockPanel>
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              </DockPanel>
+                              <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Button Grid.Row="2" Content="Delete selected snippet" Click="DeleteSnippet_Click"/>
+                  </Grid>
+
+                  <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedSnippet}">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel>
+                      <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
+                      <WrapPanel>
+                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                        <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags"/>
+                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Checked="SnippetPinChanged_Click" Unchecked="SnippetPinChanged_Click"/>
+                      </WrapPanel>
+                    </StackPanel>
+
+                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/>
+
+                    <WrapPanel Grid.Row="2">
+                      <Button Content="Copy now" Click="CopySnippet_Click"/>
+                      <TextBlock Text="Use Prompt Builder when several modules need to be composed together." VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8"/>
+                    </WrapPanel>
+                  </Grid>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Prompt Builder">
+                <Grid Margin="12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+
+                  <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <DockPanel>
+                      <StackPanel>
+                        <TextBlock Text="Prompt Builder" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Compose reusable modules with project variables" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      </StackPanel>
+                      <Button Content="+ Module" HorizontalAlignment="Right" Click="AddModule_Click"/>
+                    </DockPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding PromptModules}" Margin="0,6">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Border Padding="5">
+                            <StackPanel>
+                              <DockPanel>
+                                <CheckBox IsChecked="{Binding IsEnabled}"/>
+                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" Width="190"/>
+                                <Button Content="↑" Tag="{Binding}" Click="MoveModuleUp_Click"/>
+                                <Button Content="↓" Tag="{Binding}" Click="MoveModuleDown_Click"/>
+                              </DockPanel>
+                              <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Grid.Row="2" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Text="Variables: {{project}}, {{repo}}, {{site}}, {{server}}, {{chatgpt}}, {{extra}}. Unknown variables remain visible."/>
+                  </Grid>
+
+                  <Grid Grid.Column="1" Margin="8,0,0,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="160"/></Grid.RowDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Compose" FontSize="15" FontWeight="SemiBold"/>
+                      <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedPromptProject}" DisplayMemberPath="Name"/>
+                      <WrapPanel>
+                        <Button Content="Preview" Click="PreviewPrompt_Click"/>
+                        <Button Content="Copy prompt" Click="ComposeCopy_Click"/>
+                        <Button Content="Copy + project" Click="ComposeCopyProject_Click"/>
+                      </WrapPanel>
+                    </StackPanel>
+                    <TextBox Grid.Row="1" Text="{Binding PromptPreview, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8"/>
+                    <TextBlock Grid.Row="2" Text="Recent prompts" FontWeight="SemiBold"/>
+                    <ListBox Grid.Row="3" ItemsSource="{Binding RecentPrompts}">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel Margin="4">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel Margin="18" MaxWidth="760" HorizontalAlignment="Left">
+                    <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="Window behavior" FontSize="16" FontWeight="SemiBold" Margin="0,16,0,3"/>
+                    <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8"/>
+                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed"/>
+
+                    <TextBlock Text="Summon trigger" FontWeight="SemiBold" Margin="0,14,0,3"/>
+                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SummonBindingOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SummonMouseBinding, Mode=TwoWay}" SelectionChanged="SummonBinding_Changed"/>
+                    <CheckBox Content="Hide when focus is lost" IsChecked="{Binding HideOnFocusLoss}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed" Margin="0,8,0,0"/>
+                    <CheckBox Content="Open near the mouse cursor" IsChecked="{Binding OpenNearCursor}" Checked="SummonPreference_Changed" Unchecked="SummonPreference_Changed"/>
+                    <Button Content="Hide now to test summon" Width="190" HorizontalAlignment="Left" Click="HideNow_Click" Margin="0,6,0,0"/>
+
+                    <Separator Margin="0,16,0,12"/>
+                    <TextBlock Text="Local-first storage" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Data file" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                    <TextBox Text="{Binding DataFilePath, Mode=OneWay}" IsReadOnly="True"/>
+                    <WrapPanel>
+                      <Button Content="Open data folder" Click="OpenDataFolder_Click"/>
+                      <Button Content="Export JSON" Click="Export_Click"/>
+                      <Button Content="Import JSON" Click="Import_Click"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </ScrollViewer>
+              </TabItem>
+            </TabControl>
+          </Border>
+        </Grid>
+      </Grid>
     </Grid>
-    <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,5"><DockPanel><TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}"/><TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" Text="Local JSON | Normal / Topmost / Summon"/></DockPanel></Border>
+
+    <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,5">
+      <DockPanel>
+        <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}"/>
+        <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" Text="Local JSON · Normal / Topmost / Summon"/>
+      </DockPanel>
+    </Border>
   </Grid>
 </Window>
