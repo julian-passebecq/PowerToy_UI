@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -455,6 +456,12 @@ public partial class MainWindow : Window
         _projectView?.Refresh();
     }
 
+    private static string FirstGlyph(string? value, string fallback = "•")
+    {
+        string normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return StringInfo.GetNextTextElement(normalized).ToUpperInvariant();
+    }
+
     private static string ProjectFamilyAccent(string family) => family.ToLowerInvariant() switch
     {
         "foil" => "#D99316",
@@ -538,7 +545,7 @@ public partial class MainWindow : Window
                 if (!pinnedPortals.Any()) pinnedPortals = _viewModel.Portals.Take(7);
                 foreach (PortalEntry portal in pinnedPortals.Take(8))
                 {
-                    string glyph = !string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey.Trim()[..1].ToUpperInvariant() : portal.Name[..Math.Min(1, portal.Name.Length)].ToUpperInvariant();
+                    string glyph = FirstGlyph(!string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey : portal.Name);
                     _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, portal.Category, glyph, "#107C10", portal.MainUrl));
                 }
                 break;
@@ -581,7 +588,7 @@ public partial class MainWindow : Window
                 if (!pinnedSnippets.Any()) pinnedSnippets = _viewModel.ClipboardSnippets.Take(7);
                 foreach (ClipboardSnippetEntry snippet in pinnedSnippets.Take(8))
                 {
-                    string glyph = snippet.Title.Length > 0 ? snippet.Title[..1].ToUpperInvariant() : "C";
+                    string glyph = FirstGlyph(snippet.Title, "C");
                     _quickRibbonItems.Add(new QuickRibbonItem("snippet", snippet.Id.ToString(), snippet.Title, snippet.Category, glyph, "#C239B3", snippet.Text));
                 }
                 break;
@@ -589,12 +596,12 @@ public partial class MainWindow : Window
             case "Dashboard":
                 foreach (PortalEntry portal in _viewModel.Portals.Where(portal => portal.IsPinnedToRibbon).Take(5))
                 {
-                    string glyph = !string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey.Trim()[..1].ToUpperInvariant() : portal.Name[..Math.Min(1, portal.Name.Length)].ToUpperInvariant();
+                    string glyph = FirstGlyph(!string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey : portal.Name);
                     _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, "Portal", glyph, "#107C10", portal.MainUrl));
                 }
                 foreach (ClipboardSnippetEntry snippet in _viewModel.ClipboardSnippets.Where(snippet => snippet.IsPinned).Take(3))
                 {
-                    string glyph = snippet.Title.Length > 0 ? snippet.Title[..1].ToUpperInvariant() : "C";
+                    string glyph = FirstGlyph(snippet.Title, "C");
                     _quickRibbonItems.Add(new QuickRibbonItem("snippet", snippet.Id.ToString(), snippet.Title, "Copy", glyph, "#C239B3", snippet.Text));
                 }
                 if (_quickRibbonItems.Count == 0)
