@@ -764,7 +764,7 @@
                       </WrapPanel>
                     </DockPanel>
 
-                    <ListBox x:Name="ResourceList" Grid.Row="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" Margin="0,8">
+                    <ListBox x:Name="ResourceList" Grid.Row="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" Margin="0,8" MouseDoubleClick="ResourceList_MouseDoubleClick">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,4">
