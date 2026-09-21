@@ -47,6 +47,15 @@ public sealed record CaptureExportEntry(
 
 public partial class MainWindow : Window
 {
+    private static readonly string[] CommonResourceProviders =
+    [
+        "GitHub",
+        "Google Drive",
+        "Dropbox",
+        "OneDrive",
+        "Notion",
+        "SharePoint",
+    ];
     private static readonly JsonSerializerOptions CaptureExportJsonOptions = new()
     {
         WriteIndented = true,
@@ -725,6 +734,17 @@ public partial class MainWindow : Window
         _ => "#5B6577",
     };
 
+    private static string ResourceProviderGlyph(string provider) => provider.ToLowerInvariant() switch
+    {
+        "github" => "GH",
+        "google drive" => "GD",
+        "dropbox" => "DB",
+        "onedrive" => "OD",
+        "notion" => "N",
+        "sharepoint" => "SP",
+        _ => FirstGlyph(provider, "R"),
+    };
+
     private static string ResourceProviderAccent(string provider) => provider.ToLowerInvariant() switch
     {
         "github" => "#24292F",
@@ -826,20 +846,26 @@ public partial class MainWindow : Window
                     "A",
                     _activeResourceProviders.Count == 0 && activeFilter == "all" ? "#5B5FC7" : "#9AA6B2"));
 
-                foreach (IGrouping<string, WorkspaceResourceEntry> group in _viewModel.Resources
+                Dictionary<string, int> providerCounts = _viewModel.Resources
                     .GroupBy(resource => string.IsNullOrWhiteSpace(resource.Provider) ? "Other" : resource.Provider, StringComparer.OrdinalIgnoreCase)
-                    .OrderByDescending(group => group.Count())
-                    .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-                    .Take(8))
+                    .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+
+                IEnumerable<string> resourceProviders = CommonResourceProviders
+                    .Concat(providerCounts.Keys)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(8);
+
+                foreach (string provider in resourceProviders)
                 {
-                    bool selected = _activeResourceProviders.Contains(group.Key);
+                    int count = providerCounts.TryGetValue(provider, out int providerCount) ? providerCount : 0;
+                    bool selected = _activeResourceProviders.Contains(provider);
                     _quickRibbonItems.Add(new QuickRibbonItem(
                         "resource-provider",
-                        group.Key,
-                        group.Key,
-                        $"{group.Count()} links",
-                        FirstGlyph(group.Key, "R"),
-                        selected ? ResourceProviderAccent(group.Key) : "#9AA6B2"));
+                        provider,
+                        provider,
+                        $"{count} links",
+                        ResourceProviderGlyph(provider),
+                        selected ? ResourceProviderAccent(provider) : "#9AA6B2"));
                 }
                 break;
 
