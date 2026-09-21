@@ -1248,6 +1248,17 @@ public partial class MainWindow : Window
     private void Compact_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Compact);
     private void Expanded_Click(object sender, RoutedEventArgs e) => SetViewMode(WorkspaceViewMode.Expanded);
 
+    private void OpenModuleFromSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string module)
+        {
+            return;
+        }
+
+        SetViewMode(WorkspaceViewMode.Compact);
+        SelectWorkspaceTab(NormalizeModule(module));
+    }
+
     private void SetViewMode(WorkspaceViewMode mode)
     {
         if (_loaded)

@@ -154,7 +154,7 @@
 
           <DockPanel Margin="0,8,0,4">
             <TextBlock Text="Portals" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click" AutomationProperties.Name="Add portal"/>
+            <Button Content="Manage" HorizontalAlignment="Right" Tag="Portals" Click="OpenModuleFromSidebar_Click" AutomationProperties.Name="Manage portals"/>
           </DockPanel>
           <ItemsControl x:Name="SidebarPortalList" AutomationProperties.Name="Pinned or favorite portals">
             <ItemsControl.ItemTemplate>
@@ -176,7 +176,7 @@
 
           <DockPanel Margin="0,4">
             <TextBlock Text="Resources" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddResource_Click" AutomationProperties.Name="Add resource"/>
+            <Button Content="Manage" HorizontalAlignment="Right" Tag="Resources" Click="OpenModuleFromSidebar_Click" AutomationProperties.Name="Manage resources"/>
           </DockPanel>
           <ItemsControl x:Name="SidebarResourceList" ItemsSource="{Binding Resources}">
             <ItemsControl.ItemTemplate>
@@ -198,7 +198,7 @@
 
           <DockPanel Margin="0,4">
             <TextBlock Text="Clipboard" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddSnippet_Click" AutomationProperties.Name="Add clipboard snippet"/>
+            <Button Content="Manage" HorizontalAlignment="Right" Tag="Clipboard" Click="OpenModuleFromSidebar_Click" AutomationProperties.Name="Manage clipboard snippets"/>
           </DockPanel>
           <ItemsControl x:Name="SidebarSnippetList" AutomationProperties.Name="Pinned clipboard snippets">
             <ItemsControl.ItemTemplate>
@@ -222,7 +222,7 @@
             <TextBlock Text="Capture" FontWeight="SemiBold" FontSize="14"/>
             <WrapPanel HorizontalAlignment="Right">
               <Button Content="+ URL" Click="CaptureClipboardUrl_Click" ToolTip="Create a bookmark from the URL currently on the clipboard"/>
-              <Button Content="+ Capture" Click="AddNote_Click"/>
+              <Button Content="Manage" Tag="Capture" Click="OpenModuleFromSidebar_Click" AutomationProperties.Name="Manage captures"/>
             </WrapPanel>
           </DockPanel>
           <ItemsControl x:Name="SidebarCaptureList" ItemsSource="{Binding Notes}">
