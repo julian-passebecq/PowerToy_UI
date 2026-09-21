@@ -79,6 +79,15 @@
       </Button>
     </DataTemplate>
 
+    <HierarchicalDataTemplate x:Key="ProjectTreeTemplate" ItemsSource="{Binding Children}">
+      <DockPanel Margin="1,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+        <Border Background="#EEF2F7" CornerRadius="8" Padding="6,1" Margin="8,0,0,0" HorizontalAlignment="Right">
+          <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+        </Border>
+      </DockPanel>
+    </HierarchicalDataTemplate>
+
     <DataTemplate x:Key="QuickRibbonTemplate">
       <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="8,5" Margin="4,0" MinWidth="88" Background="White" BorderBrush="{StaticResource BorderBrush}">
         <StackPanel Orientation="Horizontal">
@@ -265,9 +274,17 @@
                 <TextBlock x:Name="SecondaryHint" Text="Choose a section" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,2,0,8"/>
               </StackPanel>
 
-              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="SecondaryNav" ItemTemplate="{StaticResource SecondaryNavTemplate}"/>
-              </ScrollViewer>
+              <Grid Grid.Row="1">
+                <TreeView x:Name="RepositoryTree"
+                          Visibility="Collapsed"
+                          ItemTemplate="{StaticResource ProjectTreeTemplate}"
+                          SelectedItemChanged="RepositoryTree_SelectedItemChanged"
+                          BorderThickness="0"
+                          Background="Transparent"/>
+                <ScrollViewer x:Name="SecondaryNavScroller" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl x:Name="SecondaryNav" ItemTemplate="{StaticResource SecondaryNavTemplate}"/>
+                </ScrollViewer>
+              </Grid>
 
               <StackPanel Grid.Row="2" x:Name="RepoSavedListsPanel" Visibility="Collapsed" Margin="0,10,0,0">
                 <Separator Margin="0,0,0,8"/>
