@@ -427,23 +427,31 @@ public partial class MainWindow : Window
 
     private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0
-            && e.Key == System.Windows.Input.Key.K)
-        {
-            if (!ShellSearchBox.IsEnabled)
-            {
-                return;
-            }
+        System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        bool searchAvailable =
+            PowerOpsShell.IsVisible
+            && ShellSearchBox.IsVisible
+            && ShellSearchBox.IsEnabled;
 
+        if (e.Key == System.Windows.Input.Key.K
+            && ShellKeyboardPolicy.ShouldFocusSearch(
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0,
+                searchAvailable))
+        {
             e.Handled = true;
             ShellSearchBox.Focus();
             ShellSearchBox.SelectAll();
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.Escape
-            && ShellSearchBox.IsKeyboardFocusWithin
-            && !string.IsNullOrEmpty(ShellSearchBox.Text))
+        if (ShellKeyboardPolicy.ShouldClearSearch(
+                escapePressed: e.Key == System.Windows.Input.Key.Escape,
+                noModifiers: modifiers == System.Windows.Input.ModifierKeys.None,
+                searchFocused: ShellSearchBox.IsKeyboardFocusWithin,
+                hasSearchText: !string.IsNullOrEmpty(ShellSearchBox.Text)))
         {
             e.Handled = true;
             ShellSearchBox.Clear();

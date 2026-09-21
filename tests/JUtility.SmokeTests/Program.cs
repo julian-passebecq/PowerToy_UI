@@ -1252,6 +1252,64 @@ Check("v1 always-on-top preference migrates to window behavior mode", () =>
     }
 });
 
+Check("shell search shortcut requires Ctrl alone and a visible search surface", () =>
+{
+    True(ShellKeyboardPolicy.ShouldFocusSearch(
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false,
+        searchAvailable: true));
+
+    False(ShellKeyboardPolicy.ShouldFocusSearch(
+        control: true,
+        shift: true,
+        alt: false,
+        windows: false,
+        searchAvailable: true));
+
+    False(ShellKeyboardPolicy.ShouldFocusSearch(
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false,
+        searchAvailable: false));
+
+    False(ShellKeyboardPolicy.ShouldFocusSearch(
+        control: false,
+        shift: false,
+        alt: false,
+        windows: false,
+        searchAvailable: true));
+});
+
+Check("shell Escape shortcut only clears focused non-empty search without modifiers", () =>
+{
+    True(ShellKeyboardPolicy.ShouldClearSearch(
+        escapePressed: true,
+        noModifiers: true,
+        searchFocused: true,
+        hasSearchText: true));
+
+    False(ShellKeyboardPolicy.ShouldClearSearch(
+        escapePressed: true,
+        noModifiers: true,
+        searchFocused: true,
+        hasSearchText: false));
+
+    False(ShellKeyboardPolicy.ShouldClearSearch(
+        escapePressed: true,
+        noModifiers: false,
+        searchFocused: true,
+        hasSearchText: true));
+
+    False(ShellKeyboardPolicy.ShouldClearSearch(
+        escapePressed: true,
+        noModifiers: true,
+        searchFocused: false,
+        hasSearchText: true));
+});
+
 Check("window placement math clamps oversized off-screen windows to the monitor work area", () =>
 {
     WindowBounds target = WindowPlacementMath.ClampToWorkArea(

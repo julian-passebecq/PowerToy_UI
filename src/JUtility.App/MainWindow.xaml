@@ -24,6 +24,9 @@
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Root" Property="Background" Value="#EAF3FF"/>
               </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#DCEBFF"/>
+              </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -47,6 +50,9 @@
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Root" Property="Background" Value="#F0F5FB"/>
               </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#E3EDF9"/>
+              </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -68,7 +74,7 @@
     </Style>
 
     <DataTemplate x:Key="SecondaryNavTemplate">
-      <Button Style="{StaticResource SecondaryNavButtonStyle}" Tag="{Binding Key}" Click="SecondaryNav_Click">
+      <Button Style="{StaticResource SecondaryNavButtonStyle}" Tag="{Binding Key}" Click="SecondaryNav_Click" AutomationProperties.Name="{Binding Label}">
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <TextBlock Text="{Binding Label}" FontWeight="{Binding Weight}"/>
@@ -89,7 +95,7 @@
     </HierarchicalDataTemplate>
 
     <DataTemplate x:Key="QuickRibbonTemplate">
-      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="9,6" Margin="4,0" MinWidth="104" Background="White" BorderBrush="{StaticResource BorderBrush}">
+      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="9,6" Margin="4,0" MinWidth="104" Background="White" BorderBrush="{StaticResource BorderBrush}" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Subtitle}">
         <StackPanel Orientation="Horizontal">
           <Border Width="36" Height="36" CornerRadius="8" Background="{Binding Accent}" Margin="0,0,8,0">
             <TextBlock Text="{Binding Glyph}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
@@ -148,7 +154,7 @@
 
           <DockPanel Margin="0,8,0,4">
             <TextBlock Text="Portals" FontWeight="SemiBold" FontSize="14"/>
-            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click"/>
+            <Button Content="+" Width="34" HorizontalAlignment="Right" Click="AddPortal_Click" AutomationProperties.Name="Add portal"/>
           </DockPanel>
           <ItemsControl ItemsSource="{Binding Portals}">
             <ItemsControl.ItemTemplate>
@@ -257,6 +263,7 @@
                      Margin="8,0,0,0"
                      VerticalContentAlignment="Center"
                      ToolTip="Search the current module (Ctrl+K)"
+                     AutomationProperties.Name="Search current module"
                      TextChanged="ShellSearchBox_TextChanged"/>
             <TextBlock DockPanel.Dock="Right"
                        Text="Search"
@@ -264,7 +271,7 @@
                        Foreground="{StaticResource MutedBrush}"
                        Margin="8,0,0,0"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-              <ItemsControl x:Name="QuickRibbon" ItemTemplate="{StaticResource QuickRibbonTemplate}">
+              <ItemsControl x:Name="QuickRibbon" ItemTemplate="{StaticResource QuickRibbonTemplate}" AutomationProperties.Name="Quick actions">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
@@ -282,16 +289,16 @@
 
           <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
             <DockPanel>
-              <StackPanel x:Name="PrimaryNavPanel" DockPanel.Dock="Top">
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Dashboard" Click="PrimaryNav_Click" Content="▦  Dashboard"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Repository Hub" Click="PrimaryNav_Click" Content="◫  Repository Hub"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Portals" Click="PrimaryNav_Click" Content="↗  Portal Launcher"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Resources" Click="PrimaryNav_Click" Content="◆  Resource Hub"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Prompt Builder" Click="PrimaryNav_Click" Content="⌘  Prompt Builder"/>
+              <StackPanel x:Name="PrimaryNavPanel" DockPanel.Dock="Top" AutomationProperties.Name="Primary navigation">
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Dashboard" Click="PrimaryNav_Click" Content="▦  Dashboard" AutomationProperties.Name="Dashboard"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Repository Hub" Click="PrimaryNav_Click" Content="◫  Repository Hub" AutomationProperties.Name="Repository Hub"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Portals" Click="PrimaryNav_Click" Content="↗  Portal Launcher" AutomationProperties.Name="Portal Launcher"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Resources" Click="PrimaryNav_Click" Content="◆  Resource Hub" AutomationProperties.Name="Resource Hub"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture" AutomationProperties.Name="Capture"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard" AutomationProperties.Name="Clipboard"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Prompt Builder" Click="PrimaryNav_Click" Content="⌘  Prompt Builder" AutomationProperties.Name="Prompt Builder"/>
                 <Separator Margin="0,8"/>
-                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Settings" Click="PrimaryNav_Click" Content="⚙  Settings"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Settings" Click="PrimaryNav_Click" Content="⚙  Settings" AutomationProperties.Name="Settings"/>
               </StackPanel>
               <StackPanel DockPanel.Dock="Bottom" Margin="4,12,4,2">
                 <TextBlock Text="Local-first workspace" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
@@ -315,13 +322,14 @@
 
               <Grid Grid.Row="1">
                 <TreeView x:Name="RepositoryTree"
+                          AutomationProperties.Name="Repository categories"
                           Visibility="Collapsed"
                           ItemTemplate="{StaticResource ProjectTreeTemplate}"
                           SelectedItemChanged="RepositoryTree_SelectedItemChanged"
                           BorderThickness="0"
                           Background="Transparent"/>
                 <ScrollViewer x:Name="SecondaryNavScroller" VerticalScrollBarVisibility="Auto">
-                  <ItemsControl x:Name="SecondaryNav" ItemTemplate="{StaticResource SecondaryNavTemplate}"/>
+                  <ItemsControl x:Name="SecondaryNav" ItemTemplate="{StaticResource SecondaryNavTemplate}" AutomationProperties.Name="Module filters"/>
                 </ScrollViewer>
               </Grid>
 
