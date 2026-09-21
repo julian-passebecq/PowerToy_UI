@@ -21,6 +21,27 @@ Check("project formatting obeys field toggles", () =>
     Equal("Demo https://github.com/example/demo https://extra.example/", actual);
 });
 
+Check("repository rows support server and ChatGPT links", () =>
+{
+    ProjectEntry project = new()
+    {
+        Name = "Power Ops",
+        RepoUrl = "https://github.com/example/powerops",
+        SiteUrl = "https://powerops.example/",
+        ServerUrl = "https://app.netlify.com/sites/powerops",
+        ChatGptUrl = "https://chatgpt.com/c/example",
+        CopyName = false,
+        CopyRepo = true,
+        CopySite = true,
+        CopyServer = true,
+        CopyChatGpt = true,
+    };
+
+    Equal(
+        "https://github.com/example/powerops https://powerops.example/ https://app.netlify.com/sites/powerops https://chatgpt.com/c/example",
+        ProjectClipboardFormatter.FormatRow(project));
+});
+
 Check("copy all excludes disabled and archived rows", () =>
 {
     ProjectEntry included = new() { Name = "A", CopyName = true, IncludeInCopyAll = true };
@@ -58,6 +79,71 @@ Check("workspace store round-trips and creates backup", () =>
         WorkspaceState loaded = store.Load();
         True(loaded.Projects.Any(project => project.Name == "RoundTrip"));
         True(File.Exists(store.BackupFilePath));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("Power Ops portal, snippet and transcript data round-trip", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityPowerOps-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Portals.Add(new PortalEntry
+        {
+            Name = "Vercel",
+            Category = "Deploy",
+            MainUrl = "https://vercel.com/",
+            IsPinnedToRibbon = true,
+            Links = [new PortalLinkEntry { Label = "Project", Url = "https://vercel.com/example/project" }],
+        });
+        state.ClipboardSnippets.Add(new ClipboardSnippetEntry { Title = "Debug prompt", Text = "Reproduce then fix." });
+        state.Notes.Add(new StickyNoteEntry
+        {
+            Kind = CaptureKind.Transcript,
+            Title = "Meeting transcript",
+            Text = "Long-form text",
+            Url = "https://example.com/source",
+        });
+        store.Save(state);
+
+        WorkspaceState loaded = store.Load();
+        True(loaded.Portals.Any(item => item.Name == "Vercel" && item.Links.Count == 1));
+        True(loaded.ClipboardSnippets.Any(item => item.Title == "Debug prompt"));
+        True(loaded.Notes.Any(item => item.Kind == CaptureKind.Transcript && item.Url.Contains("example.com")));
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("backup recovery does not overwrite the good backup with corrupt primary", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityRecovery-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "KnownGood" });
+        store.Save(state);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+        File.WriteAllText(store.DataFilePath, "{corrupt");
+
+        WorkspaceState recovered = store.Load();
+        True(recovered.Projects.Count > 0);
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
     }
     finally
     {
