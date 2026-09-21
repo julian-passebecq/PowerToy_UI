@@ -158,6 +158,15 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
             IsPinnedToRibbon = true,
             Links = [new PortalLinkEntry { Label = "Project", Url = "https://vercel.com/example/project" }],
         });
+        state.Resources.Add(new WorkspaceResourceEntry
+        {
+            Name = "Architecture",
+            Provider = "Google Drive",
+            Kind = "Folder",
+            Group = "Datapass",
+            Url = "https://drive.google.com/drive/folders/example",
+            IsPinned = true,
+        });
         state.ClipboardSnippets.Add(new ClipboardSnippetEntry { Title = "Debug prompt", Text = "Reproduce then fix." });
         state.Notes.Add(new StickyNoteEntry
         {
@@ -179,6 +188,7 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
         WorkspaceState loaded = store.Load();
         True(loaded.RepositoryLists.Any(item => item.Name == "Foil Core" && item.Items.Count == 1));
         True(loaded.Portals.Any(item => item.Name == "Vercel" && item.Links.Count == 1));
+        True(loaded.Resources.Any(item => item.Name == "Architecture" && item.Provider == "Google Drive" && item.IsPinned));
         True(loaded.ClipboardSnippets.Any(item => item.Title == "Debug prompt"));
         True(loaded.Notes.Any(item => item.Kind == CaptureKind.Transcript && item.Url.Contains("example.com")));
         True(loaded.Notes.Any(item => item.Kind == CaptureKind.Todo && item.Priority == "High" && item.DueUtc == due));
@@ -321,13 +331,14 @@ Check("null collection entries are ignored during normalization", () =>
         Directory.CreateDirectory(root);
         File.WriteAllText(
             Path.Combine(root, "workspace.json"),
-            "{\"SchemaVersion\":3,\"Projects\":[null,{\"Name\":\"Valid\"}],\"Portals\":[null],\"ClipboardSnippets\":[null],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[null]}");
+            "{\"SchemaVersion\":4,\"Projects\":[null,{\"Name\":\"Valid\"}],\"Portals\":[null],\"Resources\":[null],\"ClipboardSnippets\":[null],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[null]}");
 
         WorkspaceStore store = new(root);
         WorkspaceState loaded = store.Load();
         True(loaded.Projects.Count == 1);
         Equal("Valid", loaded.Projects[0].Name);
         True(loaded.Portals.Count == 0);
+        True(loaded.Resources.Count == 0);
         True(loaded.Notes.Count == 0);
     }
     finally
