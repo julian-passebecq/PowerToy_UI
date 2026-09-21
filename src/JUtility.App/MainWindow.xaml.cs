@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private bool _temporaryPin;
     private bool _suppressAutoHide;
     private bool _loaded;
+    private bool _refreshingProjectSelection;
     private readonly ObservableCollection<ShellNavItem> _secondaryNavItems = [];
     private readonly ObservableCollection<QuickRibbonItem> _quickRibbonItems = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
@@ -783,7 +784,9 @@ public partial class MainWindow : Window
 
     private void ProjectIncludeChanged_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not ProjectEntry project || !_loaded)
+        if (_refreshingProjectSelection
+            || (sender as FrameworkElement)?.DataContext is not ProjectEntry project
+            || !_loaded)
         {
             return;
         }
@@ -796,8 +799,47 @@ public partial class MainWindow : Window
             project.CopyChatGpt = !string.IsNullOrWhiteSpace(project.ChatGptUrl);
         }
 
-        ProjectsGrid.Items.Refresh();
+        RefreshProjectGridSelection();
         SafeSave();
+    }
+
+    private void LinkIncludeChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (_refreshingProjectSelection
+            || (sender as CheckBox)?.DataContext is not ProjectEntry project
+            || !_loaded)
+        {
+            return;
+        }
+
+        if ((sender as CheckBox)?.IsChecked == true && !project.IncludeInCopyAll)
+        {
+            project.IncludeInCopyAll = true;
+            RefreshProjectGridSelection();
+        }
+
+        SafeSave();
+    }
+
+    private void RefreshProjectGridSelection()
+    {
+        if (_refreshingProjectSelection)
+        {
+            return;
+        }
+
+        _refreshingProjectSelection = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            try
+            {
+                ProjectsGrid.Items.Refresh();
+            }
+            finally
+            {
+                _refreshingProjectSelection = false;
+            }
+        }));
     }
 
     private void SaveRepoList_Click(object sender, RoutedEventArgs e)
