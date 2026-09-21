@@ -199,6 +199,14 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public void ResetWindowPlacements()
+    {
+        _state.Preferences.SidebarPlacement = new WindowPlacementState();
+        _state.Preferences.CompactPlacement = new WindowPlacementState();
+        _state.Preferences.ExpandedPlacement = new WindowPlacementState();
+        StatusText = "Saved window layouts reset";
+    }
+
     public WindowPlacementState GetWindowPlacement(WorkspaceViewMode mode) => mode switch
     {
         WorkspaceViewMode.Sidebar => _state.Preferences.SidebarPlacement,
