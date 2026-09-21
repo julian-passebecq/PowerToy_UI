@@ -828,9 +828,21 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Workspace exported";
     }
 
-    public void Import(string path)
+    public WorkspaceState PrepareImport(string path) =>
+        _store.PrepareImport(path);
+
+    public void CommitImport(WorkspaceState candidate)
     {
-        _state = _store.Import(path);
+        _state = _store.CommitImport(candidate);
+        ApplyImportedState();
+        StatusText = "Workspace imported";
+    }
+
+    public void Import(string path) =>
+        CommitImport(PrepareImport(path));
+
+    private void ApplyImportedState()
+    {
         ReplaceCollection(Projects, _state.Projects);
         ReplaceCollection(RepositoryLists, _state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         ReplaceCollection(Portals, _state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
@@ -839,12 +851,15 @@ public sealed class MainViewModel : ObservableObject
         ReplaceCollection(PromptModules, _state.PromptModules.OrderBy(item => item.SortOrder));
         ReplaceCollection(Notes, _state.Notes);
         ReplaceCollection(RecentPrompts, _state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
+
         SelectedPromptProject = Projects.FirstOrDefault(project => !project.IsArchived);
         SelectedPortal = Portals.FirstOrDefault();
         SelectedResource = Resources.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
         PromptVariables.Clear();
+        PromptPreview = string.Empty;
+
         RaisePropertyChanged(nameof(ViewMode));
         RaisePropertyChanged(nameof(WindowBehavior));
         RaisePropertyChanged(nameof(SummonMouseBinding));
@@ -853,7 +868,7 @@ public sealed class MainViewModel : ObservableObject
         RaisePropertyChanged(nameof(ShowExtraColumn));
         RaisePropertyChanged(nameof(IncludeCompletedCaptures));
         RaisePropertyChanged(nameof(GitHubOwner));
-        StatusText = "Workspace imported";
+        RaisePropertyChanged(nameof(LastModule));
     }
 
     private void SyncState()
