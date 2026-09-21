@@ -754,6 +754,71 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ProjectIncludeChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not ProjectEntry project || !_loaded)
+        {
+            return;
+        }
+
+        if (project.IncludeInCopyAll)
+        {
+            project.CopyRepo = !string.IsNullOrWhiteSpace(project.RepoUrl);
+            project.CopySite = !string.IsNullOrWhiteSpace(project.SiteUrl);
+            project.CopyServer = !string.IsNullOrWhiteSpace(project.ServerUrl);
+            project.CopyChatGpt = !string.IsNullOrWhiteSpace(project.ChatGptUrl);
+        }
+
+        ProjectsGrid.Items.Refresh();
+        SafeSave();
+    }
+
+    private void SaveRepoList_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.Projects.Any(project => project.IncludeInCopyAll && !project.IsArchived))
+        {
+            _viewModel.StatusText = "Select at least one repository row first";
+            return;
+        }
+
+        _viewModel.SaveRepositoryList(NewRepoListName.Text);
+        NewRepoListName.Clear();
+        SafeSave();
+    }
+
+    private void LoadRepoList_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not RepositoryListEntry list)
+        {
+            return;
+        }
+
+        _viewModel.ApplyRepositoryList(list);
+        ProjectsGrid.Items.Refresh();
+        _moduleFilters["Repository Hub"] = "all";
+        SelectWorkspaceTab("Repository Hub");
+        SafeSave();
+    }
+
+    private void CopyRepoList_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is RepositoryListEntry list)
+        {
+            CopyText(_viewModel.FormatRepositoryList(list), $"Copied saved list '{list.Name}'");
+        }
+    }
+
+    private void DeleteRepoList_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not RepositoryListEntry list)
+        {
+            return;
+        }
+
+        _viewModel.RemoveRepositoryList(list);
+        SafeSave();
+    }
+
     private void CopyRow_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is ProjectEntry project)
@@ -805,6 +870,7 @@ public partial class MainWindow : Window
     private void AddModule_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddPromptModule();
+        RefreshSecondaryNavigation();
         SafeSave();
     }
 
@@ -813,6 +879,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is PromptModuleEntry module)
         {
             _viewModel.MoveModule(module, -1);
+            SafeSave();
         }
     }
 
@@ -821,6 +888,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is PromptModuleEntry module)
         {
             _viewModel.MoveModule(module, 1);
+            SafeSave();
         }
     }
 
@@ -950,6 +1018,7 @@ public partial class MainWindow : Window
         if (_viewModel.SelectedNote is StickyNoteEntry note)
         {
             _viewModel.ArchiveOrRestoreNote(note);
+            RefreshAfterDataChange();
             SafeSave();
         }
     }
@@ -996,9 +1065,11 @@ public partial class MainWindow : Window
             if (dialog.ShowDialog(this) == true)
             {
                 _viewModel.Import(dialog.FileName);
+                InitializeWorkspaceViews();
                 ApplyViewMode(_viewModel.ViewMode);
                 ApplyWindowBehavior();
                 ApplyExtraColumnVisibility();
+                RefreshAfterDataChange();
             }
         }
         catch (Exception ex)
