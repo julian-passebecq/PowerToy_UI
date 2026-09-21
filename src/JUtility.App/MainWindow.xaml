@@ -387,33 +387,86 @@
                       </DataGridTemplateColumn>
                       <DataGridTextColumn Header="Project" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
                       <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
-                      <DataGridTextColumn Header="GitHub" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="210"/>
-                      <DataGridTextColumn Header="Website" Binding="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
-                      <DataGridTextColumn Header="Server" Binding="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
-                      <DataGridTextColumn Header="ChatGPT" Binding="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Width="190"/>
-                      <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
-                      <DataGridTemplateColumn Header="Include" Width="210">
+                      <DataGridTemplateColumn Header="GitHub" Width="235">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
-                            <WrapPanel>
-                              <CheckBox Content="Repo" IsChecked="{Binding CopyRepo}" Margin="2"/>
-                              <CheckBox Content="Web" IsChecked="{Binding CopySite}" Margin="2"/>
-                              <CheckBox Content="Server" IsChecked="{Binding CopyServer}" Margin="2"/>
-                              <CheckBox Content="Chat" IsChecked="{Binding CopyChatGpt}" Margin="2"/>
-                            </WrapPanel>
+                            <Grid MinHeight="48">
+                              <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                              <TextBox Text="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
+                              <DockPanel Grid.Row="1">
+                                <CheckBox IsChecked="{Binding CopyRepo, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include GitHub URL in Copy All"/>
+                                <WrapPanel HorizontalAlignment="Right">
+                                  <Button Content="⧉" Tag="{Binding RepoUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding RepoUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                </WrapPanel>
+                              </DockPanel>
+                            </Grid>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                       </DataGridTemplateColumn>
-                      <DataGridTemplateColumn Header="Actions" Width="350">
+
+                      <DataGridTemplateColumn Header="Website" Width="220">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid MinHeight="48">
+                              <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                              <TextBox Text="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
+                              <DockPanel Grid.Row="1">
+                                <CheckBox IsChecked="{Binding CopySite, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include website URL in Copy All"/>
+                                <WrapPanel HorizontalAlignment="Right">
+                                  <Button Content="⧉" Tag="{Binding SiteUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding SiteUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                </WrapPanel>
+                              </DockPanel>
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTemplateColumn Header="Server" Width="220">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid MinHeight="48">
+                              <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                              <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
+                              <DockPanel Grid.Row="1">
+                                <CheckBox IsChecked="{Binding CopyServer, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include server/hosting URL in Copy All"/>
+                                <WrapPanel HorizontalAlignment="Right">
+                                  <Button Content="⧉" Tag="{Binding ServerUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding ServerUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                </WrapPanel>
+                              </DockPanel>
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTemplateColumn Header="ChatGPT" Width="220">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid MinHeight="48">
+                              <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                              <TextBox Text="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
+                              <DockPanel Grid.Row="1">
+                                <CheckBox IsChecked="{Binding CopyChatGpt, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include ChatGPT URL in Copy All"/>
+                                <WrapPanel HorizontalAlignment="Right">
+                                  <Button Content="⧉" Tag="{Binding ChatGptUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
+                                  <Button Content="↗" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
+                                </WrapPanel>
+                              </DockPanel>
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTextColumn x:Name="ExtraUrlColumn" Header="Legacy Extra" Binding="{Binding ExtraUrl, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+
+                      <DataGridTemplateColumn Header="" Width="118">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
                             <WrapPanel>
-                              <Button Content="Repo" Tag="{Binding RepoUrl}" Click="OpenUrl_Click"/>
-                              <Button Content="Web" Tag="{Binding SiteUrl}" Click="OpenUrl_Click"/>
-                              <Button Content="Server" Tag="{Binding ServerUrl}" Click="OpenUrl_Click"/>
-                              <Button Content="Chat" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click"/>
                               <Button Content="Copy row" Tag="{Binding}" Click="CopyRow_Click"/>
-                              <Button Content="Del" Tag="{Binding}" Click="DeleteProject_Click"/>
+                              <Button Content="×" Tag="{Binding}" Click="DeleteProject_Click"/>
                             </WrapPanel>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -421,7 +474,7 @@
                     </DataGrid.Columns>
                   </DataGrid>
 
-                  <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Select a project with ✓. Available Repo/Web/Server/Chat links are included by their switches. Saved lists on the left preserve those per-link choices."/>
+                  <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Select a project with ✓ to include every available URL by default. Each link cell has its own bottom-left include box so you can exclude individual URLs without deselecting the project. Saved lists preserve the exact choices."/>
                 </Grid>
               </TabItem>
 
