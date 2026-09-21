@@ -2575,41 +2575,74 @@ public partial class MainWindow : Window
         _suppressAutoHide = true;
         try
         {
-            if (dialog.ShowDialog(this) == true)
+            if (dialog.ShowDialog(this) != true)
             {
-                bool wasLoaded = _loaded;
-                _loaded = false;
+                return;
+            }
+
+            // Preserve the current generation before preparing a replacement.
+            _viewModel.Save();
+
+            WorkspaceState candidate = _viewModel.PrepareImport(dialog.FileName);
+            string summary =
+                $"Replace the current Power Ops workspace with this file?\n\n"
+                + $"Projects: {candidate.Projects.Count}\n"
+                + $"Saved repository lists: {candidate.RepositoryLists.Count}\n"
+                + $"Portals: {candidate.Portals.Count}\n"
+                + $"Resources: {candidate.Resources.Count}\n"
+                + $"Captures: {candidate.Notes.Count}\n"
+                + $"Clipboard snippets: {candidate.ClipboardSnippets.Count}\n"
+                + $"Prompt modules: {candidate.PromptModules.Count}\n\n"
+                + "Canceling leaves the current workspace unchanged.";
+
+            MessageBoxResult confirmation = MessageBox.Show(
+                this,
+                summary,
+                "Confirm workspace import",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                _viewModel.StatusText = "Import canceled";
+                return;
+            }
+
+            bool wasLoaded = _loaded;
+            _loaded = false;
+            try
+            {
+                _viewModel.CommitImport(candidate);
+                _moduleFilters.Clear();
+                _moduleSearchTerms.Clear();
+                _activeRepositoryFamilies.Clear();
+                _activeResourceProviders.Clear();
+                _activeCaptureSubjects.Clear();
+                _repositorySearchText = string.Empty;
+                RepoSearchBox.Clear();
+                _suppressShellSearchChange = true;
                 try
                 {
-                    _viewModel.Import(dialog.FileName);
-                    _moduleFilters.Clear();
-                    _moduleSearchTerms.Clear();
-                    _activeRepositoryFamilies.Clear();
-                    _activeResourceProviders.Clear();
-                    _activeCaptureSubjects.Clear();
-                    _repositorySearchText = string.Empty;
-                    RepoSearchBox.Clear();
-                    _suppressShellSearchChange = true;
-                    try
-                    {
-                        ShellSearchBox.Clear();
-                    }
-                    finally
-                    {
-                        _suppressShellSearchChange = false;
-                    }
-                    InitializeWorkspaceViews();
-                    ApplyViewMode(_viewModel.ViewMode);
-                    ApplyWindowBehavior();
-                    ApplyExtraColumnVisibility();
+                    ShellSearchBox.Clear();
                 }
                 finally
                 {
-                    _loaded = wasLoaded;
+                    _suppressShellSearchChange = false;
                 }
 
-                RefreshAfterDataChange();
+                InitializeWorkspaceViews();
+                SelectWorkspaceTab(NormalizeModule(_viewModel.LastModule));
+                ApplyViewMode(_viewModel.ViewMode);
+                ApplyWindowBehavior();
+                ApplyExtraColumnVisibility();
             }
+            finally
+            {
+                _loaded = wasLoaded;
+            }
+
+            RefreshAfterDataChange();
         }
         catch (Exception ex)
         {
