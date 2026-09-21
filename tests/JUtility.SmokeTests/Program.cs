@@ -245,6 +245,40 @@ Check("repository resource import is idempotent and ignores archived projects", 
     True(resources[0].SourceProjectId == active.Id);
 });
 
+Check("repository resource refresh preserves user labels groups notes and pins", () =>
+{
+    ProjectEntry project = new()
+    {
+        Name = "Original project name",
+        Category = "Atlas",
+        RepoUrl = "https://github.com/example/original",
+    };
+    List<WorkspaceResourceEntry> resources = [];
+
+    ResourceCatalogService.ImportProjects(resources, [project]);
+    WorkspaceResourceEntry resource = resources.Single();
+    resource.Name = "My shortcut";
+    resource.Group = "Daily work";
+    resource.Note = "Do not lose this";
+    resource.IsPinned = true;
+    resource.IsFavorite = true;
+
+    project.Name = "Renamed repository";
+    project.Category = "Portfolio";
+    project.RepoUrl = "https://github.com/example/renamed";
+
+    ResourceImportSummary refreshed = ResourceCatalogService.ImportProjects(resources, [project]);
+
+    True(refreshed.Added == 0 && refreshed.Updated == 1);
+    Equal("My shortcut", resource.Name);
+    Equal("Daily work", resource.Group);
+    Equal("Do not lose this", resource.Note);
+    True(resource.IsPinned);
+    True(resource.IsFavorite);
+    Equal("https://github.com/example/renamed", resource.Url);
+    True(resource.SourceProjectId == project.Id);
+});
+
 Check("prompt composer orders modules and resolves project variables", () =>
 {
     PromptModuleEntry third = new() { Title = "Third", SortOrder = 30, Body = "Server={{server}} Chat={{chatgpt}}" };
