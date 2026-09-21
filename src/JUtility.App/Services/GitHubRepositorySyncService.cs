@@ -82,17 +82,40 @@ internal static class GitHubRepositorySyncService
                 return null;
             }
 
-            string outputTask = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            string errorTask = await process.StandardError.ReadToEndAsync(cancellationToken);
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(outputTask))
+            try
             {
-                _ = errorTask;
-                return null;
-            }
+                string output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+                string error = await process.StandardError.ReadToEndAsync(cancellationToken);
+                await process.WaitForExitAsync(cancellationToken);
 
-            return ParseGh(outputTask);
+                if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+                {
+                    _ = error;
+                    return null;
+                }
+
+                return ParseGh(output);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    // Process exited between the check and Kill.
+                }
+                catch (Win32Exception)
+                {
+                    // Cancellation still wins even if Windows refuses termination.
+                }
+
+                throw;
+            }
         }
         catch (Win32Exception)
         {
