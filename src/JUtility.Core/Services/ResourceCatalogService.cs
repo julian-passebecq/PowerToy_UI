@@ -202,7 +202,8 @@ public static class ResourceCatalogService
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        return true;
+        // Provider names are used directly as secondary-navigation filter keys.
+        return string.Equals(resource.Provider, normalizedFilter, StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool UrlsEquivalent(string? left, string? right)
