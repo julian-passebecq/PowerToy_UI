@@ -53,6 +53,10 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - Sidebar / Compact / Expanded keep independent saved sizes/positions;
 - off-screen/oversized placement math is clamped to the nearest monitor work area and covered by smoke tests;
 - Settings includes a reset action for saved window layouts.
+- Ctrl+K search is limited to the visible full-shell search surface and ignores modified chords such as Ctrl+Shift+K;
+- Portal, Resource, Clipboard and Capture lists share exact Enter / Ctrl+C keyboard policies covered by smoke tests;
+- Capture Enter moves focus into the title editor while Ctrl+C copies the selected capture;
+- custom navigation has explicit keyboard-focus visuals, and core navigation/list/editor/icon actions expose automation names/help text for accessibility tools.
 
 ### Repository Hub
 
@@ -126,7 +130,7 @@ These are not blockers to continued feature work, but they remain before calling
 
 1. native summon/hide interaction pass, including modal/pin/focus transitions (logic hardened, native acceptance still pending);
 2. mixed-DPI native validation; off-screen/oversized recovery math is implemented and smoke-tested;
-3. full keyboard/focus/accessibility pass across all three layouts (Repository/Portal/Resource/Clipboard keyboard paths are partially covered);
+3. native keyboard/focus/screen-reader acceptance across all three layouts; automated policy coverage now includes shell search plus Portal, Resource, Clipboard and Capture list actions, with explicit focus visuals and automation labels;
 4. clean-machine validation of the self-contained package;
 5. low-level disk fault injection still not covered by ordinary smoke tests (for example out-of-space or permission changes mid-write);
 6. final visual polish against the intended Fluent-style Power Ops layout.

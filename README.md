@@ -100,6 +100,19 @@ The same local workspace supports three layouts:
 
 Window behavior can be Normal, Always on top, or Summon / hide. Summon bindings support Mouse Button 4, Mouse Button 5, middle click, or Ctrl + middle click.
 
+### Keyboard access
+
+The full shell supports `Ctrl+K` to focus the current-module search when that search surface is visible. `Escape` clears a focused non-empty shell search. Modified chords such as `Ctrl+Shift+K` are not intercepted.
+
+Focused list behavior is intentionally consistent:
+
+- Portal Launcher: `Enter` opens the selected portal; `Ctrl+C` copies its main URL.
+- Resource Hub: `Enter` opens the selected resource; `Ctrl+C` copies its URL.
+- Clipboard: `Enter` or `Ctrl+C` copies the selected snippet.
+- Capture: `Enter` moves focus to the selected capture title editor; `Ctrl+C` copies the capture.
+
+Custom navigation controls expose explicit keyboard-focus visuals. Primary navigation, list surfaces, icon-only actions, and the main editor fields also expose automation names/help text for Windows accessibility tools.
+
 ## Local-first storage
 
 Workspace data is stored at:
