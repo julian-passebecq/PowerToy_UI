@@ -759,6 +759,55 @@ Check("duplicate IDs and unsupported enum values are rejected without rewriting 
     }
 });
 
+Check("duplicate workspace item IDs are rejected without rewriting source", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityDuplicateIds-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "workspace.json");
+        Guid duplicate = Guid.NewGuid();
+        string invalid = $"""
+        {
+          "SchemaVersion": 4,
+          "Projects": [
+            { "Id": "{{duplicate}}", "Name": "A" },
+            { "Id": "{{duplicate}}", "Name": "B" }
+          ],
+          "RepositoryLists": [],
+          "Portals": [],
+          "Resources": [],
+          "ClipboardSnippets": [],
+          "PromptModules": [],
+          "RecentPrompts": [],
+          "Notes": []
+        }
+        """;
+        File.WriteAllText(path, invalid);
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(invalid, File.ReadAllText(path));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("recent prompt history is deduplicated and capped during normalization", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityRecentHistory-" + Guid.NewGuid().ToString("N"));
