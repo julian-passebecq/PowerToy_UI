@@ -174,7 +174,18 @@ public partial class MainWindow : Window
         _projectView = CollectionViewSource.GetDefaultView(_viewModel.Projects);
         _projectView.Filter = item =>
         {
-            if (item is not ProjectEntry project || project.IsArchived) return false;
+            if (item is not ProjectEntry project) return false;
+            string repositoryFilter = GetModuleFilter("Repository Hub");
+            bool archivedView = repositoryFilter.Equals("archived", StringComparison.OrdinalIgnoreCase);
+            if (archivedView)
+            {
+                if (!project.IsArchived) return false;
+            }
+            else if (project.IsArchived)
+            {
+                return false;
+            }
+
             string shellSearch = GetModuleSearch("Repository Hub");
             if (!string.IsNullOrWhiteSpace(shellSearch))
             {
@@ -198,7 +209,8 @@ public partial class MainWindow : Window
                 return _activeRepositoryFamilies.Contains(project.Category);
             }
 
-            string filter = GetModuleFilter("Repository Hub");
+            string filter = repositoryFilter;
+            if (filter == "archived") return true;
             if (filter == "all") return true;
             if (filter.StartsWith("family:", StringComparison.OrdinalIgnoreCase))
             {
@@ -576,7 +588,12 @@ public partial class MainWindow : Window
     {
         _projectTreeNodes.Clear();
         int activeCount = _viewModel.Projects.Count(project => !project.IsArchived);
+        int archivedCount = _viewModel.Projects.Count(project => project.IsArchived);
         _projectTreeNodes.Add(new ProjectTreeNode("all", "All repositories", activeCount, []));
+        if (archivedCount > 0)
+        {
+            _projectTreeNodes.Add(new ProjectTreeNode("archived", "Archived", archivedCount, []));
+        }
 
         foreach (IGrouping<string, ProjectEntry> family in _viewModel.Projects
             .Where(project => !project.IsArchived)
@@ -878,6 +895,12 @@ public partial class MainWindow : Window
         }
 
         string filter = GetModuleFilter("Repository Hub");
+        if (filter.Equals("archived", StringComparison.OrdinalIgnoreCase))
+        {
+            _moduleFilters["Repository Hub"] = "all";
+            filter = "all";
+        }
+
         if (filter.StartsWith("family:", StringComparison.OrdinalIgnoreCase))
         {
             project.Category = filter["family:".Length..];
@@ -1389,6 +1412,22 @@ public partial class MainWindow : Window
         {
             CopyText(snippet.Text, "Clipboard snippet copied");
         }
+    }
+
+    private void ArchiveProject_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not ProjectEntry project)
+        {
+            return;
+        }
+
+        project.IsArchived = !project.IsArchived;
+        project.IncludeInCopyAll = false;
+        project.UpdatedUtc = DateTimeOffset.UtcNow;
+        _viewModel.StatusText = project.IsArchived ? "Project archived" : "Project restored";
+
+        RefreshAfterDataChange();
+        SafeSave();
     }
 
     private void DeleteProject_Click(object sender, RoutedEventArgs e)
