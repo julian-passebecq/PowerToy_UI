@@ -23,6 +23,7 @@ public sealed record ShellNavItem(string Key, string Label, int Count, bool IsAc
 
 public sealed record QuickRibbonItem(string Action, string Key, string Title, string Subtitle, string Glyph, string Accent, string Value = "");
 public sealed record CaptureBoardSection(string Key, string Title, int Count, IReadOnlyList<StickyNoteEntry> Items);
+public sealed record ProjectTreeNode(string Key, string Label, int Count, IReadOnlyList<ProjectTreeNode> Children);
 
 public partial class MainWindow : Window
 {
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<ShellNavItem> _secondaryNavItems = [];
     private readonly ObservableCollection<QuickRibbonItem> _quickRibbonItems = [];
     private readonly ObservableCollection<CaptureBoardSection> _captureBoardSections = [];
+    private readonly ObservableCollection<ProjectTreeNode> _projectTreeNodes = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
@@ -50,6 +52,7 @@ public partial class MainWindow : Window
         SecondaryNav.ItemsSource = _secondaryNavItems;
         QuickRibbon.ItemsSource = _quickRibbonItems;
         CaptureBoard.ItemsSource = _captureBoardSections;
+        RepositoryTree.ItemsSource = _projectTreeNodes;
 
         _summonService.Triggered += SummonService_Triggered;
         Loaded += MainWindow_Loaded;
@@ -107,9 +110,22 @@ public partial class MainWindow : Window
         _projectView = CollectionViewSource.GetDefaultView(_viewModel.Projects);
         _projectView.Filter = item =>
         {
-            if (item is not ProjectEntry project) return false;
+            if (item is not ProjectEntry project || project.IsArchived) return false;
             string filter = GetModuleFilter("Repository Hub");
-            return filter == "all" || string.Equals(project.Category, filter, StringComparison.OrdinalIgnoreCase);
+            if (filter == "all") return true;
+            if (filter.StartsWith("family:", StringComparison.OrdinalIgnoreCase))
+            {
+                string family = filter["family:".Length..];
+                return string.Equals(project.Category, family, StringComparison.OrdinalIgnoreCase);
+            }
+            if (filter.StartsWith("sub:", StringComparison.OrdinalIgnoreCase))
+            {
+                string[] parts = filter["sub:".Length..].Split('|', 2);
+                return parts.Length == 2
+                    && string.Equals(project.Category, parts[0], StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(project.Subcategory, parts[1], StringComparison.OrdinalIgnoreCase);
+            }
+            return string.Equals(project.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
         ProjectsGrid.ItemsSource = _projectView;
 
@@ -200,9 +216,13 @@ public partial class MainWindow : Window
             _ => "+ Capture",
         };
 
-        RepoSavedListsPanel.Visibility = _activeModule == "Repository Hub" ? Visibility.Visible : Visibility.Collapsed;
+        bool repositoryModule = _activeModule == "Repository Hub";
+        RepoSavedListsPanel.Visibility = repositoryModule ? Visibility.Visible : Visibility.Collapsed;
+        RepositoryTree.Visibility = repositoryModule ? Visibility.Visible : Visibility.Collapsed;
+        SecondaryNavScroller.Visibility = repositoryModule ? Visibility.Collapsed : Visibility.Visible;
         UpdatePrimaryNavSelection();
         RefreshSecondaryNavigation();
+        RefreshProjectTree();
         RefreshQuickRibbon();
         RefreshCaptureBoard();
         RefreshActiveView();
@@ -301,6 +321,47 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RefreshProjectTree()
+    {
+        _projectTreeNodes.Clear();
+        int activeCount = _viewModel.Projects.Count(project => !project.IsArchived);
+        _projectTreeNodes.Add(new ProjectTreeNode("all", "All repositories", activeCount, []));
+
+        foreach (IGrouping<string, ProjectEntry> family in _viewModel.Projects
+            .Where(project => !project.IsArchived)
+            .GroupBy(project => string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            List<ProjectTreeNode> children = family
+                .GroupBy(project => string.IsNullOrWhiteSpace(project.Subcategory) ? "Misc" : project.Subcategory, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => new ProjectTreeNode(
+                    $"sub:{family.Key}|{group.Key}",
+                    group.Key,
+                    group.Count(),
+                    []))
+                .ToList();
+
+            _projectTreeNodes.Add(new ProjectTreeNode(
+                $"family:{family.Key}",
+                family.Key,
+                family.Count(),
+                children));
+        }
+    }
+
+    private void RepositoryTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (!_loaded || e.NewValue is not ProjectTreeNode node)
+        {
+            return;
+        }
+
+        _moduleFilters["Repository Hub"] = node.Key;
+        RefreshQuickRibbon();
+        _projectView?.Refresh();
+    }
+
     private static string CaptureKindLabel(CaptureKind kind) => kind switch
     {
         CaptureKind.QuickNote => "Quick notes",
@@ -351,7 +412,8 @@ public partial class MainWindow : Window
                     .Take(7))
                 {
                     string glyph = group.Key.Length > 0 ? group.Key[..1].ToUpperInvariant() : "P";
-                    AddFilter(group.Key, group.Key, $"{group.Count()} repos", glyph, string.Equals(group.Key, activeFilter, StringComparison.OrdinalIgnoreCase) ? "#0F6CBD" : "#5B6577");
+                    string key = $"family:{group.Key}";
+                    AddFilter(key, group.Key, $"{group.Count()} repos", glyph, string.Equals(key, activeFilter, StringComparison.OrdinalIgnoreCase) ? "#0F6CBD" : "#5B6577");
                 }
                 break;
 
@@ -494,6 +556,7 @@ public partial class MainWindow : Window
         _captureView?.Refresh();
         _snippetView?.Refresh();
         RefreshSecondaryNavigation();
+        RefreshProjectTree();
         RefreshQuickRibbon();
         RefreshCaptureBoard();
     }
