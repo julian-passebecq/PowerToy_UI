@@ -17,6 +17,16 @@ The shell should preserve the fast-launch character of the existing app:
 - local JSON persistence and explicit import/export;
 - open and copy actions are always distinct.
 
+## Window modes
+
+The existing three window modes remain useful and should not be flattened into one oversized dashboard.
+
+- **Expanded** becomes the full Power Ops workspace: primary left navigation, module-specific secondary tree/categories, top quick-launch ribbon, and the scrollable center surface.
+- **Compact** keeps the same data but favors the current module and quick actions.
+- **Sidebar / Summon** is the fastest companion view for opening a portal, copying a snippet, or dropping a capture without occupying the desktop.
+
+This lets the richer launcher/dashboard exist without making the summon workflow heavy.
+
 ## Modules
 
 ### 1. Repository Hub
