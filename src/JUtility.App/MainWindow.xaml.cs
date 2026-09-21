@@ -1413,7 +1413,11 @@ public partial class MainWindow : Window
         if (IsVisible)
         {
             CaptureCurrentWindowPlacement();
-            SafeSave();
+            if (!SafeSave(showError: true))
+            {
+                return;
+            }
+
             Hide();
             return;
         }
@@ -1454,7 +1458,11 @@ public partial class MainWindow : Window
         }
 
         CaptureCurrentWindowPlacement();
-        SafeSave();
+        if (!SafeSave(showError: true))
+        {
+            return;
+        }
+
         Hide();
     }
 
@@ -2774,11 +2782,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SafeSave(bool showError = false)
+    private bool SafeSave(bool showError = false)
     {
         try
         {
             _viewModel.Save();
+            return true;
         }
         catch (Exception ex)
         {
@@ -2787,6 +2796,8 @@ public partial class MainWindow : Window
             {
                 ShowOwnedMessage(ex.Message, "Save failed", MessageBoxImage.Error);
             }
+
+            return false;
         }
     }
 }
