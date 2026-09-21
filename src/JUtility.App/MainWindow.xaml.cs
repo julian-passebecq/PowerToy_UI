@@ -1545,6 +1545,18 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void ResourceList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_viewModel.SelectedResource is not WorkspaceResourceEntry resource
+            || string.IsNullOrWhiteSpace(resource.Url))
+        {
+            return;
+        }
+
+        OpenUrlValue(resource.Url);
+        e.Handled = true;
+    }
+
     private void AddResource_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddResource();
