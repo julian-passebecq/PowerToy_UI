@@ -22,6 +22,16 @@ public enum SummonMouseBinding
     CtrlMiddleClick,
 }
 
+public sealed class WindowPlacementState
+{
+    public bool HasSize { get; set; }
+    public bool HasPosition { get; set; }
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+
 public sealed class AppPreferences
 {
     public WorkspaceViewMode LastView { get; set; } = WorkspaceViewMode.Compact;
@@ -37,6 +47,9 @@ public sealed class AppPreferences
     public bool IncludeCompletedCaptures { get; set; }
     public string GitHubOwner { get; set; } = "julian-passebecq";
     public string LastModule { get; set; } = "Dashboard";
+    public WindowPlacementState SidebarPlacement { get; set; } = new();
+    public WindowPlacementState CompactPlacement { get; set; } = new();
+    public WindowPlacementState ExpandedPlacement { get; set; } = new();
 }
 
 public sealed class ProjectEntry
