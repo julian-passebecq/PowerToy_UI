@@ -210,34 +210,35 @@ public static class ResourceCatalogService
         if (!UrlNormalizer.TryNormalizeOptionalWebUrl(left, out string normalizedLeft)
             || !UrlNormalizer.TryNormalizeOptionalWebUrl(right, out string normalizedRight)
             || string.IsNullOrWhiteSpace(normalizedLeft)
-            || string.IsNullOrWhiteSpace(normalizedRight))
+            || string.IsNullOrWhiteSpace(normalizedRight)
+            || !Uri.TryCreate(normalizedLeft, UriKind.Absolute, out Uri? leftUri)
+            || !Uri.TryCreate(normalizedRight, UriKind.Absolute, out Uri? rightUri))
+        {
+            return false;
+        }
+
+        if (!string.Equals(leftUri.Scheme, rightUri.Scheme, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(leftUri.Host, rightUri.Host, StringComparison.OrdinalIgnoreCase)
+            || leftUri.Port != rightUri.Port)
         {
             return false;
         }
 
         return string.Equals(
-            CanonicalComparisonValue(normalizedLeft),
-            CanonicalComparisonValue(normalizedRight),
-            StringComparison.OrdinalIgnoreCase);
+            CanonicalPathAndSuffix(leftUri),
+            CanonicalPathAndSuffix(rightUri),
+            StringComparison.Ordinal);
     }
 
-    private static string CanonicalComparisonValue(string normalized)
+    private static string CanonicalPathAndSuffix(Uri uri)
     {
-        if (!Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri))
+        string path = uri.AbsolutePath;
+        if (path.Length > 1)
         {
-            return normalized.TrimEnd('/');
+            path = path.TrimEnd('/');
         }
 
-        UriBuilder builder = new(uri)
-        {
-            Scheme = uri.Scheme.ToLowerInvariant(),
-            Host = uri.Host.ToLowerInvariant(),
-        };
-
-        string value = builder.Uri.AbsoluteUri;
-        return uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query)
-            ? value.TrimEnd('/')
-            : value.TrimEnd('/');
+        return path + uri.Query + uri.Fragment;
     }
 
     private static string DetectProvider(Uri uri)
