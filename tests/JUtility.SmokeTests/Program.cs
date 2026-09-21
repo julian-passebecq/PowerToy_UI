@@ -66,6 +66,107 @@ Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
     False(UrlNormalizer.TryNormalizeOptionalWebUrl("file:///c:/temp/test.txt", out _));
 });
 
+Check("GitHub repository merge preserves manually maintained cockpit links and metadata", () =>
+{
+    DateTimeOffset updated = new(2026, 9, 21, 18, 0, 0, TimeSpan.Zero);
+    ProjectEntry existing = new()
+    {
+        Name = "Atlas Note custom",
+        Category = "My Atlas",
+        Subcategory = "Important",
+        Note = "Keep my note",
+        GitHubFullName = "julian-passebecq/atlasnote",
+        RepoUrl = "https://github.com/julian-passebecq/atlasnote",
+        SiteUrl = "https://my-custom-site.example/",
+        ServerUrl = "https://server.example/",
+        ChatGptUrl = "https://chatgpt.com/c/custom",
+    };
+    List<ProjectEntry> projects = [existing];
+
+    RepositoryMergeSummary summary = RepositoryCatalogService.MergeGitHubRepositories(
+        projects,
+        [
+            new GitHubRepositorySnapshot(
+                "atlasnote",
+                "julian-passebecq/atlasnote",
+                "https://github.com/julian-passebecq/atlasnote/",
+                "GitHub description",
+                "https://github-homepage.example/",
+                "TypeScript",
+                true,
+                updated),
+        ]);
+
+    True(summary.Added == 0 && summary.Updated == 1 && summary.Total == 1);
+    Equal("https://github.com/julian-passebecq/atlasnote/", existing.RepoUrl);
+    Equal("https://my-custom-site.example/", existing.SiteUrl);
+    Equal("https://server.example/", existing.ServerUrl);
+    Equal("https://chatgpt.com/c/custom", existing.ChatGptUrl);
+    Equal("My Atlas", existing.Category);
+    Equal("Important", existing.Subcategory);
+    Equal("Keep my note", existing.Note);
+    Equal("TypeScript", existing.Language);
+    True(existing.IsGitHubPrivate);
+    True(existing.GitHubUpdatedUtc == updated);
+});
+
+Check("GitHub repository merge fills missing homepage and classifies new projects without duplicates", () =>
+{
+    List<ProjectEntry> projects = [];
+    GitHubRepositorySnapshot snapshot = new(
+        "atlascode",
+        "julian-passebecq/atlascode",
+        "https://github.com/julian-passebecq/atlascode",
+        "Code workspace",
+        "https://atlascode.example/",
+        "C#",
+        false,
+        null);
+
+    RepositoryMergeSummary first = RepositoryCatalogService.MergeGitHubRepositories(projects, [snapshot]);
+    RepositoryMergeSummary second = RepositoryCatalogService.MergeGitHubRepositories(projects, [snapshot]);
+
+    True(first.Added == 1 && first.Updated == 0 && first.Total == 1);
+    True(second.Added == 0 && second.Updated == 1 && second.Total == 1);
+    True(projects.Count == 1);
+    Equal("Atlas", projects[0].Category);
+    Equal("Core", projects[0].Subcategory);
+    Equal("https://atlascode.example/", projects[0].SiteUrl);
+    False(projects[0].IncludeInCopyAll);
+});
+
+Check("GitHub repository merge only fills an empty existing homepage", () =>
+{
+    ProjectEntry existing = new()
+    {
+        Name = "Datapass",
+        RepoUrl = "https://github.com/example/datapass",
+        SiteUrl = "",
+        Category = "Projects",
+        Subcategory = "Misc",
+    };
+    List<ProjectEntry> projects = [existing];
+
+    RepositoryCatalogService.MergeGitHubRepositories(
+        projects,
+        [
+            new GitHubRepositorySnapshot(
+                "datapass",
+                "example/datapass",
+                "https://github.com/example/datapass",
+                "Data engineering workbench",
+                "https://datapass.example/",
+                "C#",
+                false,
+                null),
+        ]);
+
+    Equal("https://datapass.example/", existing.SiteUrl);
+    Equal("Datapass", existing.Category);
+    Equal("Core", existing.Subcategory);
+    Equal("Data engineering workbench", existing.Note);
+});
+
 Check("starter catalog adds common cockpit portals and snippets idempotently", () =>
 {
     List<PortalEntry> portals = [];

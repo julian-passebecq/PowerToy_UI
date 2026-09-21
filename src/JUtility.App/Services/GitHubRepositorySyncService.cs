@@ -3,18 +3,9 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using JUtility.Core.Models;
 
 namespace JUtility.App.Services;
-
-public sealed record GitHubRepositorySnapshot(
-    string Name,
-    string FullName,
-    string Url,
-    string Description,
-    string Homepage,
-    string Language,
-    bool IsPrivate,
-    DateTimeOffset? UpdatedUtc);
 
 public sealed record GitHubRepositoryFetchResult(
     IReadOnlyList<GitHubRepositorySnapshot> Repositories,
