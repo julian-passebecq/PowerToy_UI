@@ -335,7 +335,15 @@
                         <TextBlock Text="Capture board" FontSize="16" FontWeight="SemiBold"/>
                         <TextBlock Text="The dashboard view mirrors your Inbox / To-do / Notes / Bookmarks / Read later workflow, with Transcript as the long-text capture type." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
                       </StackPanel>
-                      <Button Content="+ Quick capture" HorizontalAlignment="Right" Click="AddNote_Click"/>
+                      <WrapPanel HorizontalAlignment="Right">
+                        <CheckBox Content="Include completed"
+                                  IsChecked="{Binding IncludeCompletedCaptures}"
+                                  Checked="CaptureCompletionFilterChanged_Click"
+                                  Unchecked="CaptureCompletionFilterChanged_Click"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0"/>
+                        <Button Content="+ Quick capture" Click="AddNote_Click"/>
+                      </WrapPanel>
                     </DockPanel>
 
                     <ItemsControl x:Name="CaptureBoard" Margin="0,0,0,8">
