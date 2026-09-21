@@ -133,7 +133,7 @@ public partial class MainWindow : Window
         // Keep interaction handlers suppressed while WPF materializes bound checkboxes and selections.
         // In particular, loading a saved repository list must not reset its per-link exclusions.
         InitializeWorkspaceViews();
-        SelectWorkspaceTab("Dashboard");
+        SelectWorkspaceTab(NormalizeModule(_viewModel.LastModule));
         ApplyViewMode(_viewModel.ViewMode);
         ApplyExtraColumnVisibility();
         ApplyWindowBehavior(initialLoad: true);
@@ -426,6 +426,7 @@ public partial class MainWindow : Window
             {
                 WorkspacePanel.SelectedItem = tab;
                 _activeModule = header;
+                _viewModel.LastModule = header;
                 break;
             }
         }
@@ -441,6 +442,14 @@ public partial class MainWindow : Window
         }
 
         RefreshShellNavigation();
+    }
+
+    private static string NormalizeModule(string? module)
+    {
+        string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+            ? normalized
+            : "Dashboard";
     }
 
     private void RefreshShellNavigation()
