@@ -219,6 +219,21 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public bool IncludeCompletedCaptures
+    {
+        get => _state.Preferences.IncludeCompletedCaptures;
+        set
+        {
+            if (_state.Preferences.IncludeCompletedCaptures == value)
+            {
+                return;
+            }
+
+            _state.Preferences.IncludeCompletedCaptures = value;
+            RaisePropertyChanged();
+        }
+    }
+
     public string GitHubOwner
     {
         get => _state.Preferences.GitHubOwner;
@@ -663,6 +678,7 @@ public sealed class MainViewModel : ObservableObject
         RaisePropertyChanged(nameof(HideOnFocusLoss));
         RaisePropertyChanged(nameof(OpenNearCursor));
         RaisePropertyChanged(nameof(ShowExtraColumn));
+        RaisePropertyChanged(nameof(IncludeCompletedCaptures));
         RaisePropertyChanged(nameof(GitHubOwner));
         StatusText = "Workspace imported";
     }
