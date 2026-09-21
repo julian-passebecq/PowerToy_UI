@@ -261,6 +261,92 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Clipboard snippet removed";
     }
 
+    public RepositoryListEntry SaveRepositoryList(string name)
+    {
+        string normalizedName = string.IsNullOrWhiteSpace(name) ? "Saved list" : name.Trim();
+        RepositoryListEntry list = new()
+        {
+            Name = normalizedName,
+            UpdatedUtc = DateTimeOffset.UtcNow,
+            Items = Projects
+                .Where(project => project.IncludeInCopyAll && !project.IsArchived)
+                .Select(project => new RepositoryListItemEntry
+                {
+                    ProjectId = project.Id,
+                    IncludeRepo = project.CopyRepo,
+                    IncludeSite = project.CopySite,
+                    IncludeServer = project.CopyServer,
+                    IncludeChatGpt = project.CopyChatGpt,
+                })
+                .ToList(),
+        };
+
+        RepositoryLists.Insert(0, list);
+        StatusText = $"Saved repository list '{normalizedName}'";
+        return list;
+    }
+
+    public void ApplyRepositoryList(RepositoryListEntry list)
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        Dictionary<Guid, RepositoryListItemEntry> items = list.Items
+            .GroupBy(item => item.ProjectId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        foreach (ProjectEntry project in Projects)
+        {
+            bool included = items.TryGetValue(project.Id, out RepositoryListItemEntry? item);
+            project.IncludeInCopyAll = included;
+            if (!included || item is null)
+            {
+                continue;
+            }
+
+            project.CopyRepo = item.IncludeRepo && !string.IsNullOrWhiteSpace(project.RepoUrl);
+            project.CopySite = item.IncludeSite && !string.IsNullOrWhiteSpace(project.SiteUrl);
+            project.CopyServer = item.IncludeServer && !string.IsNullOrWhiteSpace(project.ServerUrl);
+            project.CopyChatGpt = item.IncludeChatGpt && !string.IsNullOrWhiteSpace(project.ChatGptUrl);
+        }
+
+        list.UpdatedUtc = DateTimeOffset.UtcNow;
+        StatusText = $"Loaded repository list '{list.Name}'";
+    }
+
+    public string FormatRepositoryList(RepositoryListEntry list)
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        Dictionary<Guid, RepositoryListItemEntry> items = list.Items
+            .GroupBy(item => item.ProjectId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        List<string> lines = [];
+        foreach (ProjectEntry project in Projects)
+        {
+            if (!items.TryGetValue(project.Id, out RepositoryListItemEntry? item) || item is null || project.IsArchived)
+            {
+                continue;
+            }
+
+            List<string> urls = [];
+            if (item.IncludeRepo && !string.IsNullOrWhiteSpace(project.RepoUrl)) urls.Add(project.RepoUrl.Trim());
+            if (item.IncludeSite && !string.IsNullOrWhiteSpace(project.SiteUrl)) urls.Add(project.SiteUrl.Trim());
+            if (item.IncludeServer && !string.IsNullOrWhiteSpace(project.ServerUrl)) urls.Add(project.ServerUrl.Trim());
+            if (item.IncludeChatGpt && !string.IsNullOrWhiteSpace(project.ChatGptUrl)) urls.Add(project.ChatGptUrl.Trim());
+            if (urls.Count > 0)
+            {
+                lines.Add(string.Join(" ", urls));
+            }
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    public void RemoveRepositoryList(RepositoryListEntry list)
+    {
+        RepositoryLists.Remove(list);
+        StatusText = "Saved repository list removed";
+    }
+
     public void RemoveProject(ProjectEntry project)
     {
         Projects.Remove(project);
