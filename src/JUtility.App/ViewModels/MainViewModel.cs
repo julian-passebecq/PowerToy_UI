@@ -228,6 +228,7 @@ public sealed class MainViewModel : ObservableObject
                 {
                     Name = snapshot.Name,
                     Category = DetectProjectFamily(snapshot.Name),
+                    Subcategory = DetectProjectSubcategory(DetectProjectFamily(snapshot.Name), snapshot.Name),
                     Note = snapshot.Description,
                     GitHubFullName = snapshot.FullName,
                     Language = snapshot.Language,
@@ -267,6 +268,11 @@ public sealed class MainViewModel : ObservableObject
             {
                 existing.Category = DetectProjectFamily(snapshot.Name);
             }
+            if (string.IsNullOrWhiteSpace(existing.Subcategory)
+                || string.Equals(existing.Subcategory, "Misc", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.Subcategory = DetectProjectSubcategory(existing.Category, snapshot.Name);
+            }
             existing.UpdatedUtc = DateTimeOffset.UtcNow;
             updated++;
         }
@@ -292,12 +298,72 @@ public sealed class MainViewModel : ObservableObject
         return "Other";
     }
 
+    private static string DetectProjectSubcategory(string family, string name)
+    {
+        if (family.Equals("Foil", StringComparison.OrdinalIgnoreCase))
+        {
+            if (name.Contains("extension", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("vscode", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("databrick", StringComparison.OrdinalIgnoreCase)) return "Extensions";
+            if (name.Contains("3d", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("web", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("pptx", StringComparison.OrdinalIgnoreCase)) return "Experiments";
+            return "Core";
+        }
+
+        if (family.Equals("Atlas", StringComparison.OrdinalIgnoreCase))
+        {
+            if (name.Contains("mongo", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("data", StringComparison.OrdinalIgnoreCase)) return "Data";
+            if (name.Contains("note", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("code", StringComparison.OrdinalIgnoreCase)) return "Core";
+            return "Tools";
+        }
+
+        if (family.Equals("Datapass", StringComparison.OrdinalIgnoreCase))
+        {
+            if (name.Contains("airflow", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("pipeline", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("runner", StringComparison.OrdinalIgnoreCase)) return "Pipelines";
+            if (name.Contains("connector", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("api", StringComparison.OrdinalIgnoreCase)) return "Connectors";
+            if (name.Contains("ducklab", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("studio", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("workbench", StringComparison.OrdinalIgnoreCase)) return "Workbench";
+            return "Core";
+        }
+
+        if (family.Equals("Fabric", StringComparison.OrdinalIgnoreCase))
+        {
+            return name.Contains("sample", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("contoso", StringComparison.OrdinalIgnoreCase)
+                ? "Samples"
+                : "Tools";
+        }
+
+        if (family.Equals("Infra", StringComparison.OrdinalIgnoreCase))
+        {
+            return name.Contains("grafana", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("monitor", StringComparison.OrdinalIgnoreCase)
+                ? "Monitoring"
+                : "DevOps";
+        }
+
+        if (family.Equals("Portfolio", StringComparison.OrdinalIgnoreCase))
+        {
+            return name.Contains("showcase", StringComparison.OrdinalIgnoreCase) ? "Showcase" : "Apps";
+        }
+
+        return "Other";
+    }
+
     public void AddProject()
     {
         ProjectEntry project = new()
         {
             Name = "New project",
             Category = "Projects",
+            Subcategory = "Misc",
             UpdatedUtc = DateTimeOffset.UtcNow,
         };
         Projects.Add(project);
