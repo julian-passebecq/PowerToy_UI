@@ -364,6 +364,28 @@ Check("v1 always-on-top preference migrates to window behavior mode", () =>
     }
 });
 
+Check("last module preference round-trips", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityLastModule-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Preferences.LastModule = "Portals";
+        store.Save(state);
+
+        WorkspaceState loaded = store.Load();
+        Equal("Portals", loaded.Preferences.LastModule);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("summon preferences have safe defaults", () =>
 {
     AppPreferences preferences = new();
