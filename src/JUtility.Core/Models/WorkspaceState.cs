@@ -62,6 +62,24 @@ public sealed class ProjectEntry
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class RepositoryListItemEntry
+{
+    public Guid ProjectId { get; set; }
+    public bool IncludeRepo { get; set; } = true;
+    public bool IncludeSite { get; set; } = true;
+    public bool IncludeServer { get; set; } = true;
+    public bool IncludeChatGpt { get; set; } = true;
+}
+
+public sealed class RepositoryListEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = "Saved lists";
+    public List<RepositoryListItemEntry> Items { get; set; } = [];
+    public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class PortalLinkEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -154,6 +172,7 @@ public sealed class WorkspaceState
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();
     public List<ProjectEntry> Projects { get; set; } = [];
+    public List<RepositoryListEntry> RepositoryLists { get; set; } = [];
     public List<PortalEntry> Portals { get; set; } = [];
     public List<ClipboardSnippetEntry> ClipboardSnippets { get; set; } = [];
     public List<PromptModuleEntry> PromptModules { get; set; } = [];
