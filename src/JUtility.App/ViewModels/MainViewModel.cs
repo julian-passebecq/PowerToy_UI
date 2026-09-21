@@ -83,6 +83,27 @@ public sealed class MainViewModel : ObservableObject
         new(SummonMouseBinding.CtrlMiddleClick, "Ctrl + middle click"),
     ];
 
+    public IReadOnlyList<string> ResourceProviderOptions { get; } =
+    [
+        "GitHub",
+        "Google Drive",
+        "Dropbox",
+        "OneDrive",
+        "SharePoint",
+        "Notion",
+        "Other",
+    ];
+
+    public IReadOnlyList<string> ResourceKindOptions { get; } =
+    [
+        "Repository",
+        "Folder",
+        "Document",
+        "Dashboard",
+        "Page",
+        "Link",
+    ];
+
     public IReadOnlyList<CaptureKind> CaptureKindOptions { get; } = Enum.GetValues<CaptureKind>();
 
     public PortalEntry? SelectedPortal
