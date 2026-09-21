@@ -511,45 +511,9 @@ public sealed class MainViewModel : ObservableObject
 
     public RepositoryMergeSummary ImportRepositoryResources()
     {
-        int added = 0;
-        int updated = 0;
-
-        foreach (ProjectEntry project in Projects.Where(project => !project.IsArchived && !string.IsNullOrWhiteSpace(project.RepoUrl)))
-        {
-            WorkspaceResourceEntry? existing = Resources.FirstOrDefault(resource =>
-                resource.SourceProjectId == project.Id
-                || (!string.IsNullOrWhiteSpace(resource.Url)
-                    && string.Equals(resource.Url.TrimEnd('/'), project.RepoUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)));
-
-            if (existing is null)
-            {
-                Resources.Add(new WorkspaceResourceEntry
-                {
-                    Name = project.Name,
-                    Provider = "GitHub",
-                    Kind = "Repository",
-                    Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category,
-                    Url = project.RepoUrl,
-                    SourceProjectId = project.Id,
-                    SortOrder = Resources.Count == 0 ? 10 : Resources.Max(item => item.SortOrder) + 10,
-                    UpdatedUtc = DateTimeOffset.UtcNow,
-                });
-                added++;
-                continue;
-            }
-
-            existing.Name = project.Name;
-            existing.Provider = "GitHub";
-            existing.Kind = "Repository";
-            existing.Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category;
-            existing.Url = project.RepoUrl;
-            existing.SourceProjectId = project.Id;
-            existing.UpdatedUtc = DateTimeOffset.UtcNow;
-            updated++;
-        }
-
-        StatusText = $"Resource sync: {added} added, {updated} updated";
-        return new RepositoryMergeSummary(added, updated, Resources.Count);
+        ResourceImportSummary summary = ResourceCatalogService.ImportProjects(Resources, Projects);
+        StatusText = $"Resource sync: {summary.Added} added, {summary.Updated} updated";
+        return new RepositoryMergeSummary(summary.Added, summary.Updated, summary.Total);
     }
 
     public void AddPortal()
