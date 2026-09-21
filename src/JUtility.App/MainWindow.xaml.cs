@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     private ICollectionView? _captureView;
     private ICollectionView? _snippetView;
     private string _activeModule = "Dashboard";
+    private string _repositorySearchText = string.Empty;
 
     public MainWindow()
     {
@@ -112,6 +113,15 @@ public partial class MainWindow : Window
         _projectView.Filter = item =>
         {
             if (item is not ProjectEntry project || project.IsArchived) return false;
+            if (!string.IsNullOrWhiteSpace(_repositorySearchText))
+            {
+                string haystack = string.Join(" ", project.Name, project.Note, project.GitHubFullName, project.Category, project.Subcategory, project.Language);
+                if (!haystack.Contains(_repositorySearchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
             if (_activeRepositoryFamilies.Count > 0)
             {
                 return _activeRepositoryFamilies.Contains(project.Category);
@@ -928,6 +938,12 @@ public partial class MainWindow : Window
             RefreshAfterDataChange();
             SafeSave();
         }
+    }
+
+    private void RepoSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _repositorySearchText = RepoSearchBox.Text.Trim();
+        _projectView?.Refresh();
     }
 
     private void ProjectsGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
