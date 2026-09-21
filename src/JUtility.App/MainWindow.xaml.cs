@@ -165,6 +165,11 @@ public partial class MainWindow : Window
                     && string.Equals(project.Category, parts[0], StringComparison.OrdinalIgnoreCase)
                     && string.Equals(project.Subcategory, parts[1], StringComparison.OrdinalIgnoreCase);
             }
+            if (filter.StartsWith("repo:", StringComparison.OrdinalIgnoreCase)
+                && Guid.TryParse(filter["repo:".Length..], out Guid repositoryId))
+            {
+                return project.Id == repositoryId;
+            }
             return string.Equals(project.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
         ProjectsGrid.ItemsSource = _projectView;
@@ -409,7 +414,14 @@ public partial class MainWindow : Window
                     $"sub:{family.Key}|{group.Key}",
                     group.Key,
                     group.Count(),
-                    []))
+                    group
+                        .OrderBy(project => project.Name, StringComparer.OrdinalIgnoreCase)
+                        .Select(project => new ProjectTreeNode(
+                            $"repo:{project.Id}",
+                            project.Name,
+                            1,
+                            []))
+                        .ToArray()))
                 .ToList();
 
             _projectTreeNodes.Add(new ProjectTreeNode(
@@ -696,6 +708,11 @@ public partial class MainWindow : Window
                 project.Category = parts[0];
                 project.Subcategory = parts[1];
             }
+        }
+        else if (filter.StartsWith("repo:", StringComparison.OrdinalIgnoreCase))
+        {
+            // A single-repository leaf is a viewing filter, not a category for new projects.
+            _moduleFilters["Repository Hub"] = "all";
         }
     }
 
