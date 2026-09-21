@@ -1744,10 +1744,11 @@ public partial class MainWindow : Window
         }
 
         int linkedCaptures = _viewModel.Notes.Count(note => note.ProjectId == project.Id);
+        int linkedResources = _viewModel.Resources.Count(resource => resource.SourceProjectId == project.Id);
         int savedListRefs = _viewModel.RepositoryLists.Sum(list => list.Items.Count(item => item.ProjectId == project.Id));
-        string impact = linkedCaptures == 0 && savedListRefs == 0
-            ? "No captures or saved repository lists reference this project."
-            : $"This will detach {linkedCaptures} capture(s) and remove {savedListRefs} saved-list reference(s).";
+        string impact = linkedCaptures == 0 && linkedResources == 0 && savedListRefs == 0
+            ? "No captures, Resource Hub links, or saved repository lists reference this project."
+            : $"This will detach {linkedCaptures} capture(s) and {linkedResources} Resource Hub link(s), and remove {savedListRefs} saved-list reference(s).";
 
         MessageBoxResult result = MessageBox.Show(
             this,
