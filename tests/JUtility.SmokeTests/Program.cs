@@ -170,6 +170,100 @@ Check("backup recovery does not overwrite the good backup with corrupt primary",
     }
 });
 
+Check("empty object import is rejected without replacing the live workspace", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
+    string importPath = Path.Combine(root, "empty.json");
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Add(new ProjectEntry { Name = "KeepMe", RepoUrl = "https://github.com/example/keep" });
+        store.Save(state);
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        File.WriteAllText(importPath, "{}");
+
+        bool threw = false;
+        try
+        {
+            store.Import(importPath);
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("future workspace schema is refused without rewriting the source file", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityFutureSchema-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "workspace.json");
+        string future = "{\"SchemaVersion\":999,\"Projects\":[{\"Name\":\"Future\"}],\"Notes\":[]}";
+        File.WriteAllText(path, future);
+
+        WorkspaceStore store = new(root);
+        bool threw = false;
+        try
+        {
+            store.Load();
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+        Equal(future, File.ReadAllText(path));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("null collection entries are ignored during normalization", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityNullEntries-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            Path.Combine(root, "workspace.json"),
+            "{\"SchemaVersion\":3,\"Projects\":[null,{\"Name\":\"Valid\"}],\"Portals\":[null],\"ClipboardSnippets\":[null],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[null]}");
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+        True(loaded.Projects.Count == 1);
+        Equal("Valid", loaded.Projects[0].Name);
+        True(loaded.Portals.Count == 0);
+        True(loaded.Notes.Count == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("v1 always-on-top preference migrates to window behavior mode", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityMigration-" + Guid.NewGuid().ToString("N"));
