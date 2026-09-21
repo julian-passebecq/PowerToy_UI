@@ -39,6 +39,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<ProjectTreeNode> _projectTreeNodes = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeRepositoryFamilies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _activeCaptureSubjects = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
     private ICollectionView? _captureView;
@@ -179,9 +180,17 @@ public partial class MainWindow : Window
         _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
         _captureView.Filter = item =>
         {
-            if (item is not StickyNoteEntry note) return false;
-            string filter = GetModuleFilter("Capture");
-            return filter == "all" || string.Equals(note.Kind.ToString(), filter, StringComparison.OrdinalIgnoreCase);
+            if (item is not StickyNoteEntry note || note.IsArchived) return false;
+
+            string kindFilter = GetModuleFilter("Capture");
+            if (kindFilter != "all"
+                && !string.Equals(note.Kind.ToString(), kindFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return _activeCaptureSubjects.Count == 0
+                || _activeCaptureSubjects.Contains(string.IsNullOrWhiteSpace(note.Subject) ? "Uncategorized" : note.Subject.Trim());
         };
         CaptureList.ItemsSource = _captureView;
 
@@ -493,11 +502,30 @@ public partial class MainWindow : Window
                 break;
 
             case "Capture":
-                AddFilter("all", "All", $"{_viewModel.Notes.Count} items", "A", "#0F6CBD");
-                foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
+                _quickRibbonItems.Add(new QuickRibbonItem(
+                    "capture-subject-all",
+                    "all",
+                    "All subjects",
+                    $"{_viewModel.Notes.Count(note => !note.IsArchived)} items",
+                    "A",
+                    _activeCaptureSubjects.Count == 0 ? "#8764B8" : "#9AA6B2"));
+
+                foreach (IGrouping<string, StickyNoteEntry> group in _viewModel.Notes
+                    .Where(note => !note.IsArchived)
+                    .GroupBy(note => string.IsNullOrWhiteSpace(note.Subject) ? "Uncategorized" : note.Subject.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .OrderByDescending(group => group.Count())
+                    .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(8))
                 {
-                    int count = _viewModel.Notes.Count(note => note.Kind == kind && !note.IsArchived);
-                    AddFilter(kind.ToString(), CaptureKindLabel(kind), $"{count} items", CaptureKindLabel(kind)[..1].ToUpperInvariant(), "#8764B8");
+                    bool selected = _activeCaptureSubjects.Contains(group.Key);
+                    string glyph = group.Key.Length > 0 ? group.Key[..1].ToUpperInvariant() : "S";
+                    _quickRibbonItems.Add(new QuickRibbonItem(
+                        "capture-subject",
+                        group.Key,
+                        group.Key,
+                        $"{group.Count()} items",
+                        glyph,
+                        selected ? "#8764B8" : "#9AA6B2"));
                 }
                 break;
 
@@ -557,6 +585,19 @@ public partial class MainWindow : Window
                 }
                 RefreshQuickRibbon();
                 _projectView?.Refresh();
+                break;
+            case "capture-subject-all":
+                _activeCaptureSubjects.Clear();
+                RefreshQuickRibbon();
+                _captureView?.Refresh();
+                break;
+            case "capture-subject":
+                if (!_activeCaptureSubjects.Add(item.Key))
+                {
+                    _activeCaptureSubjects.Remove(item.Key);
+                }
+                RefreshQuickRibbon();
+                _captureView?.Refresh();
                 break;
             case "filter":
                 _moduleFilters[_activeModule] = item.Key;
@@ -659,6 +700,12 @@ public partial class MainWindow : Window
         if (filter != "all" && Enum.TryParse(filter, ignoreCase: true, out CaptureKind kind))
         {
             note.Kind = kind;
+        }
+
+        if (_activeCaptureSubjects.Count == 1)
+        {
+            string subject = _activeCaptureSubjects.First();
+            note.Subject = subject.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase) ? string.Empty : subject;
         }
     }
 
@@ -1342,6 +1389,19 @@ public partial class MainWindow : Window
         _viewModel.AddNote();
         ApplyCurrentCaptureKind(_viewModel.SelectedNote);
         RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void CaptureSubject_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        _captureView?.Refresh();
         SafeSave();
     }
 
