@@ -624,21 +624,42 @@ public sealed class MainViewModel : ObservableObject
     public RepositoryListEntry SaveRepositoryList(string name)
     {
         string normalizedName = string.IsNullOrWhiteSpace(name) ? "Saved list" : name.Trim();
+        List<RepositoryListItemEntry> items = Projects
+            .Where(project => project.IncludeInCopyAll && !project.IsArchived)
+            .Select(project => new RepositoryListItemEntry
+            {
+                ProjectId = project.Id,
+                IncludeRepo = project.CopyRepo,
+                IncludeSite = project.CopySite,
+                IncludeServer = project.CopyServer,
+                IncludeChatGpt = project.CopyChatGpt,
+            })
+            .ToList();
+
+        RepositoryListEntry? existing = RepositoryLists.FirstOrDefault(list =>
+            list.Name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            existing.Name = normalizedName;
+            existing.Items = items;
+            existing.UpdatedUtc = DateTimeOffset.UtcNow;
+
+            int existingIndex = RepositoryLists.IndexOf(existing);
+            if (existingIndex > 0)
+            {
+                RepositoryLists.Move(existingIndex, 0);
+            }
+
+            StatusText = $"Updated repository list '{normalizedName}'";
+            return existing;
+        }
+
         RepositoryListEntry list = new()
         {
             Name = normalizedName,
             UpdatedUtc = DateTimeOffset.UtcNow,
-            Items = Projects
-                .Where(project => project.IncludeInCopyAll && !project.IsArchived)
-                .Select(project => new RepositoryListItemEntry
-                {
-                    ProjectId = project.Id,
-                    IncludeRepo = project.CopyRepo,
-                    IncludeSite = project.CopySite,
-                    IncludeServer = project.CopyServer,
-                    IncludeChatGpt = project.CopyChatGpt,
-                })
-                .ToList(),
+            Items = items,
         };
 
         RepositoryLists.Insert(0, list);
