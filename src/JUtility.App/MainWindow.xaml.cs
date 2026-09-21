@@ -1751,6 +1751,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RefreshPromptVariables_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.RefreshPromptVariables();
+        _viewModel.StatusText = _viewModel.PromptVariables.Count == 0
+            ? "No custom prompt variables found"
+            : $"Found {_viewModel.PromptVariables.Count} custom prompt variable(s)";
+    }
+
+    private void PromptModuleBody_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        _viewModel.RefreshPromptVariables();
+        SafeSave();
+    }
+
     private void PreviewPrompt_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.ComposePrompt(appendProjectLinks: false);
