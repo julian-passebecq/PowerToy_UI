@@ -39,8 +39,13 @@ public sealed class MainViewModel : ObservableObject
     private string _statusText = "Ready";
 
     public MainViewModel()
+        : this(new WorkspaceStore())
     {
-        _store = new WorkspaceStore();
+    }
+
+    public MainViewModel(WorkspaceStore store)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
         _state = _store.Load();
         Projects = new ObservableCollection<ProjectEntry>(_state.Projects);
         RepositoryLists = new ObservableCollection<RepositoryListEntry>(_state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
