@@ -2779,9 +2779,8 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Preserve the current generation before preparing a replacement.
-            _viewModel.Save();
-
+            // Read and validate the import source before touching the live workspace.
+            // This matters when the user intentionally selects workspace.backup.json.
             WorkspaceState candidate = _viewModel.PrepareImport(dialog.FileName);
             string summary =
                 $"Replace the current Power Ops workspace with this file?\n\n"
@@ -2807,6 +2806,10 @@ public partial class MainWindow : Window
                 _viewModel.StatusText = "Import canceled";
                 return;
             }
+
+            // Preserve any in-memory edits before the import commit. The candidate is already
+            // detached in memory, so this cannot overwrite the selected import source.
+            _viewModel.Save();
 
             bool wasLoaded = _loaded;
             _loaded = false;
