@@ -7,7 +7,6 @@ namespace JUtility.App.Services;
 internal static class WindowPlacementService
 {
     private const uint MonitorDefaultToNearest = 0x00000002;
-    private const uint SwpNoSize = 0x0001;
     private const uint SwpNoZOrder = 0x0004;
     private const uint SwpNoActivate = 0x0010;
 
