@@ -68,11 +68,24 @@ Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
 
 Check("prompt composer orders modules and resolves project variables", () =>
 {
+    PromptModuleEntry third = new() { Title = "Third", SortOrder = 30, Body = "Server={{server}} Chat={{chatgpt}}" };
     PromptModuleEntry second = new() { Title = "Second", SortOrder = 20, Body = "Repo={{repo}}" };
     PromptModuleEntry first = new() { Title = "First", SortOrder = 10, Body = "Project {{project}}" };
-    ProjectEntry project = new() { Name = "Demo", RepoUrl = "https://github.com/example/demo" };
-    string text = PromptComposer.Compose([second, first], project);
-    Equal("Project Demo" + Environment.NewLine + Environment.NewLine + "Repo=https://github.com/example/demo", text);
+    ProjectEntry project = new()
+    {
+        Name = "Demo",
+        RepoUrl = "https://github.com/example/demo",
+        ServerUrl = "https://vercel.com/example/demo",
+        ChatGptUrl = "https://chatgpt.com/c/demo",
+    };
+    string text = PromptComposer.Compose([third, second, first], project);
+    Equal(
+        "Project Demo"
+        + Environment.NewLine + Environment.NewLine
+        + "Repo=https://github.com/example/demo"
+        + Environment.NewLine + Environment.NewLine
+        + "Server=https://vercel.com/example/demo Chat=https://chatgpt.com/c/demo",
+        text);
 });
 
 Check("workspace store round-trips and creates backup", () =>
