@@ -338,8 +338,7 @@
                       <WrapPanel HorizontalAlignment="Right">
                         <CheckBox Content="Include completed"
                                   IsChecked="{Binding IncludeCompletedCaptures}"
-                                  Checked="CaptureCompletionFilterChanged_Click"
-                                  Unchecked="CaptureCompletionFilterChanged_Click"
+                                  Click="CaptureCompletionFilterChanged_Click"
                                   VerticalAlignment="Center"
                                   Margin="0,0,8,0"/>
                         <Button Content="+ Quick capture" Click="AddNote_Click"/>
@@ -462,8 +461,7 @@
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
                             <CheckBox IsChecked="{Binding IncludeInCopyAll, UpdateSourceTrigger=PropertyChanged}"
-                                      Checked="ProjectIncludeChanged_Click"
-                                      Unchecked="ProjectIncludeChanged_Click"
+                                      Click="ProjectIncludeChanged_Click"
                                       HorizontalAlignment="Center"/>
                           </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -480,7 +478,7 @@
                               <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                               <TextBox Text="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
                               <DockPanel Grid.Row="1">
-                                <CheckBox IsChecked="{Binding CopyRepo, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include GitHub URL in Copy All"/>
+                                <CheckBox IsChecked="{Binding CopyRepo, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include GitHub URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding RepoUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
                                   <Button Content="↗" Tag="{Binding RepoUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
@@ -498,7 +496,7 @@
                               <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                               <TextBox Text="{Binding SiteUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
                               <DockPanel Grid.Row="1">
-                                <CheckBox IsChecked="{Binding CopySite, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include website URL in Copy All"/>
+                                <CheckBox IsChecked="{Binding CopySite, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include website URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding SiteUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
                                   <Button Content="↗" Tag="{Binding SiteUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
@@ -516,7 +514,7 @@
                               <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                               <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
                               <DockPanel Grid.Row="1">
-                                <CheckBox IsChecked="{Binding CopyServer, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include server/hosting URL in Copy All"/>
+                                <CheckBox IsChecked="{Binding CopyServer, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include server/hosting URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding ServerUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
                                   <Button Content="↗" Tag="{Binding ServerUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
@@ -534,7 +532,7 @@
                               <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                               <TextBox Text="{Binding ChatGptUrl, UpdateSourceTrigger=PropertyChanged}" Margin="2" Padding="4,2"/>
                               <DockPanel Grid.Row="1">
-                                <CheckBox IsChecked="{Binding CopyChatGpt, UpdateSourceTrigger=PropertyChanged}" Checked="LinkIncludeChanged_Click" Unchecked="LinkIncludeChanged_Click" ToolTip="Include ChatGPT URL in Copy All"/>
+                                <CheckBox IsChecked="{Binding CopyChatGpt, UpdateSourceTrigger=PropertyChanged}" Click="LinkIncludeChanged_Click" ToolTip="Include ChatGPT URL in Copy All"/>
                                 <WrapPanel HorizontalAlignment="Right">
                                   <Button Content="⧉" Tag="{Binding ChatGptUrl}" Click="CopyValue_Click" Padding="5,2" MinHeight="22"/>
                                   <Button Content="↗" Tag="{Binding ChatGptUrl}" Click="OpenUrl_Click" Padding="5,2" MinHeight="22"/>
@@ -614,7 +612,7 @@
                       <WrapPanel>
                         <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
                         <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label"/>
-                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Checked="PortalPinChanged_Click" Unchecked="PortalPinChanged_Click"/>
+                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Click="PortalPinChanged_Click"/>
                         <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
                       </WrapPanel>
                       <DockPanel>
@@ -670,8 +668,7 @@
                       <WrapPanel HorizontalAlignment="Right">
                         <CheckBox Content="Include completed"
                                   IsChecked="{Binding IncludeCompletedCaptures}"
-                                  Checked="CaptureCompletionFilterChanged_Click"
-                                  Unchecked="CaptureCompletionFilterChanged_Click"
+                                  Click="CaptureCompletionFilterChanged_Click"
                                   VerticalAlignment="Center"
                                   Margin="0,0,8,0"/>
                         <Button Content="+ Capture" Click="AddNote_Click"/>
@@ -724,8 +721,8 @@
                     <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220"/>
 
                     <WrapPanel Grid.Row="2">
-                      <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6" Checked="CaptureItemStateChanged_Click" Unchecked="CaptureItemStateChanged_Click"/>
-                      <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6" Checked="CaptureItemStateChanged_Click" Unchecked="CaptureItemStateChanged_Click"/>
+                      <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6" Click="CaptureItemStateChanged_Click"/>
+                      <CheckBox Content="Completed" IsChecked="{Binding IsCompleted}" Margin="6" Click="CaptureItemStateChanged_Click"/>
                       <Button Content="Copy capture" Click="CopyNote_Click"/>
                       <Button Content="Open URL" Tag="{Binding Url}" Click="OpenUrl_Click"/>
                       <Button Content="Archive / restore" Click="ArchiveNote_Click"/>
@@ -776,7 +773,7 @@
                       <WrapPanel>
                         <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
                         <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags"/>
-                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Checked="SnippetPinChanged_Click" Unchecked="SnippetPinChanged_Click"/>
+                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="SnippetPinChanged_Click"/>
                       </WrapPanel>
                     </StackPanel>
 
