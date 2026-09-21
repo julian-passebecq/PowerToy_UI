@@ -1561,6 +1561,33 @@ public partial class MainWindow : Window
         return safe.Length == 0 ? "capture" : safe;
     }
 
+    private void DeleteCapture_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedNote is not StickyNoteEntry note)
+        {
+            _viewModel.StatusText = "No capture selected";
+            return;
+        }
+
+        string title = string.IsNullOrWhiteSpace(note.Title) ? "this capture" : $"'{note.Title.Trim()}'";
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete {title} permanently?\n\nArchive is safer if you may need it later.",
+            "Delete capture",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _viewModel.RemoveNote(note);
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
     private void ArchiveNote_Click(object sender, RoutedEventArgs e)
     {
         if (_viewModel.SelectedNote is StickyNoteEntry note)
