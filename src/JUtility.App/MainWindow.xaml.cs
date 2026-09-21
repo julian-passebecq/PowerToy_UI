@@ -1628,6 +1628,59 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void PortalList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source
+            && FindVisualAncestor<Button>(source) is not null)
+        {
+            return;
+        }
+
+        if (_viewModel.SelectedPortal is PortalEntry portal)
+        {
+            OpenUrlValue(portal.MainUrl);
+            e.Handled = true;
+        }
+    }
+
+    private void PortalList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal)
+        {
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            OpenUrlValue(portal.MainUrl);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.C
+            && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
+        {
+            CopyText(portal.MainUrl, "Portal URL copied");
+            e.Handled = true;
+        }
+    }
+
+    private void SnippetList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (_viewModel.SelectedSnippet is not ClipboardSnippetEntry snippet)
+        {
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.Enter
+            || (e.Key == System.Windows.Input.Key.C
+                && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0))
+        {
+            CopyText(snippet.Text, "Clipboard snippet copied");
+            e.Handled = true;
+        }
+    }
+
     private void ResourceList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (e.OriginalSource is DependencyObject source
