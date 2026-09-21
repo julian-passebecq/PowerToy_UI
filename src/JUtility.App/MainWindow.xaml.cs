@@ -669,6 +669,33 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private async void SyncGitHub_Click(object sender, RoutedEventArgs e)
+    {
+        Button? button = sender as Button;
+        if (button is not null) button.IsEnabled = false;
+        _viewModel.StatusText = "Syncing GitHub repositories…";
+
+        try
+        {
+            GitHubRepositoryFetchResult fetched = await GitHubRepositorySyncService.FetchAsync(_viewModel.GitHubOwner);
+            RepositoryMergeSummary merged = _viewModel.MergeGitHubRepositories(fetched.Repositories);
+            _moduleFilters["Repository Hub"] = "all";
+            RefreshAfterDataChange();
+            ProjectsGrid.Items.Refresh();
+            SafeSave();
+            _viewModel.StatusText = $"{fetched.Source}: {fetched.Repositories.Count} found · {merged.Added} added · {merged.Updated} updated";
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "GitHub sync failed", MessageBoxImage.Warning);
+            _viewModel.StatusText = "GitHub sync failed";
+        }
+        finally
+        {
+            if (button is not null) button.IsEnabled = true;
+        }
+    }
+
     private void AddPortal_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddPortal();
