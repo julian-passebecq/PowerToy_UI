@@ -769,8 +769,17 @@
                     <StackPanel>
                       <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold"/>
                       <WrapPanel>
-                        <TextBox Width="180" Text="{Binding Provider, UpdateSourceTrigger=PropertyChanged}" ToolTip="Provider: GitHub, Google Drive, Dropbox, OneDrive, Notion…" LostFocus="Category_LostFocus"/>
-                        <TextBox Width="160" Text="{Binding Kind, UpdateSourceTrigger=PropertyChanged}" ToolTip="Kind: Repository, Folder, Document, Dashboard, Link…"/>
+                        <ComboBox Width="180"
+                                  IsEditable="True"
+                                  ItemsSource="{Binding DataContext.ResourceProviderOptions, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  Text="{Binding Provider, UpdateSourceTrigger=PropertyChanged}"
+                                  ToolTip="Provider"
+                                  LostFocus="Category_LostFocus"/>
+                        <ComboBox Width="160"
+                                  IsEditable="True"
+                                  ItemsSource="{Binding DataContext.ResourceKindOptions, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  Text="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
+                                  ToolTip="Resource kind"/>
                         <TextBox Width="190" Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}" ToolTip="Project / group / topic"/>
                         <CheckBox Content="Pin to ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="ResourceStateChanged_Click"/>
                         <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8" Click="ResourceStateChanged_Click"/>
