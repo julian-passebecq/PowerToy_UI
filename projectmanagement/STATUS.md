@@ -11,7 +11,7 @@ Updated: 2026-09-21
 | Active branch | `codex/power-ops-suite` |
 | Draft PR | #1 — Power Ops suite: Repository Hub, Portals, Capture and Clipboard |
 | Base | `codex/pro-ai-handover-2026-09-11` |
-| Current direction | Repository Hub + Portal Launcher + Capture + Clipboard + Prompt Builder in one shell |
+| Current direction | Repository Hub + Portal Launcher + Resource Hub + Capture + Clipboard + Prompt Builder in one shell |
 | Build gate | Full WPF Release build + package-free smoke/regression checks on `windows-latest` |
 | Packaging | Self-contained Windows x64/arm64 publish script; manual x64 CI artifact path |
 | Native/manual Windows acceptance | **Not yet claimed** — mouse summon, mixed DPI, clean-machine package and full visual interaction still require native validation |
@@ -68,6 +68,19 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - main and sub-links have explicit Open / Copy actions;
 - Favorites / Pinned virtual filters;
 - no repository-style selection workflow.
+
+### Resource Hub
+
+- exact cross-service quick links for GitHub, Google Drive, Dropbox, OneDrive, SharePoint, Notion and arbitrary HTTPS resources;
+- provider / kind / project-group metadata;
+- All / Favorites / Pinned / provider filters;
+- common provider icons are always available in the top ribbon;
+- provider ribbon supports multi-select filtering;
+- Open / Copy actions are explicit;
+- active Repository Hub projects can be imported as GitHub resources;
+- clipboard URLs can be captured with provider/kind inference;
+- pinned/favorite resources are exposed in Sidebar quick access;
+- additive workspace schema v4 persists resources without affecting external source items.
 
 ### Capture
 
