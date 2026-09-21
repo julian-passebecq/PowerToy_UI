@@ -112,6 +112,22 @@ public sealed class PortalEntry
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class WorkspaceResourceEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Provider { get; set; } = "Other";
+    public string Kind { get; set; } = "Link";
+    public string Group { get; set; } = "General";
+    public string Url { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+    public Guid? SourceProjectId { get; set; }
+    public bool IsPinned { get; set; }
+    public bool IsFavorite { get; set; }
+    public int SortOrder { get; set; }
+    public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class ClipboardSnippetEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -175,13 +191,14 @@ public sealed class StickyNoteEntry
 
 public sealed class WorkspaceState
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();
     public List<ProjectEntry> Projects { get; set; } = [];
     public List<RepositoryListEntry> RepositoryLists { get; set; } = [];
     public List<PortalEntry> Portals { get; set; } = [];
+    public List<WorkspaceResourceEntry> Resources { get; set; } = [];
     public List<ClipboardSnippetEntry> ClipboardSnippets { get; set; } = [];
     public List<PromptModuleEntry> PromptModules { get; set; } = [];
     public List<RecentPromptEntry> RecentPrompts { get; set; } = [];
