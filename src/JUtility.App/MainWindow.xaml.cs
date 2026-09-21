@@ -458,9 +458,6 @@ public partial class MainWindow : Window
         _quickRibbonItems.Clear();
         string activeFilter = GetModuleFilter(_activeModule);
 
-        void AddFilter(string key, string title, string subtitle, string glyph, string accent) =>
-            _quickRibbonItems.Add(new QuickRibbonItem("filter", key, title, subtitle, glyph, accent));
-
         switch (_activeModule)
         {
             case "Repository Hub":
