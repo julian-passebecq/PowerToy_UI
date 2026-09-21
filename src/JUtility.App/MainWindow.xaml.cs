@@ -2361,9 +2361,11 @@ public partial class MainWindow : Window
 
         note.Kind = CaptureKind.Bookmark;
         note.Url = normalized;
-        note.Title = Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri)
-            ? uri.Host.Replace("www.", string.Empty, StringComparison.OrdinalIgnoreCase)
-            : "Saved URL";
+        note.Title = ResourceCatalogService.TryClassify(normalized, out ResourceUrlClassification bookmarkInfo)
+            ? bookmarkInfo.SuggestedName
+            : Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri)
+                ? uri.Host.Replace("www.", string.Empty, StringComparison.OrdinalIgnoreCase)
+                : "Saved URL";
         note.UpdatedUtc = DateTimeOffset.UtcNow;
 
         if (_activeCaptureSubjects.Count == 1)
