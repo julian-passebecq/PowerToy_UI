@@ -57,6 +57,9 @@ Power Ops / J Utility Palette
 
 Run JUtilityPalette.exe.
 
+For a separate isolated workspace:
+JUtilityPalette.exe --data-dir "D:\PowerOps-Test"
+
 Workspace data is stored outside this package in:
 %LOCALAPPDATA%\JUtilityPalette\workspace.json
 
