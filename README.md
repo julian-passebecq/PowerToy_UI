@@ -1,6 +1,6 @@
 # J Utility Palette · Power Ops
 
-A local-first Windows productivity companion for project links, service portals, quick captures, reusable clipboard text, and prompt composition.
+A local-first Windows productivity companion for project links, service portals, cross-service resource shortcuts, quick captures, reusable clipboard text, and prompt composition.
 
 This repository is intentionally standalone. It is **not** a fork of Microsoft PowerToys. The older `PowerToys_J` repository remains historical experimentation only.
 
@@ -12,7 +12,7 @@ This repository is intentionally standalone. It is **not** a fork of Microsoft P
 
 A summary surface rather than another editor:
 
-- repository / portal / capture / clipboard counts;
+- repository / portal / resource / capture / clipboard counts;
 - quick-launch ribbon;
 - capture board for Inbox, To-do, Quick notes, Bookmarks, Read later, and Transcript;
 - saved repository lists;
@@ -48,6 +48,23 @@ Each portal has:
 
 There is deliberately **no multi-selection workflow** here: open the main portal directly or open one of its saved sub-links.
 
+### Resource Hub
+
+A cross-service quick-link surface for exact destinations rather than service home pages.
+
+Typical providers:
+
+- GitHub repositories;
+- Google Drive folders/documents;
+- Dropbox folders;
+- OneDrive / SharePoint locations;
+- Notion pages;
+- any other HTTPS resource.
+
+Resource Hub has provider filters in the top ribbon and second left panel, Favorites / Pinned views, one-click Open / Copy, clipboard-URL capture, and a repository import action that mirrors active GitHub repositories from Repository Hub without duplicating repository-management logic.
+
+**Portal Launcher vs Resource Hub:** Portal Launcher is for service entry points such as the Vercel or Fabric home page. Resource Hub is for exact destinations such as a specific project repository, Drive folder, Dropbox folder, document, or dashboard.
+
 ### Capture
 
 One local capture model supports:
@@ -79,7 +96,7 @@ The same local workspace supports three layouts:
 
 - **Expanded** — full Power Ops navigation, secondary tree/categories, quick ribbon, and center workspace.
 - **Compact** — focused module view with less navigation chrome.
-- **Sidebar** — fast summon-style access to portals, clipboard snippets, and captures.
+- **Sidebar** — fast summon-style access to pinned/favorite resources, portals, clipboard snippets, and captures.
 
 Window behavior can be Normal, Always on top, or Summon / hide. Summon bindings support Mouse Button 4, Mouse Button 5, middle click, or Ctrl + middle click.
 
