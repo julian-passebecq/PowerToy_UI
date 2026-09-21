@@ -598,24 +598,44 @@
                     <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
-                          <Border Padding="7">
-                            <Grid>
-                              <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                              <Border Width="30" Height="30" CornerRadius="7" Background="#EAF3FF" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                              </Border>
-                              <StackPanel Grid.Column="1" Margin="7,0">
-                                <DockPanel>
-                                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                  <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                                </DockPanel>
-                                <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                              </StackPanel>
-                              <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
-                                <Button Content="⧉" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
-                              </StackPanel>
-                            </Grid>
+                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
+                            <StackPanel>
+                              <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Border Width="36" Height="36" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
+                                  <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="8,0">
+                                  <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
+                                    <TextBlock Text=" ★" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}" Foreground="#D97706"/>
+                                  </StackPanel>
+                                  <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                  <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                  <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
+                                  <Button Content="⧉" Tag="{Binding MainUrl}" Click="CopyValue_Click"/>
+                                </StackPanel>
+                              </Grid>
+
+                              <ItemsControl ItemsSource="{Binding Links}" Margin="42,5,0,0">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <DockPanel Margin="0,2">
+                                      <StackPanel>
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="11"/>
+                                        <TextBlock Text="{Binding Project}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+                                      </StackPanel>
+                                      <WrapPanel HorizontalAlignment="Right">
+                                        <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
+                                        <Button Content="Copy" Tag="{Binding Url}" Click="CopyValue_Click"/>
+                                      </WrapPanel>
+                                    </DockPanel>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                            </StackPanel>
                           </Border>
                         </DataTemplate>
                       </ListBox.ItemTemplate>
