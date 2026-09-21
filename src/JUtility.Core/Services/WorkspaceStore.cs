@@ -161,6 +161,8 @@ public sealed class WorkspaceStore
             state.Preferences.WindowBehavior = WindowBehaviorMode.AlwaysOnTop;
         }
 
+        state.Preferences.GitHubOwner = NormalizeText(state.Preferences.GitHubOwner, "julian-passebecq");
+
         // Keep the legacy field synchronized so exported workspaces still round-trip with v1 builds.
         state.Preferences.AlwaysOnTop = state.Preferences.WindowBehavior == WindowBehaviorMode.AlwaysOnTop;
         state.SchemaVersion = WorkspaceState.CurrentSchemaVersion;
