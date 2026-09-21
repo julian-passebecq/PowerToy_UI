@@ -82,7 +82,17 @@ public sealed class WorkspaceStore
 
             if (File.Exists(DataFilePath))
             {
-                File.Copy(DataFilePath, BackupFilePath, overwrite: true);
+                if (TryLoad(DataFilePath, out WorkspaceState? currentPrimary))
+                {
+                    // Validate the existing generation before promoting it to last-known-good backup.
+                    Normalize(currentPrimary!);
+                    File.Copy(DataFilePath, BackupFilePath, overwrite: true);
+                }
+                else
+                {
+                    // Never rotate malformed bytes over a usable backup.
+                    PreserveInvalidPrimary();
+                }
             }
 
             File.Move(tempPath, DataFilePath, overwrite: true);
