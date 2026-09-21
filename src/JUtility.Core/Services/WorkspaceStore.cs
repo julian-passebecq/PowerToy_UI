@@ -355,6 +355,7 @@ public sealed class WorkspaceStore
         }
 
         state.Preferences.GitHubOwner = NormalizeText(state.Preferences.GitHubOwner, "julian-passebecq");
+        state.Preferences.LastModule = NormalizeText(state.Preferences.LastModule, "Dashboard");
 
         // Keep the legacy field synchronized so exported workspaces still round-trip with v1 builds.
         state.Preferences.AlwaysOnTop = state.Preferences.WindowBehavior == WindowBehaviorMode.AlwaysOnTop;
@@ -365,7 +366,15 @@ public sealed class WorkspaceStore
             project.Name = NormalizeText(project.Name, "Untitled project");
             project.Category = NormalizeText(project.Category, "Projects");
             project.Subcategory = NormalizeText(project.Subcategory, "Misc");
+            project.Note = NullToEmpty(project.Note);
+            project.GitHubFullName = NormalizeOptionalSingleLine(project.GitHubFullName);
+            project.Language = NormalizeOptionalSingleLine(project.Language);
+            project.RepoUrl = NormalizeOptionalSingleLine(project.RepoUrl);
+            project.SiteUrl = NormalizeOptionalSingleLine(project.SiteUrl);
+            project.ServerUrl = NormalizeOptionalSingleLine(project.ServerUrl);
+            project.ChatGptUrl = NormalizeOptionalSingleLine(project.ChatGptUrl);
             project.ExtraLabel = NormalizeText(project.ExtraLabel, "Extra");
+            project.ExtraUrl = NormalizeOptionalSingleLine(project.ExtraUrl);
         }
 
         foreach (RepositoryListEntry list in state.RepositoryLists)
@@ -380,10 +389,14 @@ public sealed class WorkspaceStore
             portal.Name = NormalizeText(portal.Name, "Untitled portal");
             portal.Category = NormalizeText(portal.Category, "General");
             portal.IconKey = NormalizeText(portal.IconKey, "↗");
+            portal.MainUrl = NormalizeOptionalSingleLine(portal.MainUrl);
             portal.Links = (portal.Links ?? []).Where(item => item is not null).ToList();
             foreach (PortalLinkEntry link in portal.Links)
             {
                 link.Label = NormalizeText(link.Label, "Link");
+                link.Url = NormalizeOptionalSingleLine(link.Url);
+                link.Project = NormalizeOptionalSingleLine(link.Project);
+                link.Note = NullToEmpty(link.Note);
             }
         }
 
@@ -393,23 +406,34 @@ public sealed class WorkspaceStore
             resource.Provider = NormalizeText(resource.Provider, "Other");
             resource.Kind = NormalizeText(resource.Kind, "Link");
             resource.Group = NormalizeText(resource.Group, "General");
+            resource.Url = NormalizeOptionalSingleLine(resource.Url);
+            resource.Note = NullToEmpty(resource.Note);
         }
 
         foreach (ClipboardSnippetEntry snippet in state.ClipboardSnippets)
         {
             snippet.Title = NormalizeText(snippet.Title, "Untitled snippet");
             snippet.Category = NormalizeText(snippet.Category, "General");
+            snippet.Text = NullToEmpty(snippet.Text);
+            snippet.Tags = NormalizeOptionalSingleLine(snippet.Tags);
         }
 
         foreach (StickyNoteEntry note in state.Notes)
         {
             note.Title = NormalizeText(note.Title, note.Kind == CaptureKind.Transcript ? "Transcript" : "Untitled capture");
+            note.Subject = NormalizeOptionalSingleLine(note.Subject);
+            note.Text = NullToEmpty(note.Text);
+            note.Url = NormalizeOptionalSingleLine(note.Url);
+            note.Labels = NormalizeOptionalSingleLine(note.Labels);
+            note.Status = NormalizeOptionalSingleLine(note.Status);
+            note.Priority = NormalizeOptionalSingleLine(note.Priority);
         }
 
         foreach (PromptModuleEntry module in state.PromptModules)
         {
             module.Title = NormalizeText(module.Title, "Untitled module");
             module.Category = NormalizeText(module.Category, "General");
+            module.Body = NullToEmpty(module.Body);
         }
 
         foreach (RecentPromptEntry prompt in state.RecentPrompts)
@@ -464,6 +488,11 @@ public sealed class WorkspaceStore
 
     private static string NormalizeText(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+
+    private static string NormalizeOptionalSingleLine(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+
+    private static string NullToEmpty(string? value) => value ?? string.Empty;
 
     private static WorkspaceState CreateSeedState() => new()
     {
