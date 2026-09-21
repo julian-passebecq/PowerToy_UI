@@ -34,6 +34,7 @@ public sealed class AppPreferences
     public bool AlwaysOnTop { get; set; }
 
     public bool ShowExtraColumn { get; set; } = true;
+    public bool IncludeCompletedCaptures { get; set; }
     public string GitHubOwner { get; set; } = "julian-passebecq";
 }
 
