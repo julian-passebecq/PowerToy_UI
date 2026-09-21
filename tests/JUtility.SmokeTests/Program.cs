@@ -146,6 +146,17 @@ Check("resource URL upsert deduplicates equivalent links", () =>
     Equal("Repository", resources[0].Kind);
 });
 
+Check("resource URL equivalence normalizes host but preserves path case", () =>
+{
+    True(ResourceCatalogService.UrlsEquivalent(
+        "https://GITHUB.com/example/demo/",
+        "https://github.com/example/demo"));
+
+    False(ResourceCatalogService.UrlsEquivalent(
+        "https://drive.google.com/drive/folders/AbC123",
+        "https://drive.google.com/drive/folders/abc123"));
+});
+
 Check("repository resource import is idempotent and ignores archived projects", () =>
 {
     List<WorkspaceResourceEntry> resources = [];
