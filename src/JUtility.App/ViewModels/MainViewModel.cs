@@ -581,6 +581,16 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Note added";
     }
 
+    public void RemoveNote(StickyNoteEntry note)
+    {
+        Notes.Remove(note);
+        if (ReferenceEquals(SelectedNote, note))
+        {
+            SelectedNote = Notes.FirstOrDefault(item => !item.IsArchived) ?? Notes.FirstOrDefault();
+        }
+        StatusText = "Capture deleted";
+    }
+
     public void ArchiveOrRestoreNote(StickyNoteEntry note)
     {
         note.IsArchived = !note.IsArchived;
