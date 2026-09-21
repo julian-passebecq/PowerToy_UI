@@ -29,16 +29,39 @@ public sealed class WorkspaceStore
 
     public WorkspaceState Load()
     {
-        if (TryLoad(DataFilePath, out WorkspaceState? state))
+        bool primaryExists = File.Exists(DataFilePath);
+        bool backupExists = File.Exists(BackupFilePath);
+
+        if (primaryExists)
         {
-            return Normalize(state!);
+            if (TryLoad(DataFilePath, out WorkspaceState? state))
+            {
+                return Normalize(state!);
+            }
+
+            if (backupExists && TryLoad(BackupFilePath, out WorkspaceState? backup))
+            {
+                WorkspaceState recovered = Normalize(backup!);
+                PreserveInvalidPrimary();
+                WritePrimaryWithoutReplacingBackup(recovered);
+                return recovered;
+            }
+
+            throw new InvalidDataException(
+                "The primary workspace exists but is malformed or unrecognized, and no valid backup is available. The file was preserved and was not replaced.");
         }
 
-        if (TryLoad(BackupFilePath, out WorkspaceState? backup))
+        if (backupExists)
         {
-            WorkspaceState recovered = Normalize(backup!);
-            WritePrimaryWithoutReplacingBackup(recovered);
-            return recovered;
+            if (TryLoad(BackupFilePath, out WorkspaceState? backup))
+            {
+                WorkspaceState recovered = Normalize(backup!);
+                WritePrimaryWithoutReplacingBackup(recovered);
+                return recovered;
+            }
+
+            throw new InvalidDataException(
+                "The workspace backup exists but is malformed or unrecognized. A new workspace was not created over it.");
         }
 
         WorkspaceState seeded = CreateSeedState();
@@ -49,32 +72,84 @@ public sealed class WorkspaceStore
     public void Save(WorkspaceState state)
     {
         ArgumentNullException.ThrowIfNull(state);
-        WorkspaceState normalized = Normalize(state);
+        WorkspaceState normalized = Normalize(CloneState(state));
 
-        string tempPath = DataFilePath + ".tmp";
-        string json = JsonSerializer.Serialize(normalized, JsonOptions);
-        File.WriteAllText(tempPath, json);
-
-        if (File.Exists(DataFilePath))
+        string tempPath = CreateTemporaryPath("save");
+        try
         {
-            File.Copy(DataFilePath, BackupFilePath, overwrite: true);
-        }
+            string json = JsonSerializer.Serialize(normalized, JsonOptions);
+            File.WriteAllText(tempPath, json);
 
-        File.Move(tempPath, DataFilePath, overwrite: true);
+            if (File.Exists(DataFilePath))
+            {
+                File.Copy(DataFilePath, BackupFilePath, overwrite: true);
+            }
+
+            File.Move(tempPath, DataFilePath, overwrite: true);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(tempPath);
+        }
     }
 
     private void WritePrimaryWithoutReplacingBackup(WorkspaceState state)
     {
-        string tempPath = DataFilePath + ".recovery.tmp";
-        File.WriteAllText(tempPath, JsonSerializer.Serialize(state, JsonOptions));
-        File.Move(tempPath, DataFilePath, overwrite: true);
+        string tempPath = CreateTemporaryPath("recovery");
+        try
+        {
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(state, JsonOptions));
+            File.Move(tempPath, DataFilePath, overwrite: true);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(tempPath);
+        }
+    }
+
+    private string PreserveInvalidPrimary()
+    {
+        string recoveryPath = Path.Combine(
+            DataDirectory,
+            $"workspace.invalid.{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}.{Guid.NewGuid():N}.json");
+        File.Copy(DataFilePath, recoveryPath, overwrite: false);
+        return recoveryPath;
+    }
+
+    private string CreateTemporaryPath(string operation) =>
+        Path.Combine(DataDirectory, $"workspace.{operation}.{Guid.NewGuid():N}.tmp");
+
+    private static void TryDeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+            // A stale temp file is non-authoritative; leave it for later cleanup.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Same as above: never turn cleanup failure into loss of the committed workspace.
+        }
+    }
+
+    private static WorkspaceState CloneState(WorkspaceState state)
+    {
+        string json = JsonSerializer.Serialize(state, JsonOptions);
+        return JsonSerializer.Deserialize<WorkspaceState>(json, JsonOptions)
+            ?? throw new InvalidDataException("The workspace could not be cloned for persistence.");
     }
 
     public void Export(WorkspaceState state, string path)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        File.WriteAllText(path, JsonSerializer.Serialize(Normalize(state), JsonOptions));
+        File.WriteAllText(path, JsonSerializer.Serialize(Normalize(CloneState(state)), JsonOptions));
     }
 
     public WorkspaceState Import(string path)
@@ -158,10 +233,6 @@ public sealed class WorkspaceStore
             return state is not null;
         }
         catch (JsonException)
-        {
-            return false;
-        }
-        catch (IOException)
         {
             return false;
         }
