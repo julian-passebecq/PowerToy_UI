@@ -1405,7 +1405,7 @@ public partial class MainWindow : Window
 
     private void ToggleSummonVisibility()
     {
-        if (_viewModel.WindowBehavior != WindowBehaviorMode.Summon)
+        if (_suppressAutoHide || _viewModel.WindowBehavior != WindowBehaviorMode.Summon)
         {
             return;
         }
