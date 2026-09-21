@@ -879,16 +879,18 @@
                         <TextBlock Text="Custom variables" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button Content="Refresh" HorizontalAlignment="Right" Click="RefreshPromptVariables_Click"/>
                       </DockPanel>
-                      <ItemsControl ItemsSource="{Binding PromptVariables}" Margin="3,2,3,4">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <DockPanel Margin="0,2">
-                              <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
-                              <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder"/>
-                            </DockPanel>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
+                      <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding PromptVariables}" Margin="3,2,3,4">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <DockPanel Margin="0,2">
+                                <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder"/>
+                              </DockPanel>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </ScrollViewer>
                       <WrapPanel>
                         <Button Content="Preview" Click="PreviewPrompt_Click"/>
                         <Button Content="Copy prompt" Click="ComposeCopy_Click"/>
