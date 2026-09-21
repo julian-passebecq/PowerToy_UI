@@ -693,7 +693,7 @@ public sealed class MainViewModel : ObservableObject
             SelectedPromptProject = Projects.FirstOrDefault(item => !item.IsArchived);
         }
 
-        StatusText = "Project removed; linked captures were detached and saved lists updated";
+        StatusText = "Project removed; linked captures/resources were detached and saved lists updated";
     }
 
     public void AddPromptModule()
