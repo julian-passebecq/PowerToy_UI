@@ -2336,6 +2336,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        StickyNoteEntry? existingBookmark = _viewModel.Notes.FirstOrDefault(note =>
+            !note.IsArchived
+            && note.Kind == CaptureKind.Bookmark
+            && ResourceCatalogService.UrlsEquivalent(note.Url, normalized));
+
+        if (existingBookmark is not null)
+        {
+            _viewModel.SelectedNote = existingBookmark;
+            _activeCaptureSubjects.Clear();
+            _moduleFilters["Capture"] = CaptureKind.Bookmark.ToString();
+            SelectWorkspaceTab("Capture");
+            RefreshAfterDataChange();
+            _viewModel.StatusText = "Bookmark already exists; selected existing capture";
+            return;
+        }
+
         PrepareCaptureAddContext();
         _viewModel.AddNote();
         if (_viewModel.SelectedNote is not StickyNoteEntry note)
