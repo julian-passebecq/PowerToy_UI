@@ -1185,6 +1185,79 @@ Check("v1 always-on-top preference migrates to window behavior mode", () =>
     }
 });
 
+Check("window placement persists independently for each layout", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityWindowPlacement-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Preferences.SidebarPlacement = new WindowPlacementState
+        {
+            HasSize = true,
+            HasPosition = true,
+            Width = 390,
+            Height = 760,
+            Left = -1200,
+            Top = 40,
+        };
+        state.Preferences.CompactPlacement = new WindowPlacementState
+        {
+            HasSize = true,
+            Width = 1120,
+            Height = 780,
+        };
+        store.Save(state);
+
+        WorkspaceState loaded = store.Load();
+        True(loaded.Preferences.SidebarPlacement.HasSize);
+        True(loaded.Preferences.SidebarPlacement.HasPosition);
+        True(Math.Abs(loaded.Preferences.SidebarPlacement.Width - 390) < 0.01);
+        True(Math.Abs(loaded.Preferences.SidebarPlacement.Left - (-1200)) < 0.01);
+        True(loaded.Preferences.CompactPlacement.HasSize);
+        True(Math.Abs(loaded.Preferences.CompactPlacement.Width - 1120) < 0.01);
+        False(loaded.Preferences.ExpandedPlacement.HasSize);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("invalid persisted window size is disabled during normalization", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityInvalidPlacement-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Preferences.ExpandedPlacement = new WindowPlacementState
+        {
+            HasSize = true,
+            Width = -5,
+            Height = 900,
+            HasPosition = true,
+            Left = 10,
+            Top = 10,
+        };
+        store.Save(state);
+
+        WorkspaceState loaded = store.Load();
+        False(loaded.Preferences.ExpandedPlacement.HasSize);
+        True(loaded.Preferences.ExpandedPlacement.HasPosition);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("last module preference round-trips", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityLastModule-" + Guid.NewGuid().ToString("N"));
