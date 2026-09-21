@@ -13,8 +13,8 @@ jobs:
   build-and-smoke-test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: 8.0.x
       - name: Full build and smoke gate
@@ -26,7 +26,7 @@ jobs:
         run: .\scripts\publish.ps1 -Runtime win-x64
       - name: Upload Power Ops package
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: PowerOps-win-x64
           path: artifacts/PowerOps-win-x64.zip
