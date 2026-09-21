@@ -147,6 +147,64 @@ public static class ResourceCatalogService
         return new ResourceImportSummary(added, updated, resources.Count);
     }
 
+    public static bool MatchesFilter(
+        WorkspaceResourceEntry resource,
+        IReadOnlySet<string>? activeProviders,
+        string? filter,
+        string? search)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        string normalizedSearch = search?.Trim() ?? string.Empty;
+        if (normalizedSearch.Length > 0)
+        {
+            string haystack = string.Join(
+                " ",
+                resource.Name,
+                resource.Provider,
+                resource.Kind,
+                resource.Group,
+                resource.Url,
+                resource.Note);
+
+            if (!haystack.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        if (activeProviders is { Count: > 0 } && !activeProviders.Contains(resource.Provider))
+        {
+            return false;
+        }
+
+        string normalizedFilter = string.IsNullOrWhiteSpace(filter) ? "all" : filter.Trim();
+        if (normalizedFilter.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (normalizedFilter.Equals("favorites", StringComparison.OrdinalIgnoreCase))
+        {
+            return resource.IsFavorite;
+        }
+
+        if (normalizedFilter.Equals("pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            return resource.IsPinned;
+        }
+
+        if (normalizedFilter.StartsWith("group:", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(
+                resource.Group,
+                normalizedFilter["group:".Length..],
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return true;
+    }
+
     public static bool UrlsEquivalent(string? left, string? right)
     {
         if (!UrlNormalizer.TryNormalizeOptionalWebUrl(left, out string normalizedLeft)
@@ -189,7 +247,7 @@ public static class ResourceCatalogService
         if (host == "github.com" || host.EndsWith(".github.com", StringComparison.Ordinal)) return "GitHub";
         if (host == "drive.google.com" || host == "docs.google.com") return "Google Drive";
         if (host == "dropbox.com" || host.EndsWith(".dropbox.com", StringComparison.Ordinal)) return "Dropbox";
-        if (host == "onedrive.live.com" || host.EndsWith(".onedrive.live.com", StringComparison.Ordinal)) return "OneDrive";
+        if (host == "onedrive.live.com" || host.EndsWith(".onedrive.live.com", StringComparison.Ordinal) || host == "1drv.ms") return "OneDrive";
         if (host.EndsWith(".sharepoint.com", StringComparison.Ordinal)) return "SharePoint";
         if (host == "notion.so" || host.EndsWith(".notion.so", StringComparison.Ordinal)
             || host == "notion.site" || host.EndsWith(".notion.site", StringComparison.Ordinal)) return "Notion";
