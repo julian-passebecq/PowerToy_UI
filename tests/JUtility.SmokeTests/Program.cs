@@ -66,6 +66,67 @@ Check("URL normalizer accepts bare domains and rejects non-web schemes", () =>
     False(UrlNormalizer.TryNormalizeOptionalWebUrl("file:///c:/temp/test.txt", out _));
 });
 
+Check("starter catalog adds common cockpit portals and snippets idempotently", () =>
+{
+    List<PortalEntry> portals = [];
+    List<ClipboardSnippetEntry> snippets = [];
+
+    StarterCatalogSummary first = StarterCatalogService.Merge(portals, snippets);
+    True(first.PortalsAdded >= 10);
+    True(first.SnippetsAdded >= 3);
+    True(portals.Any(portal => portal.Name == "GitHub" && portal.IsPinnedToRibbon));
+    True(portals.Any(portal => portal.Name == "Microsoft Fabric" && portal.MainUrl.Contains("app.fabric.microsoft.com", StringComparison.OrdinalIgnoreCase)));
+    True(portals.Any(portal => portal.Name == "Databricks"));
+    True(portals.Any(portal => portal.Name == "Vercel"));
+    True(portals.Any(portal => portal.Name == "Netlify"));
+    True(portals.Any(portal => portal.Name == "Cloudflare"));
+    True(portals.Any(portal => portal.Name == "Google Drive"));
+    True(portals.Any(portal => portal.Name == "Dropbox"));
+    True(portals.Any(portal => portal.Name == "LinkedIn"));
+    True(portals.Any(portal => portal.Name == "ChatGPT"));
+    True(snippets.Any(snippet => snippet.Title == "Continue project" && snippet.IsPinned));
+    True(snippets.Any(snippet => snippet.Title == "Debug and verify" && snippet.IsPinned));
+
+    int portalCount = portals.Count;
+    int snippetCount = snippets.Count;
+    StarterCatalogSummary second = StarterCatalogService.Merge(portals, snippets);
+
+    True(second.TotalAdded == 0);
+    True(portals.Count == portalCount);
+    True(snippets.Count == snippetCount);
+});
+
+Check("starter catalog preserves customized entries instead of overwriting them", () =>
+{
+    PortalEntry customPortal = new()
+    {
+        Name = "My GitHub",
+        Category = "Personal",
+        MainUrl = "https://github.com",
+        IsPinnedToRibbon = false,
+    };
+    ClipboardSnippetEntry customSnippet = new()
+    {
+        Title = "Debug and verify",
+        Category = "Mine",
+        Text = "My custom workflow",
+        IsPinned = false,
+    };
+    List<PortalEntry> portals = [customPortal];
+    List<ClipboardSnippetEntry> snippets = [customSnippet];
+
+    StarterCatalogService.Merge(portals, snippets);
+
+    True(portals.Count(portal => ResourceCatalogService.UrlsEquivalent(portal.MainUrl, "https://github.com/")) == 1);
+    Equal("My GitHub", customPortal.Name);
+    Equal("Personal", customPortal.Category);
+    False(customPortal.IsPinnedToRibbon);
+    True(snippets.Count(snippet => snippet.Title.Equals("Debug and verify", StringComparison.OrdinalIgnoreCase)) == 1);
+    Equal("My custom workflow", customSnippet.Text);
+    Equal("Mine", customSnippet.Category);
+    False(customSnippet.IsPinned);
+});
+
 Check("resource URL classifier recognizes common providers and kinds", () =>
 {
     True(ResourceCatalogService.TryClassify("https://github.com/example/demo", out ResourceUrlClassification github));

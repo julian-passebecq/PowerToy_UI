@@ -654,7 +654,10 @@
                         <TextBlock Text="Portal Launcher" FontSize="20" FontWeight="SemiBold"/>
                         <TextBlock Text="Direct-open services; no selection workflow." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
-                      <Button Content="+ Portal" HorizontalAlignment="Right" Click="AddPortal_Click"/>
+                      <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                        <Button Content="Starter pack" Click="AddStarterCatalog_Click" ToolTip="Add missing common service portals and reusable workflow snippets"/>
+                        <Button Content="+ Portal" Click="AddPortal_Click"/>
+                      </WrapPanel>
                     </DockPanel>
 
                     <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8" MouseDoubleClick="PortalList_MouseDoubleClick" KeyDown="PortalList_KeyDown" AutomationProperties.Name="Portals" AutomationProperties.HelpText="Press Enter to open the selected portal. Press Ctrl+C to copy its URL.">
@@ -1092,6 +1095,11 @@
                     <TextBlock Text="Owner / account" FontWeight="SemiBold" Margin="0,10,0,0"/>
                     <TextBox Width="300" HorizontalAlignment="Left" Text="{Binding GitHubOwner, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="Sync GitHub first tries your local authenticated gh CLI, so private repositories can be discovered without storing a token in the workspace. If gh is unavailable it falls back to public repositories only." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+
+                    <Separator Margin="0,16,0,12"/>
+                    <TextBlock Text="Starter cockpit" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Merge missing common service portals and reusable workflow snippets into this workspace. Existing customized entries are preserved." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                    <Button Content="Add missing starter links" Width="210" HorizontalAlignment="Left" Click="AddStarterCatalog_Click"/>
 
                     <Separator Margin="0,16,0,12"/>
                     <TextBlock Text="Local-first storage" FontSize="16" FontWeight="SemiBold"/>

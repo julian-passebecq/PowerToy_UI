@@ -574,6 +574,14 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Portal added";
     }
 
+    public StarterCatalogSummary AddStarterCatalog()
+    {
+        StarterCatalogSummary summary = StarterCatalogService.Merge(Portals, ClipboardSnippets);
+        SelectedPortal ??= Portals.FirstOrDefault();
+        SelectedSnippet ??= ClipboardSnippets.FirstOrDefault();
+        return summary;
+    }
+
     public void RemovePortal(PortalEntry portal)
     {
         Portals.Remove(portal);

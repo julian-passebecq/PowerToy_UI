@@ -1538,6 +1538,21 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void AddStarterCatalog_Click(object sender, RoutedEventArgs e)
+    {
+        StarterCatalogSummary summary = _viewModel.AddStarterCatalog();
+        _moduleFilters["Portals"] = "all";
+        _moduleFilters["Clipboard"] = "all";
+        RefreshAfterDataChange();
+
+        if (SafeSave(showError: true))
+        {
+            _viewModel.StatusText = summary.TotalAdded == 0
+                ? "Starter pack already present; nothing changed"
+                : $"Starter pack added {summary.PortalsAdded} portal(s) and {summary.SnippetsAdded} snippet(s)";
+        }
+    }
+
     private void Category_LostFocus(object sender, RoutedEventArgs e)
     {
         if (!_loaded)

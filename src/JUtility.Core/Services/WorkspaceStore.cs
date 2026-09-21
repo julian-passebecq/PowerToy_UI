@@ -560,7 +560,9 @@ public sealed class WorkspaceStore
 
     private static string NullToEmpty(string? value) => value ?? string.Empty;
 
-    private static WorkspaceState CreateSeedState() => new()
+    private static WorkspaceState CreateSeedState()
+    {
+        WorkspaceState state = new()
     {
         Projects =
         [
@@ -630,4 +632,8 @@ public sealed class WorkspaceStore
             },
         ],
     };
+
+        StarterCatalogService.Merge(state.Portals, state.ClipboardSnippets);
+        return state;
+    }
 }
