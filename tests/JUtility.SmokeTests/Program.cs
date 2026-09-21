@@ -718,13 +718,13 @@ Check("nullable optional workspace strings normalize safely without losing free-
         Guid projectId = Guid.NewGuid();
         Guid resourceId = Guid.NewGuid();
         Guid noteId = Guid.NewGuid();
-        string json = $"""
+        string json = """
         {
           "SchemaVersion": 4,
           "Preferences": { "GitHubOwner": null, "LastModule": null },
           "Projects": [
             {
-              "Id": "{{projectId}}",
+              "Id": "__PROJECT_ID__",
               "Name": " Project ",
               "Category": null,
               "Subcategory": null,
@@ -737,7 +737,7 @@ Check("nullable optional workspace strings normalize safely without losing free-
           "Portals": [],
           "Resources": [
             {
-              "Id": "{{resourceId}}",
+              "Id": "__RESOURCE_ID__",
               "Name": " Drive ",
               "Provider": null,
               "Kind": null,
@@ -751,7 +751,7 @@ Check("nullable optional workspace strings normalize safely without losing free-
           "RecentPrompts": [],
           "Notes": [
             {
-              "Id": "{{noteId}}",
+              "Id": "__NOTE_ID__",
               "Kind": 2,
               "Title": " Note ",
               "Subject": null,
@@ -763,7 +763,10 @@ Check("nullable optional workspace strings normalize safely without losing free-
             }
           ]
         }
-        """;
+        """
+            .Replace("__PROJECT_ID__", projectId.ToString(), StringComparison.Ordinal)
+            .Replace("__RESOURCE_ID__", resourceId.ToString(), StringComparison.Ordinal)
+            .Replace("__NOTE_ID__", noteId.ToString(), StringComparison.Ordinal);
         File.WriteAllText(Path.Combine(root, "workspace.json"), json);
 
         WorkspaceStore store = new(root);
@@ -803,13 +806,13 @@ Check("duplicate IDs and unsupported enum values are rejected without rewriting 
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "workspace.json");
         Guid duplicate = Guid.NewGuid();
-        string invalid = $"""
+        string invalid = """
         {
           "SchemaVersion": 4,
           "Preferences": { "WindowBehavior": 999 },
           "Projects": [
-            { "Id": "{{duplicate}}", "Name": "A" },
-            { "Id": "{{duplicate}}", "Name": "B" }
+            { "Id": "__DUPLICATE_ID__", "Name": "A" },
+            { "Id": "__DUPLICATE_ID__", "Name": "B" }
           ],
           "RepositoryLists": [],
           "Portals": [],
@@ -819,7 +822,7 @@ Check("duplicate IDs and unsupported enum values are rejected without rewriting 
           "RecentPrompts": [],
           "Notes": []
         }
-        """;
+        """.Replace("__DUPLICATE_ID__", duplicate.ToString(), StringComparison.Ordinal);
         File.WriteAllText(path, invalid);
 
         WorkspaceStore store = new(root);
@@ -853,12 +856,12 @@ Check("duplicate workspace item IDs are rejected without rewriting source", () =
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "workspace.json");
         Guid duplicate = Guid.NewGuid();
-        string invalid = $"""
+        string invalid = """
         {
           "SchemaVersion": 4,
           "Projects": [
-            { "Id": "{{duplicate}}", "Name": "A" },
-            { "Id": "{{duplicate}}", "Name": "B" }
+            { "Id": "__DUPLICATE_ID__", "Name": "A" },
+            { "Id": "__DUPLICATE_ID__", "Name": "B" }
           ],
           "RepositoryLists": [],
           "Portals": [],
@@ -868,7 +871,7 @@ Check("duplicate workspace item IDs are rejected without rewriting source", () =
           "RecentPrompts": [],
           "Notes": []
         }
-        """;
+        """.Replace("__DUPLICATE_ID__", duplicate.ToString(), StringComparison.Ordinal);
         File.WriteAllText(path, invalid);
 
         WorkspaceStore store = new(root);
