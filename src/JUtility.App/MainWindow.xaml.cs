@@ -1562,6 +1562,28 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void ResourceList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (_viewModel.SelectedResource is not WorkspaceResourceEntry resource)
+        {
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            OpenUrlValue(resource.Url);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.C
+            && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
+        {
+            CopyText(resource.Url, "Resource URL copied");
+            e.Handled = true;
+        }
+    }
+
     private void AddResource_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddResource();
