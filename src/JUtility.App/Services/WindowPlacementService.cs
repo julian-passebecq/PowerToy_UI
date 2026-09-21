@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using JUtility.Core.Services;
 
 namespace JUtility.App.Services;
 
@@ -26,28 +27,25 @@ internal static class WindowPlacementService
         }
 
         NativeRect work = monitorInfo.WorkArea;
-        int workWidth = Math.Max(1, work.Right - work.Left);
-        int workHeight = Math.Max(1, work.Bottom - work.Top);
-        int width = Math.Min(windowRect.Right - windowRect.Left, workWidth);
-        int height = Math.Min(windowRect.Bottom - windowRect.Top, workHeight);
+        WindowBounds target = WindowPlacementMath.PlaceNearCursor(
+            cursor.X,
+            cursor.Y,
+            windowRect.Right - windowRect.Left,
+            windowRect.Bottom - windowRect.Top,
+            work.Left,
+            work.Top,
+            work.Right,
+            work.Bottom,
+            gap);
 
-        int x = cursor.X + gap;
-        int y = cursor.Y + gap;
-
-        if (x + width > work.Right)
-        {
-            x = cursor.X - gap - width;
-        }
-
-        if (y + height > work.Bottom)
-        {
-            y = cursor.Y - gap - height;
-        }
-
-        x = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - width));
-        y = Math.Clamp(y, work.Top, Math.Max(work.Top, work.Bottom - height));
-
-        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SwpNoZOrder | SwpNoActivate);
+        SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            target.Left,
+            target.Top,
+            target.Width,
+            target.Height,
+            SwpNoZOrder | SwpNoActivate);
     }
 
     public static void EnsureVisible(Window window)
@@ -66,14 +64,24 @@ internal static class WindowPlacementService
         }
 
         NativeRect work = monitorInfo.WorkArea;
-        int workWidth = Math.Max(1, work.Right - work.Left);
-        int workHeight = Math.Max(1, work.Bottom - work.Top);
-        int width = Math.Min(Math.Max(1, windowRect.Right - windowRect.Left), workWidth);
-        int height = Math.Min(Math.Max(1, windowRect.Bottom - windowRect.Top), workHeight);
-        int x = Math.Clamp(windowRect.Left, work.Left, Math.Max(work.Left, work.Right - width));
-        int y = Math.Clamp(windowRect.Top, work.Top, Math.Max(work.Top, work.Bottom - height));
+        WindowBounds target = WindowPlacementMath.ClampToWorkArea(
+            windowRect.Left,
+            windowRect.Top,
+            windowRect.Right - windowRect.Left,
+            windowRect.Bottom - windowRect.Top,
+            work.Left,
+            work.Top,
+            work.Right,
+            work.Bottom);
 
-        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SwpNoZOrder | SwpNoActivate);
+        SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            target.Left,
+            target.Top,
+            target.Width,
+            target.Height,
+            SwpNoZOrder | SwpNoActivate);
     }
 
     [StructLayout(LayoutKind.Sequential)]

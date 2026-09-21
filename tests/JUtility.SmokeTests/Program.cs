@@ -1218,6 +1218,82 @@ Check("v1 always-on-top preference migrates to window behavior mode", () =>
     }
 });
 
+Check("window placement math clamps oversized off-screen windows to the monitor work area", () =>
+{
+    WindowBounds target = WindowPlacementMath.ClampToWorkArea(
+        left: 5000,
+        top: 5000,
+        width: 2500,
+        height: 1400,
+        workLeft: -1920,
+        workTop: 0,
+        workRight: 0,
+        workBottom: 1040);
+
+    True(target.Left == -1920);
+    True(target.Top == 0);
+    True(target.Width == 1920);
+    True(target.Height == 1040);
+});
+
+Check("window placement math flips summon windows away from bottom-right edges", () =>
+{
+    WindowBounds target = WindowPlacementMath.PlaceNearCursor(
+        cursorX: 1900,
+        cursorY: 1000,
+        windowWidth: 390,
+        windowHeight: 760,
+        workLeft: 0,
+        workTop: 0,
+        workRight: 1920,
+        workBottom: 1040,
+        gap: 14);
+
+    True(target.Left == 1496);
+    True(target.Top == 226);
+    True(target.Width == 390);
+    True(target.Height == 760);
+});
+
+Check("window placement math keeps summon windows inside negative-coordinate monitors", () =>
+{
+    WindowBounds target = WindowPlacementMath.PlaceNearCursor(
+        cursorX: -15,
+        cursorY: 20,
+        windowWidth: 500,
+        windowHeight: 600,
+        workLeft: -1600,
+        workTop: -200,
+        workRight: 0,
+        workBottom: 900,
+        gap: 14);
+
+    True(target.Left == -529);
+    True(target.Top == 34);
+    True(target.Left >= -1600);
+    True(target.Left + target.Width <= 0);
+    True(target.Top >= -200);
+    True(target.Top + target.Height <= 900);
+});
+
+Check("window placement math canonicalizes invalid native window extents", () =>
+{
+    WindowBounds target = WindowPlacementMath.ClampToWorkArea(
+        left: 100,
+        top: 120,
+        width: 0,
+        height: -20,
+        workLeft: 0,
+        workTop: 0,
+        workRight: 1920,
+        workBottom: 1040);
+
+    True(target.Left == 100);
+    True(target.Top == 120);
+    True(target.Width == 1);
+    True(target.Height == 1);
+});
+
 Check("window placement persists independently for each layout", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityWindowPlacement-" + Guid.NewGuid().ToString("N"));
