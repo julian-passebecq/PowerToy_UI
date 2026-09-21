@@ -96,7 +96,7 @@ public static class StarterCatalogService
         foreach (SnippetTemplate template in SnippetTemplates)
         {
             bool exists = snippets.Any(snippet =>
-                string.Equals(snippet.Title.Trim(), template.Title, StringComparison.OrdinalIgnoreCase));
+                string.Equals((snippet.Title ?? string.Empty).Trim(), template.Title, StringComparison.OrdinalIgnoreCase));
 
             if (exists)
             {

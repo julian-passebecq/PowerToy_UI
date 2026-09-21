@@ -197,6 +197,29 @@ Check("starter catalog adds common cockpit portals and snippets idempotently", (
     True(snippets.Count == snippetCount);
 });
 
+Check("fresh workspace seed includes the starter cockpit", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityStarterSeed-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState seeded = store.Load();
+
+        True(seeded.Portals.Any(portal => portal.Name == "GitHub"));
+        True(seeded.Portals.Any(portal => portal.Name == "Microsoft Fabric"));
+        True(seeded.Portals.Any(portal => portal.Name == "Vercel"));
+        True(seeded.ClipboardSnippets.Any(snippet => snippet.Title == "Continue project"));
+        True(seeded.ClipboardSnippets.Any(snippet => snippet.Title == "Debug and verify"));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("starter catalog preserves customized entries instead of overwriting them", () =>
 {
     PortalEntry customPortal = new()
