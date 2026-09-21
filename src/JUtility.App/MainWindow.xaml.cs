@@ -1462,6 +1462,51 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OpenRepoList_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not RepositoryListEntry list)
+        {
+            return;
+        }
+
+        string[] urls = list.Items
+            .Select(item => _viewModel.Projects.FirstOrDefault(project => project.Id == item.ProjectId))
+            .Where(project => project is not null && !project.IsArchived && !string.IsNullOrWhiteSpace(project.RepoUrl))
+            .Select(project => project!.RepoUrl.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToArray();
+
+        if (urls.Length == 0)
+        {
+            _viewModel.StatusText = $"Saved list '{list.Name}' has no repository URLs";
+            return;
+        }
+
+        int opened = 0;
+        foreach (string url in urls)
+        {
+            if (!UrlNormalizer.TryNormalizeOptionalWebUrl(url, out string normalized) || string.IsNullOrWhiteSpace(normalized))
+            {
+                continue;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
+                opened++;
+            }
+            catch
+            {
+                // Continue opening the remaining saved repositories.
+            }
+        }
+
+        _viewModel.StatusText = urls.Length == 20
+            ? $"Opened {opened} repositories from '{list.Name}' (first 20)"
+            : $"Opened {opened} repositories from '{list.Name}'";
+    }
+
     private void DeleteRepoList_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not RepositoryListEntry list)
