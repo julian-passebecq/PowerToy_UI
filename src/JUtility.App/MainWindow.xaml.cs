@@ -651,6 +651,7 @@ public partial class MainWindow : Window
                 _viewModel.AddPromptModule();
                 break;
             default:
+                PrepareCaptureAddContext();
                 _viewModel.AddNote();
                 ApplyCurrentCaptureKind(_viewModel.SelectedNote);
                 if (_activeModule == "Dashboard") SelectWorkspaceTab("Capture");
@@ -1427,10 +1428,20 @@ public partial class MainWindow : Window
 
     private void AddNote_Click(object sender, RoutedEventArgs e)
     {
+        PrepareCaptureAddContext();
         _viewModel.AddNote();
         ApplyCurrentCaptureKind(_viewModel.SelectedNote);
         RefreshAfterDataChange();
         SafeSave();
+    }
+
+    private void PrepareCaptureAddContext()
+    {
+        if (GetModuleFilter("Capture").Equals("archived", StringComparison.OrdinalIgnoreCase))
+        {
+            _moduleFilters["Capture"] = "all";
+            _activeCaptureSubjects.Clear();
+        }
     }
 
     private void CaptureCompletionFilterChanged_Click(object sender, RoutedEventArgs e)
