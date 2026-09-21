@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     private ICollectionView? _portalView;
     private ICollectionView? _captureView;
     private ICollectionView? _snippetView;
+    private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
     private string _repositorySearchText = string.Empty;
 
@@ -211,6 +212,15 @@ public partial class MainWindow : Window
             return filter == "all" || string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
         SnippetList.ItemsSource = _snippetView;
+
+        _promptView = CollectionViewSource.GetDefaultView(_viewModel.PromptModules);
+        _promptView.Filter = item =>
+        {
+            if (item is not PromptModuleEntry module) return false;
+            string filter = GetModuleFilter("Prompt Builder");
+            return filter == "all" || string.Equals(module.Category, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        PromptModuleList.ItemsSource = _promptView;
     }
 
     private string GetModuleFilter(string module) =>
@@ -462,6 +472,7 @@ public partial class MainWindow : Window
             case "Portals": _portalView?.Refresh(); break;
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); break;
+            case "Prompt Builder": _promptView?.Refresh(); break;
         }
     }
 
@@ -763,6 +774,7 @@ public partial class MainWindow : Window
         _portalView?.Refresh();
         _captureView?.Refresh();
         _snippetView?.Refresh();
+        _promptView?.Refresh();
         RefreshSecondaryNavigation();
         RefreshProjectTree();
         RefreshQuickRibbon();
@@ -1025,6 +1037,9 @@ public partial class MainWindow : Window
                 break;
             case ClipboardSnippetEntry:
                 _snippetView?.Refresh();
+                break;
+            case PromptModuleEntry:
+                _promptView?.Refresh();
                 break;
         }
 
