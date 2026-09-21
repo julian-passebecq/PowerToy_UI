@@ -263,7 +263,7 @@ public static class ResourceCatalogService
 
         return provider switch
         {
-            "GitHub" => path.Split('/', StringSplitOptions.RemoveEmptyEntries).Length >= 2 ? "Repository" : "Link",
+            "GitHub" => path.Split('/', StringSplitOptions.RemoveEmptyEntries).Length == 2 ? "Repository" : "Link",
             "Google Drive" when uri.Host.Equals("docs.google.com", StringComparison.OrdinalIgnoreCase) => "Document",
             "Google Drive" when path.Contains("/folders/", StringComparison.Ordinal) => "Folder",
             "Google Drive" when path.Contains("/file/", StringComparison.Ordinal) => "Document",
