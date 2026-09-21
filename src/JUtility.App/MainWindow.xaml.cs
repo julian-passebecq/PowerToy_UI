@@ -99,12 +99,14 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        _loaded = true;
+        // Keep interaction handlers suppressed while WPF materializes bound checkboxes and selections.
+        // In particular, loading a saved repository list must not reset its per-link exclusions.
         InitializeWorkspaceViews();
         SelectWorkspaceTab("Dashboard");
         ApplyViewMode(_viewModel.ViewMode);
         ApplyExtraColumnVisibility();
         ApplyWindowBehavior(initialLoad: true);
+        _loaded = true;
     }
 
     private void MainWindow_Deactivated(object? sender, EventArgs e)
