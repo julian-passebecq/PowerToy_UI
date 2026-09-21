@@ -48,6 +48,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<CaptureBoardSection> _captureBoardSections = [];
     private readonly ObservableCollection<ProjectTreeNode> _projectTreeNodes = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _moduleSearchTerms = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeRepositoryFamilies = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeCaptureSubjects = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
@@ -58,6 +59,7 @@ public partial class MainWindow : Window
     private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
     private string _repositorySearchText = string.Empty;
+    private bool _suppressShellSearchChange;
 
     public MainWindow()
     {
@@ -74,6 +76,7 @@ public partial class MainWindow : Window
         Deactivated += MainWindow_Deactivated;
         Closing += MainWindow_Closing;
         Closed += (_, _) => _summonService.Dispose();
+        PreviewKeyDown += MainWindow_PreviewKeyDown;
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -155,6 +158,15 @@ public partial class MainWindow : Window
         _projectView.Filter = item =>
         {
             if (item is not ProjectEntry project || project.IsArchived) return false;
+            string shellSearch = GetModuleSearch("Repository Hub");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string shellHaystack = string.Join(" ", project.Name, project.Note, project.GitHubFullName, project.Category, project.Subcategory, project.Language, project.RepoUrl, project.SiteUrl, project.ServerUrl, project.ChatGptUrl);
+                if (!shellHaystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
             if (!string.IsNullOrWhiteSpace(_repositorySearchText))
             {
                 string haystack = string.Join(" ", project.Name, project.Note, project.GitHubFullName, project.Category, project.Subcategory, project.Language);
@@ -196,6 +208,17 @@ public partial class MainWindow : Window
         _portalView.Filter = item =>
         {
             if (item is not PortalEntry portal) return false;
+            string shellSearch = GetModuleSearch("Portals");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string links = string.Join(" ", (portal.Links ?? []).Select(link => $"{link.Label} {link.Project} {link.Url} {link.Note}"));
+                string haystack = string.Join(" ", portal.Name, portal.Category, portal.MainUrl, links);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
             string filter = GetModuleFilter("Portals");
             return filter == "all" || string.Equals(portal.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
@@ -205,6 +228,16 @@ public partial class MainWindow : Window
         _captureView.Filter = item =>
         {
             if (item is not StickyNoteEntry note) return false;
+
+            string shellSearch = GetModuleSearch("Capture");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string haystack = string.Join(" ", note.Title, note.Subject, note.Text, note.Url, note.Labels, note.Status, note.Priority, note.Kind);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
 
             string kindFilter = GetModuleFilter("Capture");
             if (kindFilter.Equals("archived", StringComparison.OrdinalIgnoreCase))
@@ -239,6 +272,16 @@ public partial class MainWindow : Window
         _snippetView.Filter = item =>
         {
             if (item is not ClipboardSnippetEntry snippet) return false;
+            string shellSearch = GetModuleSearch("Clipboard");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string haystack = string.Join(" ", snippet.Title, snippet.Category, snippet.Text, snippet.Tags);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
             string filter = GetModuleFilter("Clipboard");
             return filter == "all" || string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
@@ -248,6 +291,16 @@ public partial class MainWindow : Window
         _promptView.Filter = item =>
         {
             if (item is not PromptModuleEntry module) return false;
+            string shellSearch = GetModuleSearch("Prompt Builder");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string haystack = string.Join(" ", module.Title, module.Category, module.Body);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
             string filter = GetModuleFilter("Prompt Builder");
             return filter == "all" || string.Equals(module.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
@@ -258,6 +311,40 @@ public partial class MainWindow : Window
         _moduleFilters.TryGetValue(module, out string? value) && !string.IsNullOrWhiteSpace(value)
             ? value
             : "all";
+
+    private string GetModuleSearch(string module) =>
+        _moduleSearchTerms.TryGetValue(module, out string? value) ? value : string.Empty;
+
+    private void ShellSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressShellSearchChange || !_loaded)
+        {
+            return;
+        }
+
+        _moduleSearchTerms[_activeModule] = ShellSearchBox.Text.Trim();
+        RefreshActiveView();
+    }
+
+    private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0
+            && e.Key == System.Windows.Input.Key.K)
+        {
+            e.Handled = true;
+            ShellSearchBox.Focus();
+            ShellSearchBox.SelectAll();
+            return;
+        }
+
+        if (e.Key == System.Windows.Input.Key.Escape
+            && ShellSearchBox.IsKeyboardFocusWithin
+            && !string.IsNullOrEmpty(ShellSearchBox.Text))
+        {
+            e.Handled = true;
+            ShellSearchBox.Clear();
+        }
+    }
 
     private void PrimaryNav_Click(object sender, RoutedEventArgs e)
     {
@@ -283,6 +370,16 @@ public partial class MainWindow : Window
                 _activeModule = header;
                 break;
             }
+        }
+
+        _suppressShellSearchChange = true;
+        try
+        {
+            ShellSearchBox.Text = GetModuleSearch(_activeModule);
+        }
+        finally
+        {
+            _suppressShellSearchChange = false;
         }
 
         RefreshShellNavigation();
