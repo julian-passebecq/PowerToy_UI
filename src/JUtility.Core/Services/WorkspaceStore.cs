@@ -201,6 +201,7 @@ public sealed class WorkspaceStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string json = File.ReadAllText(path);
+        bool hasExplicitSchema;
 
         using (JsonDocument document = JsonDocument.Parse(json))
         {
@@ -209,10 +210,17 @@ public sealed class WorkspaceStore
             {
                 throw new InvalidDataException("The selected file does not contain recognizable J Utility workspace data.");
             }
+
+            hasExplicitSchema = HasWorkspaceProperty(document.RootElement, nameof(WorkspaceState.SchemaVersion));
         }
 
         WorkspaceState imported = JsonSerializer.Deserialize<WorkspaceState>(json, JsonOptions)
             ?? throw new InvalidDataException("The selected file does not contain a valid workspace.");
+
+        if (!hasExplicitSchema)
+        {
+            imported.SchemaVersion = 1;
+        }
 
         WorkspaceState normalized = Normalize(imported);
         Save(normalized);
@@ -230,6 +238,10 @@ public sealed class WorkspaceStore
         || name.Equals(nameof(WorkspaceState.PromptModules), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.RecentPrompts), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Notes), StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasWorkspaceProperty(JsonElement root, string propertyName) =>
+        root.EnumerateObject().Any(property =>
+            property.Name.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
 
     public static void AddRecentPrompt(WorkspaceState state, string title, string text)
     {
@@ -274,7 +286,13 @@ public sealed class WorkspaceStore
                 return false;
             }
 
+            bool hasExplicitSchema = HasWorkspaceProperty(document.RootElement, nameof(WorkspaceState.SchemaVersion));
             state = JsonSerializer.Deserialize<WorkspaceState>(json, JsonOptions);
+            if (state is not null && !hasExplicitSchema)
+            {
+                state.SchemaVersion = 1;
+            }
+
             return state is not null;
         }
         catch (JsonException)
@@ -286,6 +304,11 @@ public sealed class WorkspaceStore
     private static WorkspaceState Normalize(WorkspaceState state)
     {
         int incomingSchemaVersion = state.SchemaVersion;
+        if (incomingSchemaVersion < 1)
+        {
+            throw new InvalidDataException($"Workspace schema {incomingSchemaVersion} is invalid. The file was not rewritten.");
+        }
+
         if (incomingSchemaVersion > WorkspaceState.CurrentSchemaVersion)
         {
             throw new InvalidDataException($"Workspace schema {incomingSchemaVersion} is newer than supported schema {WorkspaceState.CurrentSchemaVersion}. The file was not rewritten.");
