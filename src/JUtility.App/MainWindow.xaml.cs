@@ -1584,18 +1584,31 @@ public partial class MainWindow : Window
             return;
         }
 
-        ResourceUpsertResult result = ResourceCatalogService.UpsertUrl(_viewModel.Resources, classification.NormalizedUrl);
+        string currentFilter = GetModuleFilter("Resources");
+        string? currentGroup = currentFilter.StartsWith("group:", StringComparison.OrdinalIgnoreCase)
+            ? currentFilter["group:".Length..]
+            : null;
+
+        ResourceUpsertResult result = ResourceCatalogService.UpsertUrl(
+            _viewModel.Resources,
+            classification.NormalizedUrl,
+            currentGroup);
         _viewModel.SelectedResource = result.Resource;
 
         _activeResourceProviders.Clear();
-        _moduleFilters["Resources"] = "all";
+        _activeResourceProviders.Add(result.Resource.Provider);
+        if (currentFilter is "favorites" or "pinned")
+        {
+            _moduleFilters["Resources"] = "all";
+        }
+
         SelectWorkspaceTab("Resources");
         RefreshAfterDataChange();
         SafeSave();
 
         _viewModel.StatusText = result.Added
             ? $"Saved clipboard URL as {result.Resource.Provider} {result.Resource.Kind.ToLowerInvariant()}"
-            : $"Resource already existed; opened {result.Resource.Name}";
+            : $"Resource already existed; selected {result.Resource.Name}";
     }
 
     private void ImportRepositoryResources_Click(object sender, RoutedEventArgs e)
