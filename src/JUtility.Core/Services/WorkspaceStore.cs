@@ -206,6 +206,7 @@ public sealed class WorkspaceStore
         {
             portal.Name = NormalizeText(portal.Name, "Untitled portal");
             portal.Category = NormalizeText(portal.Category, "General");
+            portal.IconKey = NormalizeText(portal.IconKey, "↗");
             portal.Links = (portal.Links ?? []).Where(item => item is not null).ToList();
             foreach (PortalLinkEntry link in portal.Links)
             {
