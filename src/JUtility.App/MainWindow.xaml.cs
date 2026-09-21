@@ -219,6 +219,10 @@ public partial class MainWindow : Window
             }
             return string.Equals(project.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
+        _projectView.SortDescriptions.Clear();
+        _projectView.SortDescriptions.Add(new SortDescription(nameof(ProjectEntry.Category), ListSortDirection.Ascending));
+        _projectView.SortDescriptions.Add(new SortDescription(nameof(ProjectEntry.Subcategory), ListSortDirection.Ascending));
+        _projectView.SortDescriptions.Add(new SortDescription(nameof(ProjectEntry.Name), ListSortDirection.Ascending));
         ProjectsGrid.ItemsSource = _projectView;
 
         _portalView = CollectionViewSource.GetDefaultView(_viewModel.Portals);
@@ -239,6 +243,11 @@ public partial class MainWindow : Window
             string filter = GetModuleFilter("Portals");
             return filter == "all" || string.Equals(portal.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
+        _portalView.SortDescriptions.Clear();
+        _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsFavorite), ListSortDirection.Descending));
+        _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.IsPinnedToRibbon), ListSortDirection.Descending));
+        _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.SortOrder), ListSortDirection.Ascending));
+        _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.Name), ListSortDirection.Ascending));
         PortalList.ItemsSource = _portalView;
 
         _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
@@ -275,6 +284,9 @@ public partial class MainWindow : Window
             return _activeCaptureSubjects.Count == 0
                 || _activeCaptureSubjects.Contains(string.IsNullOrWhiteSpace(note.Subject) ? "Uncategorized" : note.Subject.Trim());
         };
+        _captureView.SortDescriptions.Clear();
+        _captureView.SortDescriptions.Add(new SortDescription(nameof(StickyNoteEntry.IsPinned), ListSortDirection.Descending));
+        _captureView.SortDescriptions.Add(new SortDescription(nameof(StickyNoteEntry.UpdatedUtc), ListSortDirection.Descending));
         CaptureList.ItemsSource = _captureView;
 
         _sidebarCaptureView = new ListCollectionView((IList)_viewModel.Notes)
@@ -302,6 +314,10 @@ public partial class MainWindow : Window
             string filter = GetModuleFilter("Clipboard");
             return filter == "all" || string.Equals(snippet.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
+        _snippetView.SortDescriptions.Clear();
+        _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.IsPinned), ListSortDirection.Descending));
+        _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.SortOrder), ListSortDirection.Ascending));
+        _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.Title), ListSortDirection.Ascending));
         SnippetList.ItemsSource = _snippetView;
 
         _promptView = CollectionViewSource.GetDefaultView(_viewModel.PromptModules);
@@ -321,6 +337,9 @@ public partial class MainWindow : Window
             string filter = GetModuleFilter("Prompt Builder");
             return filter == "all" || string.Equals(module.Category, filter, StringComparison.OrdinalIgnoreCase);
         };
+        _promptView.SortDescriptions.Clear();
+        _promptView.SortDescriptions.Add(new SortDescription(nameof(PromptModuleEntry.SortOrder), ListSortDirection.Ascending));
+        _promptView.SortDescriptions.Add(new SortDescription(nameof(PromptModuleEntry.Title), ListSortDirection.Ascending));
         PromptModuleList.ItemsSource = _promptView;
     }
 
@@ -1217,7 +1236,15 @@ public partial class MainWindow : Window
     private void PortalPinChanged_Click(object sender, RoutedEventArgs e)
     {
         if (!_loaded) return;
+        _portalView?.Refresh();
         RefreshQuickRibbon();
+        SafeSave();
+    }
+
+    private void PortalFavoriteChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded) return;
+        _portalView?.Refresh();
         SafeSave();
     }
 
@@ -1273,6 +1300,7 @@ public partial class MainWindow : Window
     private void SnippetPinChanged_Click(object sender, RoutedEventArgs e)
     {
         if (!_loaded) return;
+        _snippetView?.Refresh();
         RefreshQuickRibbon();
         SafeSave();
     }
