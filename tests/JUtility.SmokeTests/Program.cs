@@ -556,6 +556,64 @@ Check("empty primary workspace recovers from the last good backup", () =>
     }
 });
 
+Check("workspace export is atomic and rejects managed workspace targets", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityExportSafety-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        ProjectEntry project = new() { Name = "  Exported  ", Category = "  " };
+        state.Projects.Add(project);
+
+        string exportPath = Path.Combine(root, "portable-export.json");
+        File.WriteAllText(exportPath, "old export bytes");
+        store.Export(state, exportPath);
+
+        string exportedText = File.ReadAllText(exportPath);
+        True(exportedText.Contains("Exported", StringComparison.Ordinal));
+        False(exportedText.Contains("old export bytes", StringComparison.Ordinal));
+        Equal("  Exported  ", project.Name);
+        Equal("  ", project.Category);
+        True(Directory.GetFiles(root, ".portable-export.json.*.tmp").Length == 0);
+
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        bool primaryRejected = false;
+        try
+        {
+            store.Export(state, store.DataFilePath);
+        }
+        catch (InvalidOperationException)
+        {
+            primaryRejected = true;
+        }
+        True(primaryRejected);
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+
+        // A backup exists after one additional save generation.
+        store.Save(state);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+        bool backupRejected = false;
+        try
+        {
+            store.Export(state, store.BackupFilePath);
+        }
+        catch (InvalidOperationException)
+        {
+            backupRejected = true;
+        }
+        True(backupRejected);
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("empty object import is rejected without replacing the live workspace", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
