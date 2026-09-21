@@ -73,6 +73,10 @@ Check("resource URL classifier recognizes common providers and kinds", () =>
     Equal("Repository", github.Kind);
     Equal("demo", github.SuggestedName);
 
+    True(ResourceCatalogService.TryClassify("https://github.com/example/demo/issues/12", out ResourceUrlClassification githubIssue));
+    Equal("GitHub", githubIssue.Provider);
+    Equal("Link", githubIssue.Kind);
+
     True(ResourceCatalogService.TryClassify("https://drive.google.com/drive/folders/abc123", out ResourceUrlClassification drive));
     Equal("Google Drive", drive.Provider);
     Equal("Folder", drive.Kind);
