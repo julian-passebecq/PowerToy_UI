@@ -134,10 +134,21 @@ public static class ResourceCatalogService
                 continue;
             }
 
-            existing.Name = project.Name;
+            if (string.IsNullOrWhiteSpace(existing.Name)
+                || existing.Name.Equals("New resource", StringComparison.OrdinalIgnoreCase)
+                || existing.Name.Equals("Untitled resource", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.Name = project.Name;
+            }
+
+            if (string.IsNullOrWhiteSpace(existing.Group)
+                || existing.Group.Equals("General", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category;
+            }
+
             existing.Provider = "GitHub";
             existing.Kind = "Repository";
-            existing.Group = string.IsNullOrWhiteSpace(project.Category) ? "Projects" : project.Category;
             existing.Url = normalized;
             existing.SourceProjectId = project.Id;
             existing.UpdatedUtc = DateTimeOffset.UtcNow;
