@@ -480,16 +480,28 @@ public partial class MainWindow : Window
         if (mode == WorkspaceViewMode.Sidebar)
         {
             SidebarPanel.Visibility = Visibility.Visible;
-            WorkspacePanel.Visibility = Visibility.Collapsed;
+            PowerOpsShell.Visibility = Visibility.Collapsed;
             Width = 390;
             Height = Math.Max(Height, 700);
+            return;
+        }
+
+        SidebarPanel.Visibility = Visibility.Collapsed;
+        PowerOpsShell.Visibility = Visibility.Visible;
+
+        if (mode == WorkspaceViewMode.Compact)
+        {
+            PrimaryNavColumn.Width = new GridLength(155);
+            SecondaryNavColumn.Width = new GridLength(0);
+            Width = 1040;
+            Height = 760;
         }
         else
         {
-            SidebarPanel.Visibility = Visibility.Collapsed;
-            WorkspacePanel.Visibility = Visibility.Visible;
-            Width = mode == WorkspaceViewMode.Compact ? 900 : 1280;
-            Height = mode == WorkspaceViewMode.Compact ? 760 : 850;
+            PrimaryNavColumn.Width = new GridLength(185);
+            SecondaryNavColumn.Width = new GridLength(220);
+            Width = 1480;
+            Height = 900;
         }
     }
 
@@ -653,12 +665,21 @@ public partial class MainWindow : Window
     private void AddProject_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddProject();
+        RefreshAfterDataChange();
         SafeSave();
     }
 
     private void AddPortal_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddPortal();
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void PortalPinChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded) return;
+        RefreshQuickRibbon();
         SafeSave();
     }
 
@@ -671,6 +692,7 @@ public partial class MainWindow : Window
         }
 
         _viewModel.RemovePortal(portal);
+        RefreshAfterDataChange();
         SafeSave();
     }
 
@@ -690,6 +712,14 @@ public partial class MainWindow : Window
     private void AddSnippet_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddClipboardSnippet();
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void SnippetPinChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded) return;
+        RefreshQuickRibbon();
         SafeSave();
     }
 
@@ -702,6 +732,7 @@ public partial class MainWindow : Window
         }
 
         _viewModel.RemoveClipboardSnippet(snippet);
+        RefreshAfterDataChange();
         SafeSave();
     }
 
@@ -718,6 +749,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is ProjectEntry project)
         {
             _viewModel.RemoveProject(project);
+            RefreshAfterDataChange();
             SafeSave();
         }
     }
@@ -742,6 +774,11 @@ public partial class MainWindow : Window
     private void OpenUrl_Click(object sender, RoutedEventArgs e)
     {
         string? url = (sender as FrameworkElement)?.Tag as string;
+        OpenUrlValue(url);
+    }
+
+    private void OpenUrlValue(string? url)
+    {
         if (string.IsNullOrWhiteSpace(url))
         {
             _viewModel.StatusText = "No URL configured";
@@ -754,8 +791,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
-        _viewModel.StatusText = "Opened link";
+        try
+        {
+            Process.Start(new ProcessStartInfo(normalized) { UseShellExecute = true });
+            _viewModel.StatusText = "Opened link";
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Unable to open link", MessageBoxImage.Warning);
+        }
     }
 
     private void AddModule_Click(object sender, RoutedEventArgs e)
@@ -809,6 +853,16 @@ public partial class MainWindow : Window
     private void AddNote_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddNote();
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void CaptureKindChanged_Click(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loaded) return;
+        _captureView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
         SafeSave();
     }
 
