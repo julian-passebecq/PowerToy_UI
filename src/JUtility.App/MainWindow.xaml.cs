@@ -91,9 +91,14 @@ public partial class MainWindow : Window
     private bool _suppressShellSearchChange;
 
     public MainWindow()
+        : this(new WorkspaceStore())
+    {
+    }
+
+    internal MainWindow(WorkspaceStore store)
     {
         InitializeComponent();
-        _viewModel = new MainViewModel();
+        _viewModel = new MainViewModel(store);
         DataContext = _viewModel;
         SecondaryNav.ItemsSource = _secondaryNavItems;
         QuickRibbon.ItemsSource = _quickRibbonItems;
