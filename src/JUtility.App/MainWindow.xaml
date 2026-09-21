@@ -451,6 +451,7 @@
                       </DataGridTemplateColumn>
                       <DataGridTextColumn Header="Project" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
                       <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                      <DataGridTextColumn Header="Sub" Binding="{Binding Subcategory, UpdateSourceTrigger=PropertyChanged}" Width="105"/>
                       <DataGridTemplateColumn Header="GitHub" Width="235">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate>
