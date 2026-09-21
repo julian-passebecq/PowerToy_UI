@@ -1579,6 +1579,111 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void CaptureResourceClipboardUrl_Click(object sender, RoutedEventArgs e)
+    {
+        string clipboardText;
+        try
+        {
+            if (!Clipboard.ContainsText())
+            {
+                _viewModel.StatusText = "Clipboard does not contain text";
+                return;
+            }
+
+            clipboardText = Clipboard.GetText().Trim();
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Clipboard unavailable";
+            ShowOwnedMessage(ex.Message, "Clipboard unavailable", MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!UrlNormalizer.TryNormalizeOptionalWebUrl(clipboardText, out string normalized)
+            || string.IsNullOrWhiteSpace(normalized)
+            || !Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri))
+        {
+            _viewModel.StatusText = "Clipboard text is not a web URL";
+            return;
+        }
+
+        _viewModel.AddResource();
+        if (_viewModel.SelectedResource is not WorkspaceResourceEntry resource)
+        {
+            return;
+        }
+
+        resource.Provider = GuessResourceProvider(uri);
+        resource.Kind = GuessResourceKind(uri);
+        resource.Name = GuessResourceName(uri, resource.Provider, resource.Kind);
+        resource.Url = normalized;
+        resource.Group = "General";
+        resource.UpdatedUtc = DateTimeOffset.UtcNow;
+
+        _activeResourceProviders.Clear();
+        _moduleFilters["Resources"] = "all";
+        SelectWorkspaceTab("Resources");
+        RefreshAfterDataChange();
+        SafeSave();
+        _viewModel.StatusText = $"Saved clipboard URL as {resource.Provider} {resource.Kind.ToLowerInvariant()}";
+    }
+
+    private static string GuessResourceProvider(Uri uri)
+    {
+        string host = uri.Host.ToLowerInvariant();
+        if (host.EndsWith("github.com")) return "GitHub";
+        if (host.EndsWith("drive.google.com") || host.EndsWith("docs.google.com")) return "Google Drive";
+        if (host.EndsWith("dropbox.com")) return "Dropbox";
+        if (host.EndsWith("onedrive.live.com")) return "OneDrive";
+        if (host.EndsWith("sharepoint.com")) return "SharePoint";
+        if (host.EndsWith("notion.so") || host.EndsWith("notion.site")) return "Notion";
+        return uri.Host;
+    }
+
+    private static string GuessResourceKind(Uri uri)
+    {
+        string host = uri.Host.ToLowerInvariant();
+        string path = uri.AbsolutePath.ToLowerInvariant();
+
+        if (host.EndsWith("github.com"))
+        {
+            return path.Split('/', StringSplitOptions.RemoveEmptyEntries).Length >= 2 ? "Repository" : "Link";
+        }
+
+        if (host.EndsWith("drive.google.com") && path.Contains("/folders/")) return "Folder";
+        if (host.EndsWith("docs.google.com")) return "Document";
+        if (host.EndsWith("dropbox.com") && (path.Contains("/home") || path.Contains("/sh/") || path.Contains("/scl/fo/"))) return "Folder";
+        if (host.EndsWith("onedrive.live.com") || host.EndsWith("sharepoint.com")) return "Folder";
+        if (host.EndsWith("notion.so") || host.EndsWith("notion.site")) return "Page";
+        return "Link";
+    }
+
+    private static string GuessResourceName(Uri uri, string provider, string kind)
+    {
+        string[] parts = uri.AbsolutePath
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.UnescapeDataString)
+            .ToArray();
+
+        if (provider == "GitHub" && parts.Length >= 2)
+        {
+            return parts[1];
+        }
+
+        if (parts.Length > 0)
+        {
+            string candidate = parts[^1].Trim();
+            if (candidate.Length is > 0 and <= 80
+                && !candidate.Equals("view", StringComparison.OrdinalIgnoreCase)
+                && !candidate.Equals("edit", StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+
+        return $"{provider} {kind}";
+    }
+
     private void ImportRepositoryResources_Click(object sender, RoutedEventArgs e)
     {
         RepositoryMergeSummary summary = _viewModel.ImportRepositoryResources();
