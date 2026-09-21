@@ -626,7 +626,7 @@
                         <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus"/>
                         <TextBox Width="120" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key / short label"/>
                         <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinnedToRibbon}" Margin="8" Click="PortalPinChanged_Click"/>
-                        <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8"/>
+                        <CheckBox Content="Favorite" IsChecked="{Binding IsFavorite}" Margin="8" Click="PortalFavoriteChanged_Click"/>
                       </WrapPanel>
                       <DockPanel>
                         <TextBox Text="{Binding MainUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Main portal URL"/>
