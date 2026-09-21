@@ -8,6 +8,24 @@ namespace JUtility.App.ViewModels;
 public sealed record SelectionOption<T>(T Value, string Label);
 public sealed record RepositoryMergeSummary(int Added, int Updated, int Total);
 
+public sealed class PromptVariableInput : ObservableObject
+{
+    private string _value = string.Empty;
+
+    public PromptVariableInput(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; }
+
+    public string Value
+    {
+        get => _value;
+        set => SetProperty(ref _value, value);
+    }
+}
+
 public sealed class MainViewModel : ObservableObject
 {
     private readonly WorkspaceStore _store;
@@ -30,6 +48,7 @@ public sealed class MainViewModel : ObservableObject
         PromptModules = new ObservableCollection<PromptModuleEntry>(_state.PromptModules.OrderBy(item => item.SortOrder));
         Notes = new ObservableCollection<StickyNoteEntry>(_state.Notes);
         RecentPrompts = new ObservableCollection<RecentPromptEntry>(_state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
+        PromptVariables = new ObservableCollection<PromptVariableInput>();
         SelectedPromptProject = Projects.FirstOrDefault(project => !project.IsArchived);
         SelectedPortal = Portals.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
@@ -43,6 +62,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
     public ObservableCollection<StickyNoteEntry> Notes { get; }
     public ObservableCollection<RecentPromptEntry> RecentPrompts { get; }
+    public ObservableCollection<PromptVariableInput> PromptVariables { get; }
 
     public IReadOnlyList<SelectionOption<WindowBehaviorMode>> WindowBehaviorOptions { get; } =
     [
@@ -620,8 +640,49 @@ public sealed class MainViewModel : ObservableObject
     public string ComposePrompt(bool appendProjectLinks)
     {
         RenumberModules();
-        PromptPreview = PromptComposer.Compose(PromptModules, SelectedPromptProject, appendProjectLinks: appendProjectLinks);
+        RefreshPromptVariables();
+
+        Dictionary<string, string> variables = PromptVariables
+            .Where(input => !string.IsNullOrWhiteSpace(input.Value))
+            .ToDictionary(input => input.Name, input => input.Value, StringComparer.OrdinalIgnoreCase);
+
+        PromptPreview = PromptComposer.Compose(
+            PromptModules,
+            SelectedPromptProject,
+            variables,
+            appendProjectLinks: appendProjectLinks);
         return PromptPreview;
+    }
+
+    public void RefreshPromptVariables()
+    {
+        HashSet<string> builtIns = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "project",
+            "repo",
+            "site",
+            "server",
+            "chatgpt",
+            "extra",
+        };
+
+        string[] required = PromptComposer.FindVariables(PromptModules)
+            .Where(variable => !builtIns.Contains(variable))
+            .ToArray();
+
+        Dictionary<string, string> existing = PromptVariables
+            .ToDictionary(input => input.Name, input => input.Value, StringComparer.OrdinalIgnoreCase);
+
+        PromptVariables.Clear();
+        foreach (string variable in required)
+        {
+            PromptVariableInput input = new(variable);
+            if (existing.TryGetValue(variable, out string? value))
+            {
+                input.Value = value;
+            }
+            PromptVariables.Add(input);
+        }
     }
 
     public void RecordRecentPrompt(string text)
@@ -690,6 +751,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedPortal = Portals.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
+        PromptVariables.Clear();
         RaisePropertyChanged(nameof(ViewMode));
         RaisePropertyChanged(nameof(WindowBehavior));
         RaisePropertyChanged(nameof(SummonMouseBinding));
