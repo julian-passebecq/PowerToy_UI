@@ -674,6 +674,7 @@ public partial class MainWindow : Window
                 break;
             case "Prompt Builder":
                 _viewModel.AddPromptModule();
+                ApplyCurrentPromptCategory(_viewModel.PromptModules.Last());
                 break;
             default:
                 PrepareCaptureAddContext();
@@ -1412,8 +1413,19 @@ public partial class MainWindow : Window
     private void AddModule_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddPromptModule();
+        ApplyCurrentPromptCategory(_viewModel.PromptModules.Last());
+        _promptView?.Refresh();
         RefreshSecondaryNavigation();
         SafeSave();
+    }
+
+    private void ApplyCurrentPromptCategory(PromptModuleEntry module)
+    {
+        string filter = GetModuleFilter("Prompt Builder");
+        if (filter != "all")
+        {
+            module.Category = filter;
+        }
     }
 
     private void MoveModuleUp_Click(object sender, RoutedEventArgs e)
