@@ -292,16 +292,21 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (_activeResourceProviders.Count > 0)
+            if (_activeResourceProviders.Count > 0 && !_activeResourceProviders.Contains(resource.Provider))
             {
-                return _activeResourceProviders.Contains(resource.Provider);
+                return false;
             }
 
             string filter = GetModuleFilter("Resources");
             if (filter == "all") return true;
             if (filter.Equals("favorites", StringComparison.OrdinalIgnoreCase)) return resource.IsFavorite;
             if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return resource.IsPinned;
-            return string.Equals(resource.Provider, filter, StringComparison.OrdinalIgnoreCase);
+            if (filter.StartsWith("group:", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Equals(resource.Group, filter["group:".Length..], StringComparison.OrdinalIgnoreCase);
+            }
+
+            return true;
         };
         _resourceView.SortDescriptions.Clear();
         _resourceView.SortDescriptions.Add(new SortDescription(nameof(WorkspaceResourceEntry.IsFavorite), ListSortDirection.Descending));
@@ -604,16 +609,16 @@ public partial class MainWindow : Window
                 break;
 
             case "Resources":
-                SecondaryTitle.Text = "Resource providers";
-                SecondaryHint.Text = "Filter exact destinations";
+                SecondaryTitle.Text = "Resource groups";
+                SecondaryHint.Text = "Provider on top; project/group on the left";
                 Add("all", "All resources", _viewModel.Resources.Count);
                 Add("favorites", "Favorites", _viewModel.Resources.Count(resource => resource.IsFavorite));
                 Add("pinned", "Pinned to ribbon", _viewModel.Resources.Count(resource => resource.IsPinned));
                 foreach (IGrouping<string, WorkspaceResourceEntry> group in _viewModel.Resources
-                    .GroupBy(resource => string.IsNullOrWhiteSpace(resource.Provider) ? "Other" : resource.Provider, StringComparer.OrdinalIgnoreCase)
+                    .GroupBy(resource => string.IsNullOrWhiteSpace(resource.Group) ? "General" : resource.Group, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
                 {
-                    Add(group.Key, group.Key, group.Count());
+                    Add($"group:{group.Key}", group.Key, group.Count());
                 }
                 break;
 
@@ -776,10 +781,6 @@ public partial class MainWindow : Window
         }
 
         _moduleFilters[_activeModule] = key;
-        if (_activeModule == "Resources")
-        {
-            _activeResourceProviders.Clear();
-        }
         RefreshSecondaryNavigation();
         RefreshQuickRibbon();
         RefreshActiveView();
@@ -972,12 +973,10 @@ public partial class MainWindow : Window
                 break;
             case "resource-all":
                 _activeResourceProviders.Clear();
-                _moduleFilters["Resources"] = "all";
                 RefreshQuickRibbon();
                 _resourceView?.Refresh();
                 break;
             case "resource-provider":
-                _moduleFilters["Resources"] = "all";
                 if (!_activeResourceProviders.Add(item.Key))
                 {
                     _activeResourceProviders.Remove(item.Key);
@@ -1037,10 +1036,7 @@ public partial class MainWindow : Window
                 {
                     _viewModel.SelectedResource!.Provider = _activeResourceProviders.First();
                 }
-                else
-                {
-                    ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
-                }
+                ApplyCurrentResourceContext(_viewModel.SelectedResource, GetModuleFilter("Resources"));
                 break;
             case "Clipboard":
                 _viewModel.AddClipboardSnippet();
@@ -1137,7 +1133,7 @@ public partial class MainWindow : Window
         item.Category = filter;
     }
 
-    private static void ApplyCurrentResourceProvider(WorkspaceResourceEntry? resource, string filter)
+    private static void ApplyCurrentResourceContext(WorkspaceResourceEntry? resource, string filter)
     {
         if (resource is null || filter == "all")
         {
@@ -1156,7 +1152,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        resource.Provider = filter;
+        if (filter.StartsWith("group:", StringComparison.OrdinalIgnoreCase))
+        {
+            resource.Group = filter["group:".Length..];
+        }
     }
 
     private void ApplyCurrentCaptureKind(StickyNoteEntry? note)
@@ -1576,10 +1575,7 @@ public partial class MainWindow : Window
         {
             _viewModel.SelectedResource!.Provider = _activeResourceProviders.First();
         }
-        else
-        {
-            ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
-        }
+        ApplyCurrentResourceContext(_viewModel.SelectedResource, GetModuleFilter("Resources"));
         RefreshAfterDataChange();
         SelectWorkspaceTab("Resources");
         SafeSave();
