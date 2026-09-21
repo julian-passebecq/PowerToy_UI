@@ -180,13 +180,22 @@ public partial class MainWindow : Window
         _captureView = CollectionViewSource.GetDefaultView(_viewModel.Notes);
         _captureView.Filter = item =>
         {
-            if (item is not StickyNoteEntry note || note.IsArchived) return false;
+            if (item is not StickyNoteEntry note) return false;
 
             string kindFilter = GetModuleFilter("Capture");
-            if (kindFilter != "all"
-                && !string.Equals(note.Kind.ToString(), kindFilter, StringComparison.OrdinalIgnoreCase))
+            if (kindFilter.Equals("archived", StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                if (!note.IsArchived) return false;
+            }
+            else
+            {
+                if (note.IsArchived) return false;
+                if (!_viewModel.IncludeCompletedCaptures && note.IsCompleted) return false;
+                if (kindFilter != "all"
+                    && !string.Equals(note.Kind.ToString(), kindFilter, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
             }
 
             return _activeCaptureSubjects.Count == 0
@@ -323,12 +332,15 @@ public partial class MainWindow : Window
 
             case "Capture":
                 SecondaryTitle.Text = "Capture types";
-                SecondaryHint.Text = "Same data model, different intent";
-                Add("all", "All captures", _viewModel.Notes.Count(note => !note.IsArchived));
+                SecondaryHint.Text = "Type on the left, subject in the top ribbon";
+                Func<StickyNoteEntry, bool> activeCapture = note =>
+                    !note.IsArchived && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted);
+                Add("all", "All captures", _viewModel.Notes.Count(activeCapture));
                 foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
                 {
-                    Add(kind.ToString(), CaptureKindLabel(kind), _viewModel.Notes.Count(note => !note.IsArchived && note.Kind == kind));
+                    Add(kind.ToString(), CaptureKindLabel(kind), _viewModel.Notes.Count(note => activeCapture(note) && note.Kind == kind));
                 }
+                Add("archived", "Archived", _viewModel.Notes.Count(note => note.IsArchived));
                 break;
 
             case "Clipboard":
@@ -499,16 +511,21 @@ public partial class MainWindow : Window
                 break;
 
             case "Capture":
+                string captureFilter = GetModuleFilter("Capture");
+                IEnumerable<StickyNoteEntry> captureScope = captureFilter.Equals("archived", StringComparison.OrdinalIgnoreCase)
+                    ? _viewModel.Notes.Where(note => note.IsArchived)
+                    : _viewModel.Notes.Where(note => !note.IsArchived && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted));
+
+                StickyNoteEntry[] captureScopeItems = captureScope.ToArray();
                 _quickRibbonItems.Add(new QuickRibbonItem(
                     "capture-subject-all",
                     "all",
                     "All subjects",
-                    $"{_viewModel.Notes.Count(note => !note.IsArchived)} items",
+                    $"{captureScopeItems.Length} items",
                     "A",
                     _activeCaptureSubjects.Count == 0 ? "#8764B8" : "#9AA6B2"));
 
-                foreach (IGrouping<string, StickyNoteEntry> group in _viewModel.Notes
-                    .Where(note => !note.IsArchived)
+                foreach (IGrouping<string, StickyNoteEntry> group in captureScopeItems
                     .GroupBy(note => string.IsNullOrWhiteSpace(note.Subject) ? "Uncategorized" : note.Subject.Trim(), StringComparer.OrdinalIgnoreCase)
                     .OrderByDescending(group => group.Count())
                     .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
@@ -712,13 +729,18 @@ public partial class MainWindow : Window
         foreach (CaptureKind kind in Enum.GetValues<CaptureKind>())
         {
             StickyNoteEntry[] items = _viewModel.Notes
-                .Where(note => !note.IsArchived && note.Kind == kind)
+                .Where(note => !note.IsArchived
+                    && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted)
+                    && note.Kind == kind)
                 .OrderByDescending(note => note.IsPinned)
                 .ThenByDescending(note => note.UpdatedUtc)
                 .Take(3)
                 .ToArray();
 
-            int count = _viewModel.Notes.Count(note => !note.IsArchived && note.Kind == kind);
+            int count = _viewModel.Notes.Count(note =>
+                !note.IsArchived
+                && (_viewModel.IncludeCompletedCaptures || !note.IsCompleted)
+                && note.Kind == kind);
             _captureBoardSections.Add(new CaptureBoardSection(kind.ToString(), CaptureKindLabel(kind), count, items));
         }
     }
@@ -1408,6 +1430,20 @@ public partial class MainWindow : Window
         _viewModel.AddNote();
         ApplyCurrentCaptureKind(_viewModel.SelectedNote);
         RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void CaptureCompletionFilterChanged_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded)
+        {
+            return;
+        }
+
+        _captureView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        RefreshCaptureBoard();
         SafeSave();
     }
 
