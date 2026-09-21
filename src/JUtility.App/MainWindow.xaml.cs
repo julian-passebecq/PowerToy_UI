@@ -1362,12 +1362,33 @@ public partial class MainWindow : Window
 
     private void DeleteProject_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is ProjectEntry project)
+        if ((sender as FrameworkElement)?.Tag is not ProjectEntry project)
         {
-            _viewModel.RemoveProject(project);
-            RefreshAfterDataChange();
-            SafeSave();
+            return;
         }
+
+        int linkedCaptures = _viewModel.Notes.Count(note => note.ProjectId == project.Id);
+        int savedListRefs = _viewModel.RepositoryLists.Sum(list => list.Items.Count(item => item.ProjectId == project.Id));
+        string impact = linkedCaptures == 0 && savedListRefs == 0
+            ? "No captures or saved repository lists reference this project."
+            : $"This will detach {linkedCaptures} capture(s) and remove {savedListRefs} saved-list reference(s).";
+
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete project '{project.Name}'?\n\n{impact}",
+            "Delete project",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _viewModel.RemoveProject(project);
+        RefreshAfterDataChange();
+        SafeSave();
     }
 
     private void RepoSearch_TextChanged(object sender, TextChangedEventArgs e)
