@@ -140,6 +140,14 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
             Text = "Long-form text",
             Url = "https://example.com/source",
         });
+        DateTimeOffset due = new(2026, 10, 1, 0, 0, 0, TimeSpan.Zero);
+        state.Notes.Add(new StickyNoteEntry
+        {
+            Kind = CaptureKind.Todo,
+            Title = "Ship Power Ops",
+            Priority = "High",
+            DueUtc = due,
+        });
         store.Save(state);
 
         WorkspaceState loaded = store.Load();
@@ -147,6 +155,7 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
         True(loaded.Portals.Any(item => item.Name == "Vercel" && item.Links.Count == 1));
         True(loaded.ClipboardSnippets.Any(item => item.Title == "Debug prompt"));
         True(loaded.Notes.Any(item => item.Kind == CaptureKind.Transcript && item.Url.Contains("example.com")));
+        True(loaded.Notes.Any(item => item.Kind == CaptureKind.Todo && item.Priority == "High" && item.DueUtc == due));
         True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
     }
     finally
