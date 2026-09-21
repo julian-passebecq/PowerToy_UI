@@ -793,6 +793,45 @@ Check("import preparation is read-only until explicit commit", () =>
     }
 });
 
+Check("backup-file import can be prepared before current edits rotate the backup", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityBackupImport-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.Projects.Clear();
+        state.Projects.Add(new ProjectEntry { Name = "GenerationA" });
+        store.Save(state);
+
+        state.Projects.Clear();
+        state.Projects.Add(new ProjectEntry { Name = "GenerationB" });
+        store.Save(state);
+        True(File.ReadAllText(store.BackupFilePath).Contains("GenerationA", StringComparison.Ordinal));
+
+        WorkspaceState candidate = store.PrepareImport(store.BackupFilePath);
+        True(candidate.Projects.Any(project => project.Name == "GenerationA"));
+
+        // Simulate in-memory edits saved after the user confirms the already-prepared import.
+        state.Projects.Clear();
+        state.Projects.Add(new ProjectEntry { Name = "UnsavedCurrentEdits" });
+        store.Save(state);
+
+        WorkspaceState imported = store.CommitImport(candidate);
+
+        True(imported.Projects.Any(project => project.Name == "GenerationA"));
+        True(store.Load().Projects.Any(project => project.Name == "GenerationA"));
+        True(File.ReadAllText(store.BackupFilePath).Contains("UnsavedCurrentEdits", StringComparison.Ordinal));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("empty object import is rejected without replacing the live workspace", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
