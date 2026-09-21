@@ -84,9 +84,13 @@ internal static class GitHubRepositorySyncService
 
             try
             {
-                string output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-                string error = await process.StandardError.ReadToEndAsync(cancellationToken);
-                await process.WaitForExitAsync(cancellationToken);
+                Task<string> outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                Task<string> errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+                Task exitTask = process.WaitForExitAsync(cancellationToken);
+
+                await Task.WhenAll(outputTask, errorTask, exitTask);
+                string output = await outputTask;
+                string error = await errorTask;
 
                 if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
                 {
