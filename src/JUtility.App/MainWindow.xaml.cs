@@ -1094,6 +1094,68 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ExportCaptures_Click(object sender, RoutedEventArgs e)
+    {
+        StickyNoteEntry[] captures = _viewModel.Notes
+            .Where(note => !note.IsArchived)
+            .OrderBy(note => note.Kind)
+            .ThenByDescending(note => note.IsPinned)
+            .ThenByDescending(note => note.UpdatedUtc)
+            .ToArray();
+
+        if (captures.Length == 0)
+        {
+            _viewModel.StatusText = "No active captures to export";
+            return;
+        }
+
+        SaveFileDialog dialog = new()
+        {
+            Filter = "JSON files (*.json)|*.json|Markdown files (*.md)|*.md",
+            FileName = "power-ops-captures.json",
+        };
+
+        _suppressAutoHide = true;
+        try
+        {
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            if (string.Equals(Path.GetExtension(dialog.FileName), ".md", StringComparison.OrdinalIgnoreCase))
+            {
+                List<string> lines = ["# Power Ops captures", "", $"Exported: {DateTimeOffset.Now:O}", ""];
+                foreach (StickyNoteEntry note in captures)
+                {
+                    lines.AddRange(FormatCaptureMarkdown(note));
+                    lines.Add("");
+                }
+                File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, lines));
+            }
+            else
+            {
+                var envelope = new
+                {
+                    schemaVersion = 1,
+                    exportedUtc = DateTimeOffset.UtcNow,
+                    captures,
+                };
+                File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(envelope, new JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            _viewModel.StatusText = $"Exported {captures.Length} captures";
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Capture export failed", MessageBoxImage.Error);
+        }
+        finally
+        {
+            _suppressAutoHide = false;
+        }
+    }
+
     private void ExportSelectedCapture_Click(object sender, RoutedEventArgs e)
     {
         if (_viewModel.SelectedNote is not StickyNoteEntry note)
@@ -1122,20 +1184,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                List<string> lines =
-                [
-                    "# " + (string.IsNullOrWhiteSpace(note.Title) ? "Capture" : note.Title.Trim()),
-                    "",
-                    $"- Type: {note.Kind}",
-                ];
-                if (!string.IsNullOrWhiteSpace(note.Subject)) lines.Add("- Subject: " + note.Subject.Trim());
-                if (!string.IsNullOrWhiteSpace(note.Status)) lines.Add("- Status: " + note.Status.Trim());
-                if (!string.IsNullOrWhiteSpace(note.Priority)) lines.Add("- Priority: " + note.Priority.Trim());
-                if (!string.IsNullOrWhiteSpace(note.Url)) lines.Add("- URL: " + note.Url.Trim());
-                if (!string.IsNullOrWhiteSpace(note.Labels)) lines.Add("- Labels: " + note.Labels.Trim());
-                lines.Add("");
-                lines.Add(note.Text ?? string.Empty);
-                File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, lines));
+                File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, FormatCaptureMarkdown(note)));
             }
 
             _viewModel.StatusText = "Capture exported";
@@ -1148,6 +1197,25 @@ public partial class MainWindow : Window
         {
             _suppressAutoHide = false;
         }
+    }
+
+    private static IReadOnlyList<string> FormatCaptureMarkdown(StickyNoteEntry note)
+    {
+        List<string> lines =
+        [
+            "## " + (string.IsNullOrWhiteSpace(note.Title) ? "Capture" : note.Title.Trim()),
+            "",
+            $"- Type: {note.Kind}",
+        ];
+        if (!string.IsNullOrWhiteSpace(note.Subject)) lines.Add("- Subject: " + note.Subject.Trim());
+        if (!string.IsNullOrWhiteSpace(note.Status)) lines.Add("- Status: " + note.Status.Trim());
+        if (!string.IsNullOrWhiteSpace(note.Priority)) lines.Add("- Priority: " + note.Priority.Trim());
+        if (note.DueUtc is not null) lines.Add("- Due: " + note.DueUtc.Value.ToString("O"));
+        if (!string.IsNullOrWhiteSpace(note.Url)) lines.Add("- URL: " + note.Url.Trim());
+        if (!string.IsNullOrWhiteSpace(note.Labels)) lines.Add("- Labels: " + note.Labels.Trim());
+        lines.Add("");
+        lines.Add(note.Text ?? string.Empty);
+        return lines;
     }
 
     private static string SanitizeFileName(string value)
