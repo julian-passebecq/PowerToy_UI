@@ -862,7 +862,7 @@
                       </WrapPanel>
                     </DockPanel>
 
-                    <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8">
+                    <ListBox x:Name="CaptureList" Grid.Row="1" ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" Margin="0,8" KeyDown="CaptureList_KeyDown" AutomationProperties.Name="Captures">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <Border Padding="7">
@@ -889,7 +889,7 @@
                                   SelectedItem="{Binding Kind}"
                                   SelectionChanged="CaptureKindChanged_Click"
                                   ToolTip="Capture type"/>
-                        <TextBox Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title"/>
+                        <TextBox x:Name="CaptureTitleBox" Width="330" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontWeight="SemiBold" ToolTip="Title" AutomationProperties.Name="Capture title"/>
                       </WrapPanel>
                       <WrapPanel>
                         <TextBox Width="190" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="Subject / category" LostFocus="CaptureSubject_LostFocus"/>
@@ -910,7 +910,7 @@
                       <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" ToolTip="Source URL"/>
                     </StackPanel>
 
-                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220"/>
+                    <TextBox x:Name="CaptureBodyBox" Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" MinHeight="220" AutomationProperties.Name="Capture body"/>
 
                     <WrapPanel Grid.Row="2">
                       <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="6" Click="CaptureItemStateChanged_Click"/>

@@ -1476,6 +1476,52 @@ Check("shell Escape shortcut only clears focused non-empty search without modifi
         hasSearchText: true));
 });
 
+Check("shell list activation requires plain Enter", () =>
+{
+    True(ShellKeyboardPolicy.ShouldActivateListItem(
+        enterPressed: true,
+        noModifiers: true));
+
+    False(ShellKeyboardPolicy.ShouldActivateListItem(
+        enterPressed: true,
+        noModifiers: false));
+
+    False(ShellKeyboardPolicy.ShouldActivateListItem(
+        enterPressed: false,
+        noModifiers: true));
+});
+
+Check("shell list copy requires Ctrl+C without extra modifiers", () =>
+{
+    True(ShellKeyboardPolicy.ShouldCopyListItem(
+        cPressed: true,
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false));
+
+    False(ShellKeyboardPolicy.ShouldCopyListItem(
+        cPressed: true,
+        control: true,
+        shift: true,
+        alt: false,
+        windows: false));
+
+    False(ShellKeyboardPolicy.ShouldCopyListItem(
+        cPressed: true,
+        control: false,
+        shift: false,
+        alt: false,
+        windows: false));
+
+    False(ShellKeyboardPolicy.ShouldCopyListItem(
+        cPressed: false,
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false));
+});
+
 Check("window placement math clamps oversized off-screen windows to the monitor work area", () =>
 {
     WindowBounds target = WindowPlacementMath.ClampToWorkArea(

@@ -23,4 +23,21 @@ public static class ShellKeyboardPolicy
         && noModifiers
         && searchFocused
         && hasSearchText;
+    public static bool ShouldActivateListItem(
+        bool enterPressed,
+        bool noModifiers) =>
+        enterPressed
+        && noModifiers;
+
+    public static bool ShouldCopyListItem(
+        bool cPressed,
+        bool control,
+        bool shift,
+        bool alt,
+        bool windows) =>
+        cPressed
+        && control
+        && !shift
+        && !alt
+        && !windows;
 }

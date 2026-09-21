@@ -1658,15 +1658,22 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.Enter)
+        System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        if (ShellKeyboardPolicy.ShouldActivateListItem(
+                enterPressed: e.Key == System.Windows.Input.Key.Enter,
+                noModifiers: modifiers == System.Windows.Input.ModifierKeys.None))
         {
             OpenUrlValue(portal.MainUrl);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.C
-            && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
+        if (ShellKeyboardPolicy.ShouldCopyListItem(
+                cPressed: e.Key == System.Windows.Input.Key.C,
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0))
         {
             CopyText(portal.MainUrl, "Portal URL copied");
             e.Handled = true;
@@ -1680,9 +1687,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.Enter
-            || (e.Key == System.Windows.Input.Key.C
-                && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0))
+        System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        bool activate = ShellKeyboardPolicy.ShouldActivateListItem(
+            enterPressed: e.Key == System.Windows.Input.Key.Enter,
+            noModifiers: modifiers == System.Windows.Input.ModifierKeys.None);
+        bool copy = ShellKeyboardPolicy.ShouldCopyListItem(
+            cPressed: e.Key == System.Windows.Input.Key.C,
+            control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+            shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+            alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+            windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0);
+
+        if (activate || copy)
         {
             CopyText(snippet.Text, "Clipboard snippet copied");
             e.Handled = true;
@@ -1732,15 +1748,22 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.Enter)
+        System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        if (ShellKeyboardPolicy.ShouldActivateListItem(
+                enterPressed: e.Key == System.Windows.Input.Key.Enter,
+                noModifiers: modifiers == System.Windows.Input.ModifierKeys.None))
         {
             OpenUrlValue(resource.Url);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == System.Windows.Input.Key.C
-            && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
+        if (ShellKeyboardPolicy.ShouldCopyListItem(
+                cPressed: e.Key == System.Windows.Input.Key.C,
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0))
         {
             CopyText(resource.Url, "Resource URL copied");
             e.Handled = true;
@@ -2528,15 +2551,50 @@ public partial class MainWindow : Window
     {
         if (_viewModel.SelectedNote is StickyNoteEntry note)
         {
-            List<string> parts = [];
-            if (!string.IsNullOrWhiteSpace(note.Title)) parts.Add(note.Title.Trim());
-            if (!string.IsNullOrWhiteSpace(note.Subject)) parts.Add("Subject: " + note.Subject.Trim());
-            string projectName = ResolveProjectName(note.ProjectId);
-            if (!string.IsNullOrWhiteSpace(projectName)) parts.Add("Project: " + projectName);
-            if (!string.IsNullOrWhiteSpace(note.Url)) parts.Add(note.Url.Trim());
-            if (!string.IsNullOrWhiteSpace(note.Text)) parts.Add(note.Text.Trim());
-            CopyText(string.Join(Environment.NewLine, parts), "Capture copied");
+            CopyCapture(note);
         }
+    }
+
+    private void CaptureList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (_viewModel.SelectedNote is not StickyNoteEntry note)
+        {
+            return;
+        }
+
+        System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        if (ShellKeyboardPolicy.ShouldActivateListItem(
+                enterPressed: e.Key == System.Windows.Input.Key.Enter,
+                noModifiers: modifiers == System.Windows.Input.ModifierKeys.None))
+        {
+            CaptureTitleBox.Focus();
+            CaptureTitleBox.SelectAll();
+            e.Handled = true;
+            return;
+        }
+
+        if (ShellKeyboardPolicy.ShouldCopyListItem(
+                cPressed: e.Key == System.Windows.Input.Key.C,
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0))
+        {
+            CopyCapture(note);
+            e.Handled = true;
+        }
+    }
+
+    private void CopyCapture(StickyNoteEntry note)
+    {
+        List<string> parts = [];
+        if (!string.IsNullOrWhiteSpace(note.Title)) parts.Add(note.Title.Trim());
+        if (!string.IsNullOrWhiteSpace(note.Subject)) parts.Add("Subject: " + note.Subject.Trim());
+        string projectName = ResolveProjectName(note.ProjectId);
+        if (!string.IsNullOrWhiteSpace(projectName)) parts.Add("Project: " + projectName);
+        if (!string.IsNullOrWhiteSpace(note.Url)) parts.Add(note.Url.Trim());
+        if (!string.IsNullOrWhiteSpace(note.Text)) parts.Add(note.Text.Trim());
+        CopyText(string.Join(Environment.NewLine, parts), "Capture copied");
     }
 
     private void ExportCaptures_Click(object sender, RoutedEventArgs e)
