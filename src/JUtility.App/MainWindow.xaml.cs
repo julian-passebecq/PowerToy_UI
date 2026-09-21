@@ -1800,6 +1800,11 @@ public partial class MainWindow : Window
                 try
                 {
                     _viewModel.Import(dialog.FileName);
+                    _moduleFilters.Clear();
+                    _activeRepositoryFamilies.Clear();
+                    _activeCaptureSubjects.Clear();
+                    _repositorySearchText = string.Empty;
+                    RepoSearchBox.Clear();
                     InitializeWorkspaceViews();
                     ApplyViewMode(_viewModel.ViewMode);
                     ApplyWindowBehavior();
