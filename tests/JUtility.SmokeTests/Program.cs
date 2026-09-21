@@ -680,6 +680,52 @@ Check("workspace export is atomic and rejects managed workspace targets", () =>
     }
 });
 
+Check("import preparation is read-only until explicit commit", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityPrepareImport-" + Guid.NewGuid().ToString("N"));
+    string sourceDir = Path.Combine(Path.GetTempPath(), "JUtilityPrepareImportSource-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState current = store.Load();
+        current.Projects.Add(new ProjectEntry { Name = "CurrentWorkspace" });
+        store.Save(current);
+
+        Directory.CreateDirectory(sourceDir);
+        WorkspaceStore sourceStore = new(sourceDir);
+        WorkspaceState incoming = sourceStore.Load();
+        incoming.Projects.Clear();
+        incoming.Projects.Add(new ProjectEntry { Name = "ImportedWorkspace" });
+        string importPath = Path.Combine(sourceDir, "candidate.json");
+        sourceStore.Export(incoming, importPath);
+
+        string primaryBefore = File.ReadAllText(store.DataFilePath);
+        string backupBefore = File.ReadAllText(store.BackupFilePath);
+
+        WorkspaceState candidate = store.PrepareImport(importPath);
+
+        True(candidate.Projects.Any(project => project.Name == "ImportedWorkspace"));
+        Equal(primaryBefore, File.ReadAllText(store.DataFilePath));
+        Equal(backupBefore, File.ReadAllText(store.BackupFilePath));
+
+        WorkspaceState committed = store.CommitImport(candidate);
+        True(committed.Projects.Any(project => project.Name == "ImportedWorkspace"));
+        True(store.Load().Projects.Any(project => project.Name == "ImportedWorkspace"));
+        True(File.ReadAllText(store.BackupFilePath).Contains("CurrentWorkspace", StringComparison.Ordinal));
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+        if (Directory.Exists(sourceDir))
+        {
+            Directory.Delete(sourceDir, recursive: true);
+        }
+    }
+});
+
 Check("empty object import is rejected without replacing the live workspace", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityImportGuard-" + Guid.NewGuid().ToString("N"));
