@@ -67,6 +67,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _moduleSearchTerms = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeRepositoryFamilies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _activeResourceProviders = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeCaptureSubjects = new(StringComparer.OrdinalIgnoreCase);
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
@@ -280,6 +281,11 @@ public partial class MainWindow : Window
                 {
                     return false;
                 }
+            }
+
+            if (_activeResourceProviders.Count > 0)
+            {
+                return _activeResourceProviders.Contains(resource.Provider);
             }
 
             string filter = GetModuleFilter("Resources");
@@ -719,6 +725,16 @@ public partial class MainWindow : Window
         _ => "#5B6577",
     };
 
+    private static string ResourceProviderAccent(string provider) => provider.ToLowerInvariant() switch
+    {
+        "github" => "#24292F",
+        "google drive" => "#0F9D58",
+        "dropbox" => "#0061FF",
+        "onedrive" => "#0078D4",
+        "notion" => "#404040",
+        _ => "#5B5FC7",
+    };
+
     private static string CaptureKindLabel(CaptureKind kind) => kind switch
     {
         CaptureKind.QuickNote => "Quick notes",
@@ -734,6 +750,10 @@ public partial class MainWindow : Window
         }
 
         _moduleFilters[_activeModule] = key;
+        if (_activeModule == "Resources")
+        {
+            _activeResourceProviders.Clear();
+        }
         RefreshSecondaryNavigation();
         RefreshQuickRibbon();
         RefreshActiveView();
@@ -798,18 +818,28 @@ public partial class MainWindow : Window
                 break;
 
             case "Resources":
-                IEnumerable<WorkspaceResourceEntry> pinnedResources = _viewModel.Resources.Where(resource => resource.IsPinned);
-                if (!pinnedResources.Any())
+                _quickRibbonItems.Add(new QuickRibbonItem(
+                    "resource-all",
+                    "all",
+                    "All",
+                    $"{_viewModel.Resources.Count} links",
+                    "A",
+                    _activeResourceProviders.Count == 0 && activeFilter == "all" ? "#5B5FC7" : "#9AA6B2"));
+
+                foreach (IGrouping<string, WorkspaceResourceEntry> group in _viewModel.Resources
+                    .GroupBy(resource => string.IsNullOrWhiteSpace(resource.Provider) ? "Other" : resource.Provider, StringComparer.OrdinalIgnoreCase)
+                    .OrderByDescending(group => group.Count())
+                    .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(8))
                 {
-                    pinnedResources = _viewModel.Resources
-                        .OrderByDescending(resource => resource.IsFavorite)
-                        .ThenBy(resource => resource.SortOrder)
-                        .Take(7);
-                }
-                foreach (WorkspaceResourceEntry resource in pinnedResources.Take(8))
-                {
-                    string glyph = FirstGlyph(resource.Provider, "R");
-                    _quickRibbonItems.Add(new QuickRibbonItem("resource", resource.Id.ToString(), resource.Name, resource.Provider, glyph, "#5B5FC7", resource.Url));
+                    bool selected = _activeResourceProviders.Contains(group.Key);
+                    _quickRibbonItems.Add(new QuickRibbonItem(
+                        "resource-provider",
+                        group.Key,
+                        group.Key,
+                        $"{group.Count()} links",
+                        FirstGlyph(group.Key, "R"),
+                        selected ? ResourceProviderAccent(group.Key) : "#9AA6B2"));
                 }
                 break;
 
@@ -908,6 +938,21 @@ public partial class MainWindow : Window
                 RefreshQuickRibbon();
                 _projectView?.Refresh();
                 break;
+            case "resource-all":
+                _activeResourceProviders.Clear();
+                _moduleFilters["Resources"] = "all";
+                RefreshQuickRibbon();
+                _resourceView?.Refresh();
+                break;
+            case "resource-provider":
+                _moduleFilters["Resources"] = "all";
+                if (!_activeResourceProviders.Add(item.Key))
+                {
+                    _activeResourceProviders.Remove(item.Key);
+                }
+                RefreshQuickRibbon();
+                _resourceView?.Refresh();
+                break;
             case "capture-subject-all":
                 _activeCaptureSubjects.Clear();
                 RefreshQuickRibbon();
@@ -956,7 +1001,14 @@ public partial class MainWindow : Window
                 break;
             case "Resources":
                 _viewModel.AddResource();
-                ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
+                if (_activeResourceProviders.Count == 1)
+                {
+                    _viewModel.SelectedResource!.Provider = _activeResourceProviders.First();
+                }
+                else
+                {
+                    ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
+                }
                 break;
             case "Clipboard":
                 _viewModel.AddClipboardSnippet();
@@ -1488,7 +1540,14 @@ public partial class MainWindow : Window
     private void AddResource_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.AddResource();
-        ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
+        if (_activeResourceProviders.Count == 1)
+        {
+            _viewModel.SelectedResource!.Provider = _activeResourceProviders.First();
+        }
+        else
+        {
+            ApplyCurrentResourceProvider(_viewModel.SelectedResource, GetModuleFilter("Resources"));
+        }
         RefreshAfterDataChange();
         SelectWorkspaceTab("Resources");
         SafeSave();
@@ -2428,6 +2487,7 @@ public partial class MainWindow : Window
                     _moduleFilters.Clear();
                     _moduleSearchTerms.Clear();
                     _activeRepositoryFamilies.Clear();
+                    _activeResourceProviders.Clear();
                     _activeCaptureSubjects.Clear();
                     _repositorySearchText = string.Empty;
                     RepoSearchBox.Clear();
