@@ -434,6 +434,7 @@
                       <TextBlock Text="One project row, four primary links: GitHub, website, server, ChatGPT." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                     </StackPanel>
                     <WrapPanel HorizontalAlignment="Right">
+                      <TextBlock x:Name="SelectedRepoCountText" Text="0 selected" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
                       <TextBox x:Name="RepoSearchBox" Width="210" ToolTip="Search repository name, description, category, language…" TextChanged="RepoSearch_TextChanged"/>
                       <Button Content="+ Project" Click="AddProject_Click"/>
                       <Button Content="Sync GitHub" Click="SyncGitHub_Click" ToolTip="Uses the authenticated GitHub CLI when available; otherwise imports public repositories."/>
