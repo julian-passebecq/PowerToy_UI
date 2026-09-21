@@ -660,6 +660,12 @@
                         <TextBlock Text="Inbox · To-do · Notes · Bookmarks · Read later · Transcript" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right">
+                        <CheckBox Content="Include completed"
+                                  IsChecked="{Binding IncludeCompletedCaptures}"
+                                  Checked="CaptureCompletionFilterChanged_Click"
+                                  Unchecked="CaptureCompletionFilterChanged_Click"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0"/>
                         <Button Content="+ Capture" Click="AddNote_Click"/>
                         <Button Content="Export all" Click="ExportCaptures_Click"/>
                       </WrapPanel>
