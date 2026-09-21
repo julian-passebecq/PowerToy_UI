@@ -179,9 +179,42 @@ Check("resource URL equivalence normalizes host but preserves path case", () =>
         "https://GITHUB.com/example/demo/",
         "https://github.com/example/demo"));
 
+    True(ResourceCatalogService.UrlsEquivalent(
+        "https://github.com/Example/Demo",
+        "https://github.com/example/demo/"));
+
     False(ResourceCatalogService.UrlsEquivalent(
         "https://drive.google.com/drive/folders/AbC123",
         "https://drive.google.com/drive/folders/abc123"));
+});
+
+Check("resource URL upsert preserves user metadata on duplicates", () =>
+{
+    WorkspaceResourceEntry existing = new()
+    {
+        Name = "My important docs",
+        Provider = "Google Drive",
+        Kind = "Folder",
+        Group = "Atlas",
+        Url = "https://drive.google.com/drive/folders/ABC123",
+        Note = "Keep this note",
+        IsPinned = true,
+        IsFavorite = true,
+    };
+    List<WorkspaceResourceEntry> resources = [existing];
+
+    ResourceUpsertResult result = ResourceCatalogService.UpsertUrl(
+        resources,
+        "https://drive.google.com/drive/folders/ABC123/",
+        "Other");
+
+    False(result.Added);
+    True(resources.Count == 1);
+    Equal("My important docs", existing.Name);
+    Equal("Atlas", existing.Group);
+    Equal("Keep this note", existing.Note);
+    True(existing.IsPinned);
+    True(existing.IsFavorite);
 });
 
 Check("repository resource import is idempotent and ignores archived projects", () =>
