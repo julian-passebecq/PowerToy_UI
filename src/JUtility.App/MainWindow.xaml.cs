@@ -1290,6 +1290,19 @@ public partial class MainWindow : Window
             return;
         }
 
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete portal '{portal.Name}' and its {portal.Links.Count} saved sub-link(s)?",
+            "Delete portal",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         _viewModel.RemovePortal(portal);
         RefreshAfterDataChange();
         SafeSave();
@@ -1344,6 +1357,19 @@ public partial class MainWindow : Window
         if (_viewModel.SelectedSnippet is not ClipboardSnippetEntry snippet)
         {
             _viewModel.StatusText = "No clipboard snippet selected";
+            return;
+        }
+
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete clipboard snippet '{snippet.Title}'?",
+            "Delete snippet",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
             return;
         }
 
