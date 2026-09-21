@@ -9,7 +9,7 @@ Updated: 2026-09-21
 | Product | **J Utility Palette · Power Ops** — local-first Windows companion |
 | Repository | `julian-passebecq/PowerToy_UI` |
 | Active branch | `codex/power-ops-suite` |
-| Draft PR | #1 — Power Ops suite: Repository Hub, Portals, Capture and Clipboard |
+| Draft PR | #1 — Power Ops suite: Repositories, Portals, Resources, Capture and Clipboard |
 | Base | `codex/pro-ai-handover-2026-09-11` |
 | Current direction | Repository Hub + Portal Launcher + Resource Hub + Capture + Clipboard + Prompt Builder in one shell |
 | Build gate | Full WPF Release build + package-free smoke/regression checks on `windows-latest` |
