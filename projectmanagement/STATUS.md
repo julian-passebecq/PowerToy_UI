@@ -23,16 +23,23 @@ The September 11 handover below is historical. Its compile blocker has been repa
 ### Reliable foundation
 
 - fixed the inherited C# mouse-hook scope collision that blocked the WPF build;
-- build script now propagates failures correctly;
-- corrupt-primary recovery preserves the last good backup;
-- unrecognizable imports such as `{}` are rejected;
-- unsupported future workspace schemas are refused rather than rewritten;
-- null collection entries are normalized safely;
-- clipboard/browser failures are contained;
+- build and run scripts now propagate failures correctly;
+- Windows CI uses current Node 24-compatible GitHub Actions releases;
+- workspace ownership is scoped per canonical data directory, with optional `--data-dir` isolation for safe test workspaces;
+- malformed/unrecognized workspace files are never silently reseeded;
+- corrupt primary bytes are preserved as `workspace.invalid.*.json` evidence before valid-backup recovery;
+- locked/inaccessible primary files do not silently fall back to backup;
+- last-known-good backup is never replaced by malformed primary bytes;
+- unsupported future schemas and explicit invalid schema versions are refused rather than rewritten;
+- workspace IDs/enums/references are validated before persistence;
+- save/export normalize detached snapshots instead of mutating live view-model objects;
+- export is same-directory atomic and cannot target the managed primary/backup files;
+- import is two-phase: validate/preview first, explicit confirmation before commit;
+- import commit keeps the previous primary as backup and clears stale UI selections/search/prompt preview;
 - close-save failure is visible and can cancel exit;
+- summon mode does not hide after a failed save and ignores summon toggles while modal workflows are active;
 - workspace autosaves when leaving the app;
-- second launch brings the existing instance forward;
-- import clears stale filters and selections.
+- second launch brings the default workspace forward; different `--data-dir` workspaces may run independently.
 
 ### Power Ops shell
 
@@ -42,7 +49,10 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - contextual top quick ribbon;
 - module-aware quick add;
 - Ctrl+K current-module search;
-- last active module is remembered between launches.
+- last active module is remembered between launches;
+- Sidebar / Compact / Expanded keep independent saved sizes/positions;
+- off-screen/oversized placement math is clamped to the nearest monitor work area and covered by smoke tests;
+- Settings includes a reset action for saved window layouts.
 
 ### Repository Hub
 
@@ -55,7 +65,7 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - open selected repositories;
 - GitHub discovery via authenticated local `gh` with public fallback;
 - reusable saved repository lists preserving per-link choices;
-- saved lists can Load / Copy / Open;
+- saved lists can Load / Copy / Open and saving the same list name updates it rather than creating duplicates;
 - project archive / restore;
 - deletion confirms impact and detaches linked captures / saved-list references safely.
 
@@ -76,7 +86,9 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - All / Favorites / Pinned / provider filters;
 - common provider icons are always available in the top ribbon;
 - provider ribbon supports multi-select filtering;
-- Open / Copy actions are explicit;
+- Open / Copy actions are explicit, with Enter/double-click open and Ctrl+C copy on the focused list;
+- repository refresh preserves user-edited resource labels, groups, notes, favorites and pins;
+- provider-aware URL dedupe avoids duplicate GitHub/bookmark resources while preserving case-sensitive cloud IDs;
 - active Repository Hub projects can be imported as GitHub resources;
 - clipboard URLs can be captured with provider/kind inference;
 - pinned/favorite resources are exposed in Sidebar quick access;
@@ -89,7 +101,7 @@ The September 11 handover below is historical. Its compile blocker has been repa
 - subject filters;
 - URL, labels, status, priority, due date and project association;
 - pin / complete / archive;
-- clipboard URL → Bookmark quick capture;
+- clipboard URL → Bookmark quick capture with useful inferred names and duplicate-bookmark avoidance;
 - single and bulk JSON / Markdown export with project context;
 - sidebar capture list excludes archived items.
 
@@ -112,12 +124,12 @@ The September 11 handover below is historical. Its compile blocker has been repa
 
 These are not blockers to continued feature work, but they remain before calling Power Ops a final Windows release:
 
-1. native summon/hide interaction pass, including modal/pin/focus transitions;
-2. mixed-DPI and off-screen window recovery;
-3. keyboard/focus/accessibility pass across all three layouts;
+1. native summon/hide interaction pass, including modal/pin/focus transitions (logic hardened, native acceptance still pending);
+2. mixed-DPI native validation; off-screen/oversized recovery math is implemented and smoke-tested;
+3. full keyboard/focus/accessibility pass across all three layouts (Repository/Portal/Resource/Clipboard keyboard paths are partially covered);
 4. clean-machine validation of the self-contained package;
-5. final destructive-storage/fault-injection regression pass;
-6. visual polish against the intended Fluent-style Power Ops layout.
+5. low-level disk fault injection still not covered by ordinary smoke tests (for example out-of-space or permission changes mid-write);
+6. final visual polish against the intended Fluent-style Power Ops layout.
 
 ## Historical handover
 
