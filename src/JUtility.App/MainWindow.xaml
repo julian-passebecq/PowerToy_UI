@@ -228,8 +228,8 @@
 
         <Grid Grid.Row="1">
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="185"/>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition x:Name="PrimaryNavColumn" Width="185"/>
+            <ColumnDefinition x:Name="SecondaryNavColumn" Width="220"/>
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
 
@@ -374,7 +374,16 @@
 
                   <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2">
                     <DataGrid.Columns>
-                      <DataGridCheckBoxColumn Header="✓" Binding="{Binding IncludeInCopyAll}" Width="36"/>
+                      <DataGridTemplateColumn Header="✓" Width="36">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <CheckBox IsChecked="{Binding IncludeInCopyAll, UpdateSourceTrigger=PropertyChanged}"
+                                      Checked="ProjectIncludeChanged_Click"
+                                      Unchecked="ProjectIncludeChanged_Click"
+                                      HorizontalAlignment="Center"/>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
                       <DataGridTextColumn Header="Project" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
                       <DataGridTextColumn Header="Category" Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
                       <DataGridTextColumn Header="GitHub" Binding="{Binding RepoUrl, UpdateSourceTrigger=PropertyChanged}" Width="210"/>
