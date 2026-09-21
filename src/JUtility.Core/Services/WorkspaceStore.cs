@@ -37,7 +37,7 @@ public sealed class WorkspaceStore
         if (TryLoad(BackupFilePath, out WorkspaceState? backup))
         {
             WorkspaceState recovered = Normalize(backup!);
-            Save(recovered);
+            WritePrimaryWithoutReplacingBackup(recovered);
             return recovered;
         }
 
@@ -60,6 +60,13 @@ public sealed class WorkspaceStore
             File.Copy(DataFilePath, BackupFilePath, overwrite: true);
         }
 
+        File.Move(tempPath, DataFilePath, overwrite: true);
+    }
+
+    private void WritePrimaryWithoutReplacingBackup(WorkspaceState state)
+    {
+        string tempPath = DataFilePath + ".recovery.tmp";
+        File.WriteAllText(tempPath, JsonSerializer.Serialize(state, JsonOptions));
         File.Move(tempPath, DataFilePath, overwrite: true);
     }
 
@@ -133,11 +140,18 @@ public sealed class WorkspaceStore
     private static WorkspaceState Normalize(WorkspaceState state)
     {
         int incomingSchemaVersion = state.SchemaVersion;
+        if (incomingSchemaVersion > WorkspaceState.CurrentSchemaVersion)
+        {
+            throw new InvalidDataException($"Workspace schema {incomingSchemaVersion} is newer than supported schema {WorkspaceState.CurrentSchemaVersion}. The file was not rewritten.");
+        }
+
         state.Preferences ??= new AppPreferences();
-        state.Projects ??= [];
-        state.PromptModules ??= [];
-        state.RecentPrompts ??= [];
-        state.Notes ??= [];
+        state.Projects = (state.Projects ?? []).Where(item => item is not null).ToList();
+        state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
+        state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
+        state.PromptModules = (state.PromptModules ?? []).Where(item => item is not null).ToList();
+        state.RecentPrompts = (state.RecentPrompts ?? []).Where(item => item is not null).ToList();
+        state.Notes = (state.Notes ?? []).Where(item => item is not null).ToList();
 
         if (incomingSchemaVersion < 2
             && state.Preferences.AlwaysOnTop
@@ -155,6 +169,28 @@ public sealed class WorkspaceStore
             project.Name = NormalizeText(project.Name, "Untitled project");
             project.Category = NormalizeText(project.Category, "Projects");
             project.ExtraLabel = NormalizeText(project.ExtraLabel, "Extra");
+        }
+
+        foreach (PortalEntry portal in state.Portals)
+        {
+            portal.Name = NormalizeText(portal.Name, "Untitled portal");
+            portal.Category = NormalizeText(portal.Category, "General");
+            portal.Links = (portal.Links ?? []).Where(item => item is not null).ToList();
+            foreach (PortalLinkEntry link in portal.Links)
+            {
+                link.Label = NormalizeText(link.Label, "Link");
+            }
+        }
+
+        foreach (ClipboardSnippetEntry snippet in state.ClipboardSnippets)
+        {
+            snippet.Title = NormalizeText(snippet.Title, "Untitled snippet");
+            snippet.Category = NormalizeText(snippet.Category, "General");
+        }
+
+        foreach (StickyNoteEntry note in state.Notes)
+        {
+            note.Title = NormalizeText(note.Title, note.Kind == CaptureKind.Transcript ? "Transcript" : "Untitled capture");
         }
 
         foreach (PromptModuleEntry module in state.PromptModules)
