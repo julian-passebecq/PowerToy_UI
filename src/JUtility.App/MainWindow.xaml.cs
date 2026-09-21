@@ -1412,6 +1412,8 @@ public partial class MainWindow : Window
 
         if (IsVisible)
         {
+            CaptureCurrentWindowPlacement();
+            SafeSave();
             Hide();
             return;
         }
@@ -1451,6 +1453,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        CaptureCurrentWindowPlacement();
+        SafeSave();
         Hide();
     }
 
