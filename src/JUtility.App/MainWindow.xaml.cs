@@ -81,6 +81,7 @@ public partial class MainWindow : Window
     private ICollectionView? _projectView;
     private ICollectionView? _portalView;
     private ICollectionView? _sidebarPortalView;
+    private ICollectionView? _toolView;
     private ICollectionView? _resourceView;
     private ICollectionView? _captureView;
     private ICollectionView? _sidebarCaptureView;
@@ -287,6 +288,13 @@ public partial class MainWindow : Window
         _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.SortOrder), ListSortDirection.Ascending));
         _portalView.SortDescriptions.Add(new SortDescription(nameof(PortalEntry.Name), ListSortDirection.Ascending));
         PortalList.ItemsSource = _portalView;
+
+        _toolView = CollectionViewSource.GetDefaultView(_viewModel.Tools);
+        _toolView.SortDescriptions.Clear();
+        _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.IsPinned), ListSortDirection.Descending));
+        _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.SortOrder), ListSortDirection.Ascending));
+        _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.Name), ListSortDirection.Ascending));
+        ToolList.ItemsSource = _toolView;
 
         _sidebarPortalView = new ListCollectionView((IList)_viewModel.Portals)
         {
@@ -520,7 +528,7 @@ public partial class MainWindow : Window
     private static string NormalizeModule(string? module)
     {
         string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
-        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
             ? normalized
             : "Dashboard";
     }
@@ -530,6 +538,7 @@ public partial class MainWindow : Window
         CurrentModuleTitle.Text = _activeModule switch
         {
             "Portals" => "Portal Launcher",
+            "Tools" => "Tool Launcher",
             "Resources" => "Resource Hub",
             _ => _activeModule,
         };
@@ -537,7 +546,8 @@ public partial class MainWindow : Window
         {
             "Dashboard" => "Overview and recent work",
             "Repository Hub" => "GitHub, website, server and ChatGPT links",
-            "Portals" => "Direct-open services and project sub-links",
+            "Portals" => "Direct-open services, quick actions and project links",
+            "Tools" => "Launch VS Code and local utility apps",
             "Resources" => "Exact folders, repositories, documents and dashboards",
             "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
             "Clipboard" => "One-click reusable text",
@@ -550,6 +560,7 @@ public partial class MainWindow : Window
         {
             "Repository Hub" => "+ Project",
             "Portals" => "+ Portal",
+            "Tools" => "+ Tool",
             "Resources" => "+ Resource",
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
@@ -557,7 +568,7 @@ public partial class MainWindow : Window
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -615,6 +626,19 @@ public partial class MainWindow : Window
                 Add("pinned", "Pinned to ribbon", _viewModel.Portals.Count(portal => portal.IsPinnedToRibbon));
                 foreach (IGrouping<string, PortalEntry> group in _viewModel.Portals
                     .GroupBy(portal => string.IsNullOrWhiteSpace(portal.Category) ? "General" : portal.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "Tools":
+                SecondaryTitle.Text = "Tool categories";
+                SecondaryHint.Text = "Launch local apps and utilities";
+                Add("all", "All tools", _viewModel.Tools.Count);
+                Add("pinned", "Pinned", _viewModel.Tools.Count(tool => tool.IsPinned));
+                foreach (IGrouping<string, ToolLauncherEntry> group in _viewModel.Tools
+                    .GroupBy(tool => string.IsNullOrWhiteSpace(tool.Category) ? "Utilities" : tool.Category, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
                 {
                     Add(group.Key, group.Key, group.Count());
@@ -806,6 +830,7 @@ public partial class MainWindow : Window
         {
             case "Repository Hub": _projectView?.Refresh(); break;
             case "Portals": _portalView?.Refresh(); break;
+            case "Tools": _toolView?.Refresh(); break;
             case "Resources": _resourceView?.Refresh(); break;
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); break;
@@ -855,6 +880,13 @@ public partial class MainWindow : Window
                 {
                     string glyph = FirstGlyph(!string.IsNullOrWhiteSpace(portal.IconKey) ? portal.IconKey : portal.Name);
                     _quickRibbonItems.Add(new QuickRibbonItem("portal", portal.Id.ToString(), portal.Name, portal.Category, glyph, "#107C10", portal.MainUrl));
+                }
+                break;
+
+            case "Tools":
+                foreach (ToolLauncherEntry tool in _viewModel.Tools.Where(tool => tool.IsPinned).Take(8))
+                {
+                    _quickRibbonItems.Add(new QuickRibbonItem("tool", tool.Id.ToString(), tool.Name, tool.Category, FirstGlyph(tool.IconKey, "T"), "#0F6CBD"));
                 }
                 break;
 
@@ -1023,6 +1055,10 @@ public partial class MainWindow : Window
             case "resource":
                 OpenUrlValue(item.Value);
                 break;
+            case "tool":
+                ToolLauncherEntry? tool = _viewModel.Tools.FirstOrDefault(candidate => candidate.Id.ToString() == item.Key);
+                if (tool is not null) LaunchTool(tool);
+                break;
             case "snippet":
                 CopyText(item.Value, "Pinned snippet copied");
                 break;
@@ -1043,6 +1079,9 @@ public partial class MainWindow : Window
             case "Portals":
                 _viewModel.AddPortal();
                 ApplyCurrentCategory(_viewModel.SelectedPortal, GetModuleFilter("Portals"));
+                break;
+            case "Tools":
+                _viewModel.AddTool();
                 break;
             case "Resources":
                 _viewModel.AddResource();
@@ -1231,6 +1270,7 @@ public partial class MainWindow : Window
         _projectView?.Refresh();
         _portalView?.Refresh();
         _sidebarPortalView?.Refresh();
+        _toolView?.Refresh();
         _resourceView?.Refresh();
         _sidebarResourceView?.Refresh();
         _captureView?.Refresh();
@@ -1525,6 +1565,22 @@ public partial class MainWindow : Window
     private void ApplyExtraColumnVisibility() =>
         ExtraUrlColumn.Visibility = _viewModel.ShowExtraColumn ? Visibility.Visible : Visibility.Collapsed;
 
+    private void HideWindow_Click(object sender, RoutedEventArgs e)
+    {
+        CaptureCurrentWindowPlacement();
+        if (!SafeSave(showError: true)) return;
+        if (_viewModel.WindowBehavior == WindowBehaviorMode.Summon)
+        {
+            Hide();
+        }
+        else
+        {
+            WindowState = WindowState.Minimized;
+        }
+    }
+
+    private void Quit_Click(object sender, RoutedEventArgs e) => Close();
+
     private void Save_Click(object sender, RoutedEventArgs e) => SafeSave(showError: true);
 
     private void AddProject_Click(object sender, RoutedEventArgs e)
@@ -1657,6 +1713,41 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
+    private void AddPortalQuickAction_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal)
+        {
+            _viewModel.StatusText = "Create or select a portal first";
+            return;
+        }
+
+        if (portal.QuickActions.Count >= 3)
+        {
+            _viewModel.StatusText = "Three quick actions already configured";
+            return;
+        }
+
+        _viewModel.AddPortalQuickAction(portal);
+        PortalQuickActionsGrid.Items.Refresh();
+        PortalList.Items.Refresh();
+        SafeSave();
+    }
+
+    private void DeletePortalQuickAction_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedPortal is not PortalEntry portal
+            || (sender as FrameworkElement)?.Tag is not PortalLinkEntry action)
+        {
+            return;
+        }
+
+        portal.QuickActions.Remove(action);
+        portal.UpdatedUtc = DateTimeOffset.UtcNow;
+        PortalQuickActionsGrid.Items.Refresh();
+        PortalList.Items.Refresh();
+        SafeSave();
+    }
+
     private void AddPortalLink_Click(object sender, RoutedEventArgs e)
     {
         if (_viewModel.SelectedPortal is not PortalEntry portal)
@@ -1668,6 +1759,61 @@ public partial class MainWindow : Window
         _viewModel.AddPortalLink(portal);
         PortalLinksGrid.Items.Refresh();
         SafeSave();
+    }
+
+    private void AddTool_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.AddTool();
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void DeleteTool_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedTool is not ToolLauncherEntry tool) return;
+        _viewModel.RemoveTool(tool);
+        RefreshAfterDataChange();
+        SafeSave();
+    }
+
+    private void LaunchTool_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ToolLauncherEntry tool)
+        {
+            LaunchTool(tool);
+        }
+    }
+
+    private void LaunchTool(ToolLauncherEntry tool)
+    {
+        string command = Environment.ExpandEnvironmentVariables(tool.Command?.Trim() ?? string.Empty);
+        if (command.Length == 0)
+        {
+            _viewModel.StatusText = "No command configured for this tool";
+            return;
+        }
+
+        try
+        {
+            ProcessStartInfo startInfo = new(command)
+            {
+                UseShellExecute = true,
+                Arguments = Environment.ExpandEnvironmentVariables(tool.Arguments ?? string.Empty),
+            };
+            string workingDirectory = Environment.ExpandEnvironmentVariables(tool.WorkingDirectory?.Trim() ?? string.Empty);
+            if (workingDirectory.Length > 0)
+            {
+                startInfo.WorkingDirectory = workingDirectory;
+            }
+
+            Process.Start(startInfo);
+            _viewModel.StatusText = $"Launched {tool.Name}";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = $"Could not launch {tool.Name}";
+            ShowOwnedMessage(ex.Message, "Tool launch failed", MessageBoxImage.Warning);
+        }
     }
 
     private void DeletePortalLink_Click(object sender, RoutedEventArgs e)
