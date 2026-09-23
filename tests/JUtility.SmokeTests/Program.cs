@@ -217,6 +217,12 @@ Check("starter catalog adds common cockpit portals and snippets idempotently", (
     True(portals.Any(portal => portal.Name == "Dropbox"));
     True(portals.Any(portal => portal.Name == "LinkedIn"));
     True(portals.Any(portal => portal.Name == "ChatGPT"));
+    True(portals.Any(portal => portal.Name == "MongoDB Atlas"));
+    True(portals.Any(portal => portal.Name == "Codex"));
+    True(portals.Any(portal => portal.Name == "Claude"));
+    PortalEntry github = portals.Single(portal => portal.Name == "GitHub");
+    True(github.QuickActions.Count == 3);
+    True(github.QuickActions.Any(action => action.Label == "New repo"));
     True(snippets.Any(snippet => snippet.Title == "Continue project" && snippet.IsPinned));
     True(snippets.Any(snippet => snippet.Title == "Debug and verify" && snippet.IsPinned));
 
@@ -260,6 +266,8 @@ Check("fresh workspace seed includes the starter cockpit", () =>
         True(seeded.Portals.Any(portal => portal.Name == "GitHub"));
         True(seeded.Portals.Any(portal => portal.Name == "Microsoft Fabric"));
         True(seeded.Portals.Any(portal => portal.Name == "Vercel"));
+        True(seeded.Tools.Any(tool => tool.Name == "VS Code" && tool.Command == "code"));
+        True(seeded.Tools.Any(tool => tool.Name == "Windows Terminal" && tool.Command == "wt"));
         True(seeded.ClipboardSnippets.Any(snippet => snippet.Title == "Continue project"));
         True(seeded.ClipboardSnippets.Any(snippet => snippet.Title == "Debug and verify"));
     }
@@ -606,6 +614,7 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
             Category = "Deploy",
             MainUrl = "https://vercel.com/",
             IsPinnedToRibbon = true,
+            QuickActions = [new PortalLinkEntry { Label = "New project", Url = "https://vercel.com/new" }],
             Links = [new PortalLinkEntry { Label = "Project", Url = "https://vercel.com/example/project" }],
         });
         state.Resources.Add(new WorkspaceResourceEntry
@@ -637,7 +646,7 @@ Check("Power Ops portal, snippet and transcript data round-trip", () =>
 
         WorkspaceState loaded = store.Load();
         True(loaded.RepositoryLists.Any(item => item.Name == "Foil Core" && item.Items.Count == 1));
-        True(loaded.Portals.Any(item => item.Name == "Vercel" && item.Links.Count == 1));
+        True(loaded.Portals.Any(item => item.Name == "Vercel" && item.QuickActions.Count == 1 && item.Links.Count == 1));
         True(loaded.Resources.Any(item => item.Name == "Architecture" && item.Provider == "Google Drive" && item.IsPinned));
         True(loaded.ClipboardSnippets.Any(item => item.Title == "Debug prompt"));
         True(loaded.Notes.Any(item => item.Kind == CaptureKind.Transcript && item.Url.Contains("example.com")));
