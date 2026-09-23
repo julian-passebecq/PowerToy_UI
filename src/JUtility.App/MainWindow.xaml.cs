@@ -2451,7 +2451,22 @@ public partial class MainWindow : Window
             ApplyCurrentCategory(media, GetModuleFilter("Clipboard"));
             _viewModel.AddClipboardMedia(media);
             RefreshAfterDataChange();
-            SafeSave(showError: true);
+
+            if (!SafeSave(showError: true))
+            {
+                _viewModel.RemoveClipboardMedia(media);
+                try
+                {
+                    _mediaStorage.DeleteManagedFile(media);
+                }
+                catch
+                {
+                    // The workspace entry was rolled back; an orphaned file is safer than losing workspace state.
+                }
+
+                RefreshAfterDataChange();
+                _viewModel.StatusText = "Screenshot save rolled back because workspace persistence failed";
+            }
         }
         catch (Exception ex)
         {
@@ -2476,23 +2491,65 @@ public partial class MainWindow : Window
                 return;
             }
 
-            int imported = 0;
+            List<ClipboardMediaEntry> importedItems = [];
+            List<string> failures = [];
             foreach (string fileName in dialog.FileNames)
             {
-                ClipboardMediaEntry media = _mediaStorage.ImportFile(fileName);
-                ApplyCurrentCategory(media, GetModuleFilter("Clipboard"));
-                _viewModel.AddClipboardMedia(media);
-                imported++;
+                try
+                {
+                    ClipboardMediaEntry media = _mediaStorage.ImportFile(fileName);
+                    ApplyCurrentCategory(media, GetModuleFilter("Clipboard"));
+                    _viewModel.AddClipboardMedia(media);
+                    importedItems.Add(media);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{Path.GetFileName(fileName)}: {ex.Message}");
+                }
+            }
+
+            if (importedItems.Count == 0)
+            {
+                _viewModel.StatusText = failures.Count == 0 ? "No media selected" : "No media could be imported";
+                if (failures.Count > 0)
+                {
+                    ShowOwnedMessage(string.Join(Environment.NewLine, failures.Take(6)), "Media import", MessageBoxImage.Warning);
+                }
+                return;
             }
 
             RefreshAfterDataChange();
-            SafeSave(showError: true);
-            _viewModel.StatusText = $"Imported {imported} media item(s)";
-        }
-        catch (Exception ex)
-        {
-            _viewModel.StatusText = "Media import failed";
-            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+            if (!SafeSave(showError: true))
+            {
+                foreach (ClipboardMediaEntry media in importedItems)
+                {
+                    _viewModel.RemoveClipboardMedia(media);
+                    try
+                    {
+                        _mediaStorage.DeleteManagedFile(media);
+                    }
+                    catch
+                    {
+                        // Keep going so every in-memory entry is rolled back.
+                    }
+                }
+
+                RefreshAfterDataChange();
+                _viewModel.StatusText = "Media import rolled back because workspace persistence failed";
+                return;
+            }
+
+            _viewModel.StatusText = failures.Count == 0
+                ? $"Imported {importedItems.Count} media item(s)"
+                : $"Imported {importedItems.Count} media item(s); {failures.Count} failed";
+
+            if (failures.Count > 0)
+            {
+                ShowOwnedMessage(
+                    string.Join(Environment.NewLine, failures.Take(6)),
+                    "Some media files were skipped",
+                    MessageBoxImage.Warning);
+            }
         }
         finally
         {
@@ -2605,17 +2662,41 @@ public partial class MainWindow : Window
             return;
         }
 
+        string managedPath;
         try
         {
-            _mediaStorage.DeleteManagedFile(media);
-            _viewModel.RemoveClipboardMedia(media);
-            RefreshAfterDataChange();
-            SafeSave(showError: true);
+            managedPath = _mediaStorage.ResolveRelativePath(media.RelativePath);
         }
         catch (Exception ex)
         {
-            _viewModel.StatusText = "Media deletion failed";
+            _viewModel.StatusText = "Media path is invalid";
             ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+            return;
+        }
+
+        _viewModel.RemoveClipboardMedia(media);
+        RefreshAfterDataChange();
+
+        if (!SafeSave(showError: true))
+        {
+            _viewModel.AddClipboardMedia(media);
+            RefreshAfterDataChange();
+            _viewModel.StatusText = "Delete rolled back because workspace persistence failed";
+            return;
+        }
+
+        try
+        {
+            _mediaStorage.DeleteManagedFile(media);
+            _viewModel.StatusText = "Clipboard media deleted";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Entry deleted, but the managed file could not be removed";
+            ShowOwnedMessage(
+                $"The workspace entry was removed safely, but this file remains on disk:\n\n{managedPath}\n\n{ex.Message}",
+                "Media cleanup incomplete",
+                MessageBoxImage.Warning);
         }
     }
 
@@ -2659,10 +2740,11 @@ public partial class MainWindow : Window
 
         int linkedCaptures = _viewModel.Notes.Count(note => note.ProjectId == project.Id);
         int linkedResources = _viewModel.Resources.Count(resource => resource.SourceProjectId == project.Id);
+        int linkedMedia = _viewModel.ClipboardMedia.Count(media => media.ProjectId == project.Id);
         int savedListRefs = _viewModel.RepositoryLists.Sum(list => list.Items.Count(item => item.ProjectId == project.Id));
-        string impact = linkedCaptures == 0 && linkedResources == 0 && savedListRefs == 0
-            ? "No captures, Resource Hub links, or saved repository lists reference this project."
-            : $"This will detach {linkedCaptures} capture(s) and {linkedResources} Resource Hub link(s), and remove {savedListRefs} saved-list reference(s).";
+        string impact = linkedCaptures == 0 && linkedResources == 0 && linkedMedia == 0 && savedListRefs == 0
+            ? "No captures, Resource Hub links, clipboard media, or saved repository lists reference this project."
+            : $"This will detach {linkedCaptures} capture(s), {linkedResources} Resource Hub link(s), and {linkedMedia} media item(s), and remove {savedListRefs} saved-list reference(s).";
 
         MessageBoxResult result = MessageBox.Show(
             this,
