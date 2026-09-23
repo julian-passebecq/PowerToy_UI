@@ -1,3 +1,23 @@
+# Codex live acceptance test v1 — current priority
+
+This branch, `codex/to-be-tested-v1`, exists specifically for a **live Windows acceptance pass of Power Ops / J Utility Palette**.
+
+Before doing anything else, read and follow:
+
+`handover/CODEX_LIVE_TEST_V1.md`
+
+The priority for this branch is not another source-only review. **Run the application on the user's Windows computer and test it interactively using the available computer-control / desktop-automation capability.**
+
+Use an isolated `--data-dir` for all write/delete/import/export/media scenarios. Do not use personal files as destructive fixtures. If computer-control or specific hardware (for example Mouse Button 4/5 or a second monitor) is unavailable, mark those scenarios BLOCKED instead of claiming success.
+
+Confirmed defects may be fixed on this branch only. Keep changes focused, add regression coverage when practical, rerun `.\scripts\build.ps1`, retest the live scenario, and record results in:
+
+`handover/CODEX_LIVE_TEST_V1_RESULTS.md`
+
+Do not merge this branch.
+
+---
+
 # Working in this repository
 
 ## Current user direction — 2026-09-11
