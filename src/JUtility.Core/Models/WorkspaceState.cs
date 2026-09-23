@@ -121,6 +121,7 @@ public sealed class PortalEntry
     public bool IsPinnedToRibbon { get; set; }
     public bool IsFavorite { get; set; }
     public int SortOrder { get; set; }
+    public List<PortalLinkEntry> QuickActions { get; set; } = [];
     public List<PortalLinkEntry> Links { get; set; } = [];
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 }
