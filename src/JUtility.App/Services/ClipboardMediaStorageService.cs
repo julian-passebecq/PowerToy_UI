@@ -88,13 +88,23 @@ public sealed class ClipboardMediaStorageService
 
     public string ResolveRelativePath(string relativePath)
     {
-        string normalized = (relativePath ?? string.Empty).Replace('/', Path.DirectorySeparatorChar);
-        string combined = Path.GetFullPath(Path.Combine(_dataDirectory, normalized));
-        string relative = Path.GetRelativePath(_dataDirectory, combined);
-        if (relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-            || relative.Equals("..", StringComparison.Ordinal))
+        string normalized = (relativePath ?? string.Empty).Trim().Replace('\\', '/');
+        string[] segments = normalized.Split('/', StringSplitOptions.None);
+        if (normalized.Length == 0
+            || Path.IsPathRooted(normalized)
+            || normalized.Contains(':', StringComparison.Ordinal)
+            || segments.Length < 2
+            || !segments[0].Equals("media", StringComparison.OrdinalIgnoreCase)
+            || segments.Any(segment => segment.Length == 0 || segment is "." or ".."))
         {
-            throw new InvalidDataException("Media path escapes the workspace data directory.");
+            throw new InvalidDataException("Media path must stay under the managed media/ directory.");
+        }
+
+        string combined = Path.GetFullPath(Path.Combine(_dataDirectory, normalized.Replace('/', Path.DirectorySeparatorChar)));
+        string mediaRoot = Path.GetFullPath(_mediaDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!combined.StartsWith(mediaRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Media path escapes the managed media directory.");
         }
 
         return combined;
