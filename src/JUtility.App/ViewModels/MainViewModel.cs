@@ -33,6 +33,7 @@ public sealed class MainViewModel : ObservableObject
     private ToolLauncherEntry? _selectedTool;
     private WorkspaceResourceEntry? _selectedResource;
     private ClipboardSnippetEntry? _selectedSnippet;
+    private ClipboardMediaEntry? _selectedMedia;
     private StickyNoteEntry? _selectedNote;
     private string _promptPreview = string.Empty;
     private string _statusText = "Ready";
@@ -52,6 +53,7 @@ public sealed class MainViewModel : ObservableObject
         Tools = new ObservableCollection<ToolLauncherEntry>(_state.Tools.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         Resources = new ObservableCollection<WorkspaceResourceEntry>(_state.Resources.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ClipboardSnippets = new ObservableCollection<ClipboardSnippetEntry>(_state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
+        ClipboardMedia = new ObservableCollection<ClipboardMediaEntry>(_state.ClipboardMedia.OrderByDescending(item => item.UpdatedUtc));
         PromptModules = new ObservableCollection<PromptModuleEntry>(_state.PromptModules.OrderBy(item => item.SortOrder));
         Notes = new ObservableCollection<StickyNoteEntry>(_state.Notes);
         RecentPrompts = new ObservableCollection<RecentPromptEntry>(_state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
@@ -61,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedTool = Tools.FirstOrDefault();
         SelectedResource = Resources.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
+        SelectedMedia = ClipboardMedia.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
     }
 
@@ -70,6 +73,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<ToolLauncherEntry> Tools { get; }
     public ObservableCollection<WorkspaceResourceEntry> Resources { get; }
     public ObservableCollection<ClipboardSnippetEntry> ClipboardSnippets { get; }
+    public ObservableCollection<ClipboardMediaEntry> ClipboardMedia { get; }
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
     public ObservableCollection<StickyNoteEntry> Notes { get; }
     public ObservableCollection<RecentPromptEntry> RecentPrompts { get; }
@@ -135,6 +139,12 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _selectedSnippet;
         set => SetProperty(ref _selectedSnippet, value);
+    }
+
+    public ClipboardMediaEntry? SelectedMedia
+    {
+        get => _selectedMedia;
+        set => SetProperty(ref _selectedMedia, value);
     }
 
     public ProjectEntry? SelectedPromptProject
@@ -556,6 +566,25 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Clipboard snippet removed";
     }
 
+    public void AddClipboardMedia(ClipboardMediaEntry media)
+    {
+        ArgumentNullException.ThrowIfNull(media);
+        ClipboardMedia.Insert(0, media);
+        SelectedMedia = media;
+        StatusText = media.Kind == ClipboardMediaKind.Video ? "Clip saved" : "Image saved";
+    }
+
+    public void RemoveClipboardMedia(ClipboardMediaEntry media)
+    {
+        ArgumentNullException.ThrowIfNull(media);
+        ClipboardMedia.Remove(media);
+        if (ReferenceEquals(SelectedMedia, media))
+        {
+            SelectedMedia = ClipboardMedia.FirstOrDefault();
+        }
+        StatusText = "Clipboard media removed";
+    }
+
     public RepositoryListEntry SaveRepositoryList(string name)
     {
         string normalizedName = string.IsNullOrWhiteSpace(name) ? "Saved list" : name.Trim();
@@ -686,6 +715,12 @@ public sealed class MainViewModel : ObservableObject
         {
             resource.SourceProjectId = null;
             resource.UpdatedUtc = DateTimeOffset.UtcNow;
+        }
+
+        foreach (ClipboardMediaEntry media in ClipboardMedia.Where(media => media.ProjectId == project.Id))
+        {
+            media.ProjectId = null;
+            media.UpdatedUtc = DateTimeOffset.UtcNow;
         }
 
         Projects.Remove(project);
@@ -845,6 +880,7 @@ public sealed class MainViewModel : ObservableObject
         ReplaceCollection(Tools, _state.Tools.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ReplaceCollection(Resources, _state.Resources.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ReplaceCollection(ClipboardSnippets, _state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
+        ReplaceCollection(ClipboardMedia, _state.ClipboardMedia.OrderByDescending(item => item.UpdatedUtc));
         ReplaceCollection(PromptModules, _state.PromptModules.OrderBy(item => item.SortOrder));
         ReplaceCollection(Notes, _state.Notes);
         ReplaceCollection(RecentPrompts, _state.RecentPrompts.OrderByDescending(item => item.CreatedUtc));
@@ -854,6 +890,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedTool = Tools.FirstOrDefault();
         SelectedResource = Resources.FirstOrDefault();
         SelectedSnippet = ClipboardSnippets.FirstOrDefault();
+        SelectedMedia = ClipboardMedia.FirstOrDefault();
         SelectedNote = Notes.FirstOrDefault(note => !note.IsArchived);
         PromptVariables.Clear();
         PromptPreview = string.Empty;
@@ -877,6 +914,7 @@ public sealed class MainViewModel : ObservableObject
         _state.Tools = Tools.ToList();
         _state.Resources = Resources.ToList();
         _state.ClipboardSnippets = ClipboardSnippets.ToList();
+        _state.ClipboardMedia = ClipboardMedia.ToList();
         _state.PromptModules = PromptModules.ToList();
         _state.Notes = Notes.ToList();
         _state.RecentPrompts = RecentPrompts.ToList();
