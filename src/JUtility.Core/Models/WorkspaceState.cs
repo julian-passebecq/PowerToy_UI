@@ -125,6 +125,20 @@ public sealed class PortalEntry
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class ToolLauncherEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = "Utilities";
+    public string IconKey { get; set; } = "▶";
+    public string Command { get; set; } = string.Empty;
+    public string Arguments { get; set; } = string.Empty;
+    public string WorkingDirectory { get; set; } = string.Empty;
+    public bool IsPinned { get; set; } = true;
+    public int SortOrder { get; set; }
+    public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class WorkspaceResourceEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -204,13 +218,14 @@ public sealed class StickyNoteEntry
 
 public sealed class WorkspaceState
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();
     public List<ProjectEntry> Projects { get; set; } = [];
     public List<RepositoryListEntry> RepositoryLists { get; set; } = [];
     public List<PortalEntry> Portals { get; set; } = [];
+    public List<ToolLauncherEntry> Tools { get; set; } = [];
     public List<WorkspaceResourceEntry> Resources { get; set; } = [];
     public List<ClipboardSnippetEntry> ClipboardSnippets { get; set; } = [];
     public List<PromptModuleEntry> PromptModules { get; set; } = [];
