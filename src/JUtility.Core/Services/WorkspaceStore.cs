@@ -393,10 +393,7 @@ public sealed class WorkspaceStore
                 throw new InvalidDataException($"Clipboard media '{media.Title}' contains an empty ProjectId.");
             }
 
-            if (Path.IsPathRooted(media.RelativePath))
-            {
-                throw new InvalidDataException($"Clipboard media '{media.Title}' must use a workspace-relative path.");
-            }
+            media.RelativePath = NormalizeManagedMediaPath(media.RelativePath, media.Title);
         }
 
         foreach (StickyNoteEntry note in state.Notes)
@@ -496,7 +493,7 @@ public sealed class WorkspaceStore
             media.Category = NormalizeText(media.Category, "Personal");
             media.Tags = NormalizeOptionalSingleLine(media.Tags);
             media.FileName = NormalizeOptionalSingleLine(media.FileName);
-            media.RelativePath = NormalizeOptionalSingleLine(media.RelativePath).Replace('\\', '/');
+            media.RelativePath = NormalizeManagedMediaPath(media.RelativePath, media.Title);
             media.MimeType = NormalizeOptionalSingleLine(media.MimeType);
             media.ByteLength = Math.Max(0, media.ByteLength);
             media.ResolvedPath = string.Empty;
@@ -596,6 +593,27 @@ public sealed class WorkspaceStore
         {
             throw new InvalidDataException($"{field} contains unsupported value '{value}'.");
         }
+    }
+
+    private static string NormalizeManagedMediaPath(string? value, string title)
+    {
+        string path = NormalizeOptionalSingleLine(value).Replace('\\', '/');
+        if (path.Length == 0
+            || Path.IsPathRooted(path)
+            || path.Contains(':', StringComparison.Ordinal))
+        {
+            throw new InvalidDataException($"Clipboard media '{title}' must use a managed path under media/.");
+        }
+
+        string[] segments = path.Split('/', StringSplitOptions.None);
+        if (segments.Length < 2
+            || !segments[0].Equals("media", StringComparison.OrdinalIgnoreCase)
+            || segments.Any(segment => segment.Length == 0 || segment is "." or ".."))
+        {
+            throw new InvalidDataException($"Clipboard media '{title}' must use a managed path under media/.");
+        }
+
+        return string.Join('/', segments);
     }
 
     private static string NormalizeText(string? value, string fallback) =>
