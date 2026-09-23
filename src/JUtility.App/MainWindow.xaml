@@ -1098,55 +1098,162 @@
 
               <TabItem Header="Clipboard">
                 <Grid Margin="12">
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
 
-                  <Grid Grid.Column="0" Margin="0,0,8,0">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <DockPanel>
-                      <StackPanel>
-                        <TextBlock Text="Clipboard Library" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="One-click reusable text and premade prompts" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
-                      </StackPanel>
-                      <Button Content="+ Snippet" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
-                    </DockPanel>
-
-                    <ListBox x:Name="SnippetList" Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8" KeyDown="SnippetList_KeyDown" AutomationProperties.Name="Clipboard snippets" AutomationProperties.HelpText="Press Enter or Ctrl+C to copy the selected snippet.">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
-                          <Border Padding="7">
-                            <StackPanel>
-                              <DockPanel>
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                              </DockPanel>
-                              <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
-                            </StackPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Button Grid.Row="2" Content="Delete selected snippet" Click="DeleteSnippet_Click"/>
-                  </Grid>
-
-                  <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedSnippet}">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <DockPanel Margin="0,0,0,8">
                     <StackPanel>
-                      <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" AutomationProperties.Name="Clipboard snippet title"/>
-                      <WrapPanel>
-                        <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus" AutomationProperties.Name="Clipboard snippet category"/>
-                        <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags" AutomationProperties.Name="Clipboard snippet tags"/>
-                        <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="SnippetPinChanged_Click"/>
-                      </WrapPanel>
+                      <TextBlock Text="Clipboard Library" FontSize="20" FontWeight="SemiBold"/>
+                      <TextBlock Text="Reusable text, screenshots and short clips organized by project and category." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
                     </StackPanel>
-
-                    <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" AutomationProperties.Name="Clipboard snippet text"/>
-
-                    <WrapPanel Grid.Row="2">
-                      <Button Content="Copy now" Click="CopySnippet_Click"/>
-                      <TextBlock Text="Use Prompt Builder when several modules need to be composed together." VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8"/>
+                    <WrapPanel HorizontalAlignment="Right">
+                      <Button Content="Paste image" Click="PasteClipboardImage_Click" ToolTip="Save the image currently on the Windows clipboard"/>
+                      <Button Content="Import media" Click="ImportClipboardMedia_Click" ToolTip="Import PNG/JPG/WebP/GIF images or short MP4/WebM/MOV clips"/>
                     </WrapPanel>
-                  </Grid>
+                  </DockPanel>
+
+                  <TabControl Grid.Row="1">
+                    <TabItem Header="Text">
+                      <Grid Margin="6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                          <DockPanel>
+                            <StackPanel>
+                              <TextBlock Text="Snippets" FontSize="16" FontWeight="SemiBold"/>
+                              <TextBlock Text="Commands, URLs, signatures and reusable text" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                            </StackPanel>
+                            <Button Content="+ Snippet" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
+                          </DockPanel>
+
+                          <ListBox x:Name="SnippetList" Grid.Row="1" ItemsSource="{Binding ClipboardSnippets}" SelectedItem="{Binding SelectedSnippet}" Margin="0,8" KeyDown="SnippetList_KeyDown" AutomationProperties.Name="Clipboard snippets" AutomationProperties.HelpText="Press Enter or Ctrl+C to copy the selected snippet.">
+                            <ListBox.ItemTemplate>
+                              <DataTemplate>
+                                <Border Padding="7">
+                                  <StackPanel>
+                                    <DockPanel>
+                                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                      <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                                  </StackPanel>
+                                </Border>
+                              </DataTemplate>
+                            </ListBox.ItemTemplate>
+                          </ListBox>
+
+                          <Button Grid.Row="2" Content="Delete selected snippet" Click="DeleteSnippet_Click"/>
+                        </Grid>
+
+                        <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedSnippet}">
+                          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                          <StackPanel>
+                            <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" AutomationProperties.Name="Clipboard snippet title"/>
+                            <WrapPanel>
+                              <TextBox Width="190" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category" LostFocus="Category_LostFocus" AutomationProperties.Name="Clipboard snippet category"/>
+                              <TextBox Width="300" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags" AutomationProperties.Name="Clipboard snippet tags"/>
+                              <CheckBox Content="Pin to top ribbon" IsChecked="{Binding IsPinned}" Margin="8" Click="SnippetPinChanged_Click"/>
+                            </WrapPanel>
+                          </StackPanel>
+
+                          <TextBox Grid.Row="1" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3,8" AutomationProperties.Name="Clipboard snippet text"/>
+
+                          <WrapPanel Grid.Row="2">
+                            <Button Content="Copy now" Click="CopySnippet_Click"/>
+                            <TextBlock Text="Prompt Builder remains separate for composed multi-module prompts." VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8"/>
+                          </WrapPanel>
+                        </Grid>
+                      </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Images &amp; clips">
+                      <Grid Margin="6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*"/><ColumnDefinition Width="1.5*"/></Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                          <DockPanel>
+                            <StackPanel>
+                              <TextBlock Text="Media collection" FontSize="16" FontWeight="SemiBold"/>
+                              <TextBlock Text="Screenshots and small reference clips stored locally" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                            </StackPanel>
+                          </DockPanel>
+
+                          <ListBox x:Name="MediaList"
+                                   Grid.Row="1"
+                                   ItemsSource="{Binding ClipboardMedia}"
+                                   SelectedItem="{Binding SelectedMedia}"
+                                   Margin="0,8"
+                                   AutomationProperties.Name="Clipboard images and clips">
+                            <ListBox.ItemTemplate>
+                              <DataTemplate>
+                                <Border Padding="7">
+                                  <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="48" Height="42" Background="#EEF2F7" CornerRadius="5">
+                                      <TextBlock Text="{Binding Kind}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                      <DockPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                      </DockPanel>
+                                      <TextBlock Text="{Binding FileName}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                      <TextBlock Text="{Binding Tags}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                  </Grid>
+                                </Border>
+                              </DataTemplate>
+                            </ListBox.ItemTemplate>
+                          </ListBox>
+                        </Grid>
+
+                        <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedMedia}">
+                          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+                          <StackPanel>
+                            <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" LostFocus="ClipboardMediaChanged" AutomationProperties.Name="Media title"/>
+                            <WrapPanel>
+                              <TextBox Width="180" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category such as Personal, Portfolio, Foil or Datapass" LostFocus="ClipboardMediaChanged" AutomationProperties.Name="Media category"/>
+                              <TextBox Width="260" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tags" LostFocus="ClipboardMediaChanged" AutomationProperties.Name="Media tags"/>
+                              <ComboBox Width="190"
+                                        ItemsSource="{Binding DataContext.Projects, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        DisplayMemberPath="Name"
+                                        SelectedValuePath="Id"
+                                        SelectedValue="{Binding ProjectId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SelectionChanged="ClipboardMediaChanged"
+                                        ToolTip="Associated project"
+                                        AutomationProperties.Name="Media project"/>
+                              <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="8" Click="ClipboardMediaChanged"/>
+                            </WrapPanel>
+                            <TextBlock Text="{Binding Kind}" Foreground="{StaticResource MutedBrush}" Margin="3,3,0,0"/>
+                          </StackPanel>
+
+                          <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="3,8" Padding="8">
+                            <Grid>
+                              <Image Source="{Binding ResolvedPath}" Stretch="Uniform" MaxHeight="470"/>
+                              <TextBlock Text="Video clips open in the default Windows player. Images preview here."
+                                         Foreground="{StaticResource MutedBrush}"
+                                         Background="#CCFFFFFF"
+                                         Padding="6,3"
+                                         VerticalAlignment="Bottom"
+                                         HorizontalAlignment="Center"/>
+                            </Grid>
+                          </Border>
+
+                          <WrapPanel Grid.Row="2">
+                            <Button Content="Copy" Click="CopyClipboardMedia_Click"/>
+                            <Button Content="Open" Click="OpenClipboardMedia_Click"/>
+                            <Button Content="Delete" Click="DeleteClipboardMedia_Click"/>
+                            <TextBlock Text="{Binding RelativePath}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+                          </WrapPanel>
+                        </Grid>
+                      </Grid>
+                    </TabItem>
+                  </TabControl>
                 </Grid>
               </TabItem>
 
