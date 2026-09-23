@@ -159,27 +159,45 @@ Transcript is a long-text mode using the same local item model, not a separate a
 
 Exports should support at least JSON and Markdown. CSV can be added for list-like captures.
 
-### 5. Clipboard / Prompt Library
+### 5. Clipboard Library
 
-Purpose: copy reusable text instantly.
+Purpose: keep frequently copied text and visual references immediately available without turning the app into a full asset-management system.
 
-Two surfaces share the same module:
+Clipboard contains two internal surfaces:
 
-- **Snippets** — one-click copy for premade prompts, commands, URLs, signatures, fragments, etc.
-- **Prompt Builder** — the existing modular prompt composer with variables and project context.
+- **Text** — one-click copy for premade prompts, commands, URLs, signatures, fragments, etc.
+- **Images & clips** — screenshots pasted from the Windows clipboard plus imported image files and short reference videos.
 
-Snippet fields:
+Text snippet fields:
 
 - title
 - category
 - text
-- pinned/favorite
+- pinned
 - sort order
 - optional tags
 
-The top ribbon can expose pinned snippets for one-click copy.
+Media fields:
 
-### 6. Dashboard
+- image/video kind
+- title
+- category
+- tags
+- optional project association
+- workspace-relative managed-file path
+- MIME type and byte size
+- pinned state
+- created/updated timestamps
+
+Media bytes are stored in `<workspace>/media/`; `workspace.json` stores metadata and relative paths only. This keeps JSON export small enough for AI audit and keeps custom `--data-dir` workspaces portable.
+
+The top ribbon can expose pinned text snippets. Media search/filtering participates in the same Clipboard category pane.
+
+### 6. Prompt Builder
+
+Prompt Builder remains a separate primary module because it composes ordered reusable modules, project variables and recent prompt history rather than acting as a single clipboard item.
+
+### 7. Dashboard
 
 Dashboard is summary/navigation, not another editor.
 
@@ -229,8 +247,9 @@ Power Ops
 │  ├─ Read later
 │  └─ Transcripts
 ├─ Clipboard
-│  ├─ Snippets
-│  └─ Prompt Builder
+│  ├─ Text
+│  └─ Images & clips
+├─ Prompt Builder
 └─ Settings
 ```
 
