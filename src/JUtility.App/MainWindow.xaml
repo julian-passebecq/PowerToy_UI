@@ -1224,7 +1224,7 @@
                                         DisplayMemberPath="Name"
                                         SelectedValuePath="Id"
                                         SelectedValue="{Binding ProjectId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        SelectionChanged="ClipboardMediaChanged"
+                                        LostFocus="ClipboardMediaChanged"
                                         ToolTip="Associated project"
                                         AutomationProperties.Name="Media project"/>
                               <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="8" Click="ClipboardMediaChanged"/>
@@ -1234,13 +1234,35 @@
 
                           <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="3,8" Padding="8">
                             <Grid>
-                              <Image Source="{Binding ResolvedPath}" Stretch="Uniform" MaxHeight="470"/>
-                              <TextBlock Text="Video clips open in the default Windows player. Images preview here."
+                              <Image Source="{Binding ResolvedPath}" Stretch="Uniform" MaxHeight="470">
+                                <Image.Style>
+                                  <Style TargetType="Image">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding Kind}" Value="Video">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </Image.Style>
+                              </Image>
+                              <TextBlock Text="Video clip — open with the default Windows player"
+                                         FontSize="15"
+                                         FontWeight="SemiBold"
                                          Foreground="{StaticResource MutedBrush}"
-                                         Background="#CCFFFFFF"
-                                         Padding="6,3"
-                                         VerticalAlignment="Bottom"
-                                         HorizontalAlignment="Center"/>
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                  <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding Kind}" Value="Video">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </TextBlock.Style>
+                              </TextBlock>
                             </Grid>
                           </Border>
 
