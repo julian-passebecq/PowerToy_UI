@@ -168,6 +168,32 @@ public sealed class ClipboardSnippetEntry
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public enum ClipboardMediaKind
+{
+    Image,
+    Video,
+}
+
+public sealed class ClipboardMediaEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public ClipboardMediaKind Kind { get; set; } = ClipboardMediaKind.Image;
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = "Personal";
+    public string Tags { get; set; } = string.Empty;
+    public Guid? ProjectId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string RelativePath { get; set; } = string.Empty;
+    public string MimeType { get; set; } = string.Empty;
+    public long ByteLength { get; set; }
+    public bool IsPinned { get; set; }
+    public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string ResolvedPath { get; set; } = string.Empty;
+}
+
 public enum CaptureKind
 {
     Inbox,
@@ -219,7 +245,7 @@ public sealed class StickyNoteEntry
 
 public sealed class WorkspaceState
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();
@@ -229,6 +255,7 @@ public sealed class WorkspaceState
     public List<ToolLauncherEntry> Tools { get; set; } = [];
     public List<WorkspaceResourceEntry> Resources { get; set; } = [];
     public List<ClipboardSnippetEntry> ClipboardSnippets { get; set; } = [];
+    public List<ClipboardMediaEntry> ClipboardMedia { get; set; } = [];
     public List<PromptModuleEntry> PromptModules { get; set; } = [];
     public List<RecentPromptEntry> RecentPrompts { get; set; } = [];
     public List<StickyNoteEntry> Notes { get; set; } = [];
