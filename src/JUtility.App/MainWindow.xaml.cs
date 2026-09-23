@@ -290,6 +290,20 @@ public partial class MainWindow : Window
         PortalList.ItemsSource = _portalView;
 
         _toolView = CollectionViewSource.GetDefaultView(_viewModel.Tools);
+        _toolView.Filter = item =>
+        {
+            if (item is not ToolLauncherEntry tool) return false;
+            string filter = GetModuleFilter("Tools");
+            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase) && !tool.IsPinned) return false;
+            if (!filter.Equals("all", StringComparison.OrdinalIgnoreCase)
+                && !filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(tool.Category, filter, StringComparison.OrdinalIgnoreCase)) return false;
+
+            string search = GetModuleSearch("Tools");
+            return string.IsNullOrWhiteSpace(search)
+                || string.Join(" ", tool.Name, tool.Category, tool.Command, tool.Arguments, tool.WorkingDirectory)
+                    .Contains(search, StringComparison.OrdinalIgnoreCase);
+        };
         _toolView.SortDescriptions.Clear();
         _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.IsPinned), ListSortDirection.Descending));
         _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.SortOrder), ListSortDirection.Ascending));
