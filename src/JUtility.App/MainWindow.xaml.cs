@@ -2559,7 +2559,7 @@ public partial class MainWindow : Window
 
     private void ClipboardMediaChanged(object sender, RoutedEventArgs e)
     {
-        if (!_loaded || _viewModel.SelectedMedia is not ClipboardMediaEntry media)
+        if (!_loaded || (sender as FrameworkElement)?.DataContext is not ClipboardMediaEntry media)
         {
             return;
         }
