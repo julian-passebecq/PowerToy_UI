@@ -1538,6 +1538,110 @@ Check("recent prompt history is deduplicated and capped during normalization", (
     }
 });
 
+Check("clipboard media metadata round-trips in schema v6", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityClipboardMedia-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        Guid projectId = state.Projects.First().Id;
+        state.ClipboardMedia.Add(new ClipboardMediaEntry
+        {
+            Kind = ClipboardMediaKind.Image,
+            Title = "Architecture screenshot",
+            Category = "Datapass",
+            Tags = "architecture,reference",
+            ProjectId = projectId,
+            FileName = "abc.png",
+            RelativePath = "media/abc.png",
+            MimeType = "image/png",
+            ByteLength = 12345,
+            IsPinned = true,
+        });
+
+        store.Save(state);
+        WorkspaceState loaded = store.Load();
+        ClipboardMediaEntry media = loaded.ClipboardMedia.Single();
+
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+        True(media.Kind == ClipboardMediaKind.Image);
+        Equal("Architecture screenshot", media.Title);
+        Equal("Datapass", media.Category);
+        Equal("media/abc.png", media.RelativePath);
+        Equal("", media.ResolvedPath);
+        True(media.ProjectId == projectId);
+        True(media.ByteLength == 12345);
+        True(media.IsPinned);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("schema v5 workspace migrates to v6 with empty clipboard media", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityV5ClipboardMediaMigration-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        Directory.CreateDirectory(root);
+        File.WriteAllText(
+            Path.Combine(root, "workspace.json"),
+            "{\"SchemaVersion\":5,\"Projects\":[],\"RepositoryLists\":[],\"Portals\":[],\"Tools\":[],\"Resources\":[],\"ClipboardSnippets\":[],\"PromptModules\":[],\"RecentPrompts\":[],\"Notes\":[]}");
+
+        WorkspaceStore store = new(root);
+        WorkspaceState loaded = store.Load();
+
+        True(loaded.SchemaVersion == WorkspaceState.CurrentSchemaVersion);
+        True(loaded.ClipboardMedia.Count == 0);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("clipboard media rejects rooted paths", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityClipboardMediaPathGuard-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
+        state.ClipboardMedia.Add(new ClipboardMediaEntry
+        {
+            Title = "Unsafe",
+            RelativePath = OperatingSystem.IsWindows() ? @"C:\temp\unsafe.png" : "/tmp/unsafe.png",
+        });
+
+        bool threw = false;
+        try
+        {
+            store.Save(state);
+        }
+        catch (InvalidDataException)
+        {
+            threw = true;
+        }
+
+        True(threw);
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
 Check("v3 workspace migrates to schema v4 with an empty Resource Hub", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityV3ResourceMigration-" + Guid.NewGuid().ToString("N"));
