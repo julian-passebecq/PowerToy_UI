@@ -245,6 +245,7 @@ public sealed class WorkspaceStore
         || name.Equals(nameof(WorkspaceState.Tools), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Resources), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.ClipboardSnippets), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.ClipboardMedia), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.PromptModules), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.RecentPrompts), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Notes), StringComparison.OrdinalIgnoreCase);
@@ -337,6 +338,7 @@ public sealed class WorkspaceStore
         state.Tools = (state.Tools ?? []).Where(item => item is not null).ToList();
         state.Resources = (state.Resources ?? []).Where(item => item is not null).ToList();
         state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
+        state.ClipboardMedia = (state.ClipboardMedia ?? []).Where(item => item is not null).ToList();
         state.PromptModules = (state.PromptModules ?? []).Where(item => item is not null).ToList();
         state.RecentPrompts = (state.RecentPrompts ?? []).Where(item => item is not null).ToList();
         state.Notes = (state.Notes ?? []).Where(item => item is not null).ToList();
@@ -351,6 +353,7 @@ public sealed class WorkspaceStore
         ValidateUniqueIds(state.Tools, item => item.Id, "Tools");
         ValidateUniqueIds(state.Resources, item => item.Id, "Resources");
         ValidateUniqueIds(state.ClipboardSnippets, item => item.Id, "ClipboardSnippets");
+        ValidateUniqueIds(state.ClipboardMedia, item => item.Id, "ClipboardMedia");
         ValidateUniqueIds(state.PromptModules, item => item.Id, "PromptModules");
         ValidateUniqueIds(state.RecentPrompts, item => item.Id, "RecentPrompts");
         ValidateUniqueIds(state.Notes, item => item.Id, "Notes");
@@ -379,6 +382,20 @@ public sealed class WorkspaceStore
             if (resource.SourceProjectId == Guid.Empty)
             {
                 throw new InvalidDataException($"Resource '{resource.Name}' contains an empty SourceProjectId.");
+            }
+        }
+
+        foreach (ClipboardMediaEntry media in state.ClipboardMedia)
+        {
+            ValidateEnum(media.Kind, $"ClipboardMedia[{media.Title}].Kind");
+            if (media.ProjectId == Guid.Empty)
+            {
+                throw new InvalidDataException($"Clipboard media '{media.Title}' contains an empty ProjectId.");
+            }
+
+            if (Path.IsPathRooted(media.RelativePath))
+            {
+                throw new InvalidDataException($"Clipboard media '{media.Title}' must use a workspace-relative path.");
             }
         }
 
@@ -471,6 +488,18 @@ public sealed class WorkspaceStore
             snippet.Category = NormalizeText(snippet.Category, "General");
             snippet.Text = NullToEmpty(snippet.Text);
             snippet.Tags = NormalizeOptionalSingleLine(snippet.Tags);
+        }
+
+        foreach (ClipboardMediaEntry media in state.ClipboardMedia)
+        {
+            media.Title = NormalizeText(media.Title, media.Kind == ClipboardMediaKind.Video ? "Untitled clip" : "Untitled image");
+            media.Category = NormalizeText(media.Category, "Personal");
+            media.Tags = NormalizeOptionalSingleLine(media.Tags);
+            media.FileName = NormalizeOptionalSingleLine(media.FileName);
+            media.RelativePath = NormalizeOptionalSingleLine(media.RelativePath).Replace('\\', '/');
+            media.MimeType = NormalizeOptionalSingleLine(media.MimeType);
+            media.ByteLength = Math.Max(0, media.ByteLength);
+            media.ResolvedPath = string.Empty;
         }
 
         foreach (StickyNoteEntry note in state.Notes)
