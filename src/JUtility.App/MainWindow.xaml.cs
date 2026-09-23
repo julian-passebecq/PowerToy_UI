@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using JUtility.App.Services;
 using JUtility.App.ViewModels;
@@ -77,6 +78,7 @@ public partial class MainWindow : Window
     };
 
     private readonly MainViewModel _viewModel;
+    private readonly ClipboardMediaStorageService _mediaStorage;
     private readonly GlobalMouseSummonService _summonService = new();
     private bool _temporaryPin;
     private bool _suppressAutoHide;
@@ -103,6 +105,7 @@ public partial class MainWindow : Window
     private ICollectionView? _sidebarCaptureView;
     private ICollectionView? _sidebarResourceView;
     private ICollectionView? _snippetView;
+    private ICollectionView? _mediaView;
     private ICollectionView? _sidebarSnippetView;
     private ICollectionView? _promptView;
     private string _activeModule = "Dashboard";
@@ -118,6 +121,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _viewModel = new MainViewModel(store);
+        _mediaStorage = new ClipboardMediaStorageService(_viewModel.DataDirectory);
+        ResolveClipboardMediaPaths();
         DataContext = _viewModel;
         SecondaryNav.ItemsSource = _secondaryNavItems;
         QuickRibbon.ItemsSource = _quickRibbonItems;
@@ -456,6 +461,35 @@ public partial class MainWindow : Window
         _snippetView.SortDescriptions.Add(new SortDescription(nameof(ClipboardSnippetEntry.Title), ListSortDirection.Ascending));
         SnippetList.ItemsSource = _snippetView;
 
+        _mediaView = CollectionViewSource.GetDefaultView(_viewModel.ClipboardMedia);
+        _mediaView.Filter = item =>
+        {
+            if (item is not ClipboardMediaEntry media) return false;
+            string shellSearch = GetModuleSearch("Clipboard");
+            if (!string.IsNullOrWhiteSpace(shellSearch))
+            {
+                string projectName = media.ProjectId is Guid projectId
+                    ? _viewModel.Projects.FirstOrDefault(project => project.Id == projectId)?.Name ?? string.Empty
+                    : string.Empty;
+                string haystack = string.Join(" ", media.Title, media.Category, media.Tags, media.FileName, media.Kind, projectName);
+                if (!haystack.Contains(shellSearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            string filter = GetModuleFilter("Clipboard");
+            if (filter == "all") return true;
+            if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase)) return media.IsPinned;
+            if (filter.Equals("images", StringComparison.OrdinalIgnoreCase)) return media.Kind == ClipboardMediaKind.Image;
+            if (filter.Equals("videos", StringComparison.OrdinalIgnoreCase)) return media.Kind == ClipboardMediaKind.Video;
+            return string.Equals(media.Category, filter, StringComparison.OrdinalIgnoreCase);
+        };
+        _mediaView.SortDescriptions.Clear();
+        _mediaView.SortDescriptions.Add(new SortDescription(nameof(ClipboardMediaEntry.IsPinned), ListSortDirection.Descending));
+        _mediaView.SortDescriptions.Add(new SortDescription(nameof(ClipboardMediaEntry.UpdatedUtc), ListSortDirection.Descending));
+        MediaList.ItemsSource = _mediaView;
+
         _sidebarSnippetView = new ListCollectionView((IList)_viewModel.ClipboardSnippets)
         {
             Filter = item => item is ClipboardSnippetEntry snippet && SidebarQuickAccessPolicy.IncludeSnippet(snippet),
@@ -742,15 +776,23 @@ public partial class MainWindow : Window
                 break;
 
             case "Clipboard":
-                SecondaryTitle.Text = "Clipboard categories";
-                SecondaryHint.Text = "Filter reusable text";
-                Add("all", "All snippets", _viewModel.ClipboardSnippets.Count);
-                Add("pinned", "Pinned to ribbon", _viewModel.ClipboardSnippets.Count(snippet => snippet.IsPinned));
-                foreach (IGrouping<string, ClipboardSnippetEntry> group in _viewModel.ClipboardSnippets
-                    .GroupBy(snippet => string.IsNullOrWhiteSpace(snippet.Category) ? "General" : snippet.Category, StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                SecondaryTitle.Text = "Clipboard library";
+                SecondaryHint.Text = "Text, screenshots and short clips";
+                Add("all", "All items", _viewModel.ClipboardSnippets.Count + _viewModel.ClipboardMedia.Count);
+                Add("pinned", "Pinned", _viewModel.ClipboardSnippets.Count(snippet => snippet.IsPinned) + _viewModel.ClipboardMedia.Count(media => media.IsPinned));
+                Add("images", "Images", _viewModel.ClipboardMedia.Count(media => media.Kind == ClipboardMediaKind.Image));
+                Add("videos", "Clips", _viewModel.ClipboardMedia.Count(media => media.Kind == ClipboardMediaKind.Video));
+
+                IEnumerable<string> clipboardCategories = _viewModel.ClipboardSnippets
+                    .Select(snippet => string.IsNullOrWhiteSpace(snippet.Category) ? "General" : snippet.Category)
+                    .Concat(_viewModel.ClipboardMedia.Select(media => string.IsNullOrWhiteSpace(media.Category) ? "Personal" : media.Category))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(category => category, StringComparer.OrdinalIgnoreCase);
+                foreach (string category in clipboardCategories)
                 {
-                    Add(group.Key, group.Key, group.Count());
+                    int count = _viewModel.ClipboardSnippets.Count(snippet => string.Equals(snippet.Category, category, StringComparison.OrdinalIgnoreCase))
+                        + _viewModel.ClipboardMedia.Count(media => string.Equals(media.Category, category, StringComparison.OrdinalIgnoreCase));
+                    Add(category, category, count);
                 }
                 break;
 
@@ -903,7 +945,7 @@ public partial class MainWindow : Window
             case "System": _systemReferenceView?.Refresh(); break;
             case "Resources": _resourceView?.Refresh(); break;
             case "Capture": _captureView?.Refresh(); break;
-            case "Clipboard": _snippetView?.Refresh(); break;
+            case "Clipboard": _snippetView?.Refresh(); _mediaView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
         }
     }
@@ -1281,6 +1323,22 @@ public partial class MainWindow : Window
         item.Category = filter;
     }
 
+    private static void ApplyCurrentCategory(ClipboardMediaEntry? item, string filter)
+    {
+        if (item is null || filter == "all" || filter.Equals("images", StringComparison.OrdinalIgnoreCase) || filter.Equals("videos", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (filter.Equals("pinned", StringComparison.OrdinalIgnoreCase))
+        {
+            item.IsPinned = true;
+            return;
+        }
+
+        item.Category = filter;
+    }
+
     private static void ApplyCurrentResourceContext(WorkspaceResourceEntry? resource, string filter)
     {
         if (resource is null || filter == "all")
@@ -1371,6 +1429,7 @@ public partial class MainWindow : Window
         _captureView?.Refresh();
         _sidebarCaptureView?.Refresh();
         _snippetView?.Refresh();
+        _mediaView?.Refresh();
         _sidebarSnippetView?.Refresh();
         _promptView?.Refresh();
         RefreshSecondaryNavigation();
@@ -2371,6 +2430,210 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PasteClipboardImage_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!Clipboard.ContainsImage())
+            {
+                _viewModel.StatusText = "Clipboard does not contain an image";
+                return;
+            }
+
+            BitmapSource? image = Clipboard.GetImage();
+            if (image is null)
+            {
+                _viewModel.StatusText = "Clipboard image could not be read";
+                return;
+            }
+
+            ClipboardMediaEntry media = _mediaStorage.SaveClipboardImage(image);
+            ApplyCurrentCategory(media, GetModuleFilter("Clipboard"));
+            _viewModel.AddClipboardMedia(media);
+            RefreshAfterDataChange();
+            SafeSave(showError: true);
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Could not save clipboard image";
+            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+        }
+    }
+
+    private void ImportClipboardMedia_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dialog = new()
+        {
+            Multiselect = true,
+            Filter = "Images and clips|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp;*.mp4;*.webm;*.mov;*.m4v|Images|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp|Video clips|*.mp4;*.webm;*.mov;*.m4v|All files|*.*",
+        };
+
+        _suppressAutoHide = true;
+        try
+        {
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            int imported = 0;
+            foreach (string fileName in dialog.FileNames)
+            {
+                ClipboardMediaEntry media = _mediaStorage.ImportFile(fileName);
+                ApplyCurrentCategory(media, GetModuleFilter("Clipboard"));
+                _viewModel.AddClipboardMedia(media);
+                imported++;
+            }
+
+            RefreshAfterDataChange();
+            SafeSave(showError: true);
+            _viewModel.StatusText = $"Imported {imported} media item(s)";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Media import failed";
+            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _suppressAutoHide = false;
+        }
+    }
+
+    private void ClipboardMediaChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_loaded || _viewModel.SelectedMedia is not ClipboardMediaEntry media)
+        {
+            return;
+        }
+
+        media.UpdatedUtc = DateTimeOffset.UtcNow;
+        _mediaView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        SafeSave();
+    }
+
+    private void CopyClipboardMedia_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedMedia is not ClipboardMediaEntry media)
+        {
+            _viewModel.StatusText = "No media selected";
+            return;
+        }
+
+        try
+        {
+            string path = _mediaStorage.ResolveRelativePath(media.RelativePath);
+            if (!File.Exists(path))
+            {
+                _viewModel.StatusText = "Media file is missing";
+                return;
+            }
+
+            if (media.Kind == ClipboardMediaKind.Image)
+            {
+                BitmapImage image = new();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(path, UriKind.Absolute);
+                image.EndInit();
+                image.Freeze();
+                Clipboard.SetImage(image);
+                _viewModel.StatusText = "Image copied to clipboard";
+            }
+            else
+            {
+                DataObject data = new();
+                data.SetData(DataFormats.FileDrop, new[] { path });
+                Clipboard.SetDataObject(data, true);
+                _viewModel.StatusText = "Video file copied to clipboard";
+            }
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Media copy failed";
+            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+        }
+    }
+
+    private void OpenClipboardMedia_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedMedia is not ClipboardMediaEntry media)
+        {
+            _viewModel.StatusText = "No media selected";
+            return;
+        }
+
+        try
+        {
+            string path = _mediaStorage.ResolveRelativePath(media.RelativePath);
+            if (!File.Exists(path))
+            {
+                _viewModel.StatusText = "Media file is missing";
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            _viewModel.StatusText = $"Opened {media.Title}";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Media open failed";
+            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+        }
+    }
+
+    private void DeleteClipboardMedia_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedMedia is not ClipboardMediaEntry media)
+        {
+            _viewModel.StatusText = "No media selected";
+            return;
+        }
+
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            $"Delete '{media.Title}' from the clipboard library?\n\nThe managed local file will also be deleted.",
+            "Delete media",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            _mediaStorage.DeleteManagedFile(media);
+            _viewModel.RemoveClipboardMedia(media);
+            RefreshAfterDataChange();
+            SafeSave(showError: true);
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Media deletion failed";
+            ShowOwnedMessage(ex.Message, "Clipboard media", MessageBoxImage.Warning);
+        }
+    }
+
+    private void ResolveClipboardMediaPaths()
+    {
+        foreach (ClipboardMediaEntry media in _viewModel.ClipboardMedia)
+        {
+            try
+            {
+                _mediaStorage.ResolvePath(media);
+            }
+            catch
+            {
+                media.ResolvedPath = string.Empty;
+            }
+        }
+    }
+
     private void ArchiveProject_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not ProjectEntry project)
@@ -3284,6 +3547,7 @@ public partial class MainWindow : Window
                 + $"Resources: {candidate.Resources.Count}\n"
                 + $"Captures: {candidate.Notes.Count}\n"
                 + $"Clipboard snippets: {candidate.ClipboardSnippets.Count}\n"
+                + $"Clipboard media: {candidate.ClipboardMedia.Count}\n"
                 + $"Prompt modules: {candidate.PromptModules.Count}\n\n"
                 + "Canceling leaves the current workspace unchanged.";
 
@@ -3310,6 +3574,7 @@ public partial class MainWindow : Window
             try
             {
                 _viewModel.CommitImport(candidate);
+                ResolveClipboardMediaPaths();
                 _moduleFilters.Clear();
                 _moduleSearchTerms.Clear();
                 _activeRepositoryFamilies.Clear();
