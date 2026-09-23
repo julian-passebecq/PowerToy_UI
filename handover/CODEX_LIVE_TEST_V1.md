@@ -24,6 +24,12 @@ Updated: 2026-09-23
 
 This branch was created from the green Power Ops head after the clipboard/media debug pass.
 
+Implementation baseline under test:
+
+`95eed387e6719765d05ccbbaa0190bf0fbdcd9f5`
+
+That baseline passed Windows CI run **#302** before the handoff-only files were added. Codex must still rerun the local build/smoke gate on this branch before live UI testing.
+
 Source branch:
 
 `codex/power-ops-suite`
