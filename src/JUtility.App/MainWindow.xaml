@@ -141,6 +141,8 @@
                     SelectionChanged="WindowBehavior_Changed"/>
           <CheckBox x:Name="TemporaryPinCheck" Content="Keep open" Margin="8,0,4,0" VerticalAlignment="Center"
                     Checked="TemporaryPin_Changed" Unchecked="TemporaryPin_Changed"/>
+          <Button Content="Hide" Click="HideWindow_Click" ToolTip="Hide in Summon mode; minimize otherwise"/>
+          <Button Content="Quit" Click="Quit_Click"/>
           <Button Content="Save" Click="Save_Click"/>
         </WrapPanel>
       </DockPanel>
@@ -293,6 +295,7 @@
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Dashboard" Click="PrimaryNav_Click" Content="▦  Dashboard" AutomationProperties.Name="Dashboard"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Repository Hub" Click="PrimaryNav_Click" Content="◫  Repository Hub" AutomationProperties.Name="Repository Hub"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Portals" Click="PrimaryNav_Click" Content="↗  Portal Launcher" AutomationProperties.Name="Portal Launcher"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Tools" Click="PrimaryNav_Click" Content="▶  Tool Launcher" AutomationProperties.Name="Tool Launcher"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Resources" Click="PrimaryNav_Click" Content="◆  Resource Hub" AutomationProperties.Name="Resource Hub"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture" AutomationProperties.Name="Capture"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard" AutomationProperties.Name="Clipboard"/>
@@ -428,6 +431,23 @@
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="4,16,4,0">
+                      <StackPanel>
+                        <DockPanel>
+                          <TextBlock Text="Pinned local tools" FontSize="15" FontWeight="SemiBold"/>
+                          <Button Content="Tool Launcher →" HorizontalAlignment="Right" Tag="Tools" Click="PrimaryNav_Click"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Tools}">
+                          <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Button Content="{Binding Name}" Tag="{Binding}" Click="LaunchTool_Click" Margin="3" ToolTip="{Binding Command}"/>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
 
                     <Grid Margin="4,16,4,0">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
@@ -686,6 +706,17 @@
                                 </StackPanel>
                               </Grid>
 
+                              <ItemsControl ItemsSource="{Binding QuickActions}" Margin="42,5,0,0">
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <Button Content="{Binding Label}" Tag="{Binding Url}" Click="OpenUrl_Click" Padding="8,3" MinHeight="24" ToolTip="{Binding Note}"/>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+
                               <ItemsControl ItemsSource="{Binding Links}" Margin="42,5,0,0">
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate>
@@ -730,10 +761,23 @@
                       </DockPanel>
                     </StackPanel>
 
-                    <DockPanel Grid.Row="1" Margin="0,10,0,4">
-                      <TextBlock Text="Project-specific sub-links" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                      <Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/>
-                    </DockPanel>
+                    <StackPanel Grid.Row="1" Margin="0,10,0,4">
+                      <DockPanel>
+                        <TextBlock Text="Quick actions · up to 3 recommended" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="+ Quick action" HorizontalAlignment="Right" Click="AddPortalQuickAction_Click"/>
+                      </DockPanel>
+                      <DataGrid x:Name="PortalQuickActionsGrid" ItemsSource="{Binding QuickActions}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" MaxHeight="155" Margin="0,4,0,8">
+                        <DataGrid.Columns>
+                          <DataGridTextColumn Header="Action" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                          <DataGridTextColumn Header="URL" Binding="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
+                          <DataGridTemplateColumn Header="" Width="55"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="×" Tag="{Binding}" Click="DeletePortalQuickAction_Click"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                      </DataGrid>
+                      <DockPanel>
+                        <TextBlock Text="Project-specific sub-links" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="+ Link" HorizontalAlignment="Right" Click="AddPortalLink_Click"/>
+                      </DockPanel>
+                    </StackPanel>
 
                     <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" AutomationProperties.Name="Portal project links">
                       <DataGrid.Columns>
@@ -756,6 +800,57 @@
                     </DataGrid>
 
                     <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Top-ribbon portal icons open the main URL immediately. Sub-links remain attached to this service for project-specific navigation."/>
+                  </Grid>
+                </Grid>
+              </TabItem>
+
+              <TabItem Header="Tools">
+                <Grid Margin="12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.7*"/></Grid.ColumnDefinitions>
+                  <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <DockPanel>
+                      <StackPanel>
+                        <TextBlock Text="Tool Launcher" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Launch VS Code and your small local PowerToy utilities." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      </StackPanel>
+                      <Button Content="+ Tool" HorizontalAlignment="Right" Click="AddTool_Click"/>
+                    </DockPanel>
+                    <ListBox x:Name="ToolList" Grid.Row="1" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}" Margin="0,8">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
+                            <DockPanel>
+                              <Border Width="36" Height="36" CornerRadius="8" Background="#EAF3FF" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              </Border>
+                              <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              </StackPanel>
+                              <Button Content="Launch" Tag="{Binding}" Click="LaunchTool_Click" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2" Content="Delete selected tool" Click="DeleteTool_Click"/>
+                  </Grid>
+                  <Grid Grid.Column="1" Margin="8,0,0,0" DataContext="{Binding SelectedTool}">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBox Grid.Row="0" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="17" FontWeight="SemiBold" ToolTip="Tool name"/>
+                    <WrapPanel Grid.Row="1">
+                      <TextBox Width="220" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" ToolTip="Category"/>
+                      <TextBox Width="100" Text="{Binding IconKey, UpdateSourceTrigger=PropertyChanged}" ToolTip="Icon key"/>
+                      <CheckBox Content="Pin on dashboard" IsChecked="{Binding IsPinned}" Margin="8"/>
+                    </WrapPanel>
+                    <TextBox Grid.Row="2" Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}" ToolTip="Executable, command, URI or file path"/>
+                    <TextBox Grid.Row="3" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" ToolTip="Optional command arguments"/>
+                    <TextBox Grid.Row="4" Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Optional working directory"/>
+                    <StackPanel Grid.Row="5" Margin="3,12,3,3">
+                      <Button Content="Launch tool" Tag="{Binding}" Click="LaunchTool_Click" HorizontalAlignment="Left"/>
+                      <TextBlock Text="Examples: command = code, wt, an .exe path, a .bat/.cmd file, or another registered Windows command. Arguments can point VS Code at a project folder." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                    </StackPanel>
                   </Grid>
                 </Grid>
               </TabItem>
