@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -27,6 +28,18 @@ public sealed record ShellNavItem(string Key, string Label, int Count, bool IsAc
 public sealed record QuickRibbonItem(string Action, string Key, string Title, string Subtitle, string Glyph, string Accent, string Value = "");
 public sealed record CaptureBoardSection(string Key, string Title, int Count, IReadOnlyList<StickyNoteEntry> Items);
 public sealed record ProjectTreeNode(string Key, string Label, int Count, IReadOnlyList<ProjectTreeNode> Children);
+public sealed record SystemFactItem(string Label, string Value);
+public sealed record SystemReferenceEntry(
+    string Key,
+    string Category,
+    string Title,
+    string Description,
+    string Glyph,
+    string Target,
+    string Arguments,
+    string CopyValue,
+    bool RequiresExistingPath = false,
+    bool IsQuick = false);
 public sealed record CaptureExportEntry(
     Guid Id,
     CaptureKind Kind,
@@ -73,6 +86,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<QuickRibbonItem> _quickRibbonItems = [];
     private readonly ObservableCollection<CaptureBoardSection> _captureBoardSections = [];
     private readonly ObservableCollection<ProjectTreeNode> _projectTreeNodes = [];
+    private readonly ObservableCollection<SystemFactItem> _systemFacts = [];
+    private readonly ObservableCollection<SystemReferenceEntry> _systemReferences = [];
     private readonly Dictionary<string, string> _moduleFilters = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _moduleSearchTerms = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _activeRepositoryFamilies = new(StringComparer.OrdinalIgnoreCase);
@@ -82,6 +97,7 @@ public partial class MainWindow : Window
     private ICollectionView? _portalView;
     private ICollectionView? _sidebarPortalView;
     private ICollectionView? _toolView;
+    private ICollectionView? _systemReferenceView;
     private ICollectionView? _resourceView;
     private ICollectionView? _captureView;
     private ICollectionView? _sidebarCaptureView;
@@ -309,6 +325,30 @@ public partial class MainWindow : Window
         _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.SortOrder), ListSortDirection.Ascending));
         _toolView.SortDescriptions.Add(new SortDescription(nameof(ToolLauncherEntry.Name), ListSortDirection.Ascending));
         ToolList.ItemsSource = _toolView;
+
+        RefreshSystemReferenceData();
+        SystemFactsList.ItemsSource = _systemFacts;
+        _systemReferenceView = CollectionViewSource.GetDefaultView(_systemReferences);
+        _systemReferenceView.Filter = item =>
+        {
+            if (item is not SystemReferenceEntry entry) return false;
+
+            string filter = GetModuleFilter("System");
+            if (!filter.Equals("all", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(entry.Category, filter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string search = GetModuleSearch("System");
+            return string.IsNullOrWhiteSpace(search)
+                || string.Join(" ", entry.Title, entry.Description, entry.Category, entry.CopyValue)
+                    .Contains(search, StringComparison.OrdinalIgnoreCase);
+        };
+        _systemReferenceView.SortDescriptions.Clear();
+        _systemReferenceView.SortDescriptions.Add(new SortDescription(nameof(SystemReferenceEntry.Category), ListSortDirection.Ascending));
+        _systemReferenceView.SortDescriptions.Add(new SortDescription(nameof(SystemReferenceEntry.Title), ListSortDirection.Ascending));
+        SystemReferenceList.ItemsSource = _systemReferenceView;
 
         _sidebarPortalView = new ListCollectionView((IList)_viewModel.Portals)
         {
@@ -542,7 +582,7 @@ public partial class MainWindow : Window
     private static string NormalizeModule(string? module)
     {
         string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
-        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
             ? normalized
             : "Dashboard";
     }
@@ -553,6 +593,7 @@ public partial class MainWindow : Window
         {
             "Portals" => "Portal Launcher",
             "Tools" => "Tool Launcher",
+            "System" => "System / Cheat Sheet",
             "Resources" => "Resource Hub",
             _ => _activeModule,
         };
@@ -562,6 +603,7 @@ public partial class MainWindow : Window
             "Repository Hub" => "GitHub, website, server and ChatGPT links",
             "Portals" => "Direct-open services, quick actions and project links",
             "Tools" => "Launch VS Code and local utility apps",
+            "System" => "Architecture, Windows configuration, network and developer paths",
             "Resources" => "Exact folders, repositories, documents and dashboards",
             "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
             "Clipboard" => "One-click reusable text",
@@ -575,6 +617,7 @@ public partial class MainWindow : Window
             "Repository Hub" => "+ Project",
             "Portals" => "+ Portal",
             "Tools" => "+ Tool",
+            "System" => "Refresh",
             "Resources" => "+ Resource",
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
@@ -582,7 +625,7 @@ public partial class MainWindow : Window
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -653,6 +696,18 @@ public partial class MainWindow : Window
                 Add("pinned", "Pinned", _viewModel.Tools.Count(tool => tool.IsPinned));
                 foreach (IGrouping<string, ToolLauncherEntry> group in _viewModel.Tools
                     .GroupBy(tool => string.IsNullOrWhiteSpace(tool.Category) ? "Utilities" : tool.Category, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(group.Key, group.Key, group.Count());
+                }
+                break;
+
+            case "System":
+                SecondaryTitle.Text = "Cheat sheet";
+                SecondaryHint.Text = "System, Windows, Network, Developer and Paths";
+                Add("all", "All references", _systemReferences.Count);
+                foreach (IGrouping<string, SystemReferenceEntry> group in _systemReferences
+                    .GroupBy(entry => entry.Category, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
                 {
                     Add(group.Key, group.Key, group.Count());
@@ -845,6 +900,7 @@ public partial class MainWindow : Window
             case "Repository Hub": _projectView?.Refresh(); break;
             case "Portals": _portalView?.Refresh(); break;
             case "Tools": _toolView?.Refresh(); break;
+            case "System": _systemReferenceView?.Refresh(); break;
             case "Resources": _resourceView?.Refresh(); break;
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); break;
@@ -901,6 +957,19 @@ public partial class MainWindow : Window
                 foreach (ToolLauncherEntry tool in _viewModel.Tools.Where(tool => tool.IsPinned).Take(8))
                 {
                     _quickRibbonItems.Add(new QuickRibbonItem("tool", tool.Id.ToString(), tool.Name, tool.Category, FirstGlyph(tool.IconKey, "T"), "#0F6CBD"));
+                }
+                break;
+
+            case "System":
+                foreach (SystemReferenceEntry entry in _systemReferences.Where(entry => entry.IsQuick).Take(8))
+                {
+                    _quickRibbonItems.Add(new QuickRibbonItem(
+                        "system-ref",
+                        entry.Key,
+                        entry.Title,
+                        entry.Category,
+                        entry.Glyph,
+                        "#0F6CBD"));
                 }
                 break;
 
@@ -1073,6 +1142,11 @@ public partial class MainWindow : Window
                 ToolLauncherEntry? tool = _viewModel.Tools.FirstOrDefault(candidate => candidate.Id.ToString() == item.Key);
                 if (tool is not null) LaunchTool(tool);
                 break;
+            case "system-ref":
+                SystemReferenceEntry? systemReference = _systemReferences.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Key, item.Key, StringComparison.OrdinalIgnoreCase));
+                if (systemReference is not null) OpenSystemReference(systemReference);
+                break;
             case "snippet":
                 CopyText(item.Value, "Pinned snippet copied");
                 break;
@@ -1097,6 +1171,13 @@ public partial class MainWindow : Window
             case "Tools":
                 _viewModel.AddTool();
                 break;
+            case "System":
+                RefreshSystemReferenceData();
+                _systemReferenceView?.Refresh();
+                RefreshSecondaryNavigation();
+                RefreshQuickRibbon();
+                _viewModel.StatusText = "System information refreshed";
+                return;
             case "Resources":
                 _viewModel.AddResource();
                 if (_activeResourceProviders.Count == 1)
@@ -1773,6 +1854,151 @@ public partial class MainWindow : Window
         _viewModel.AddPortalLink(portal);
         PortalLinksGrid.Items.Refresh();
         SafeSave();
+    }
+
+    private void RefreshSystemInfo_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshSystemReferenceData();
+        _systemReferenceView?.Refresh();
+        RefreshSecondaryNavigation();
+        RefreshQuickRibbon();
+        _viewModel.StatusText = "System information refreshed";
+    }
+
+    private void OpenSystemReference_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is SystemReferenceEntry entry)
+        {
+            OpenSystemReference(entry);
+        }
+    }
+
+    private void CopySystemReference_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is SystemReferenceEntry entry)
+        {
+            CopyText(entry.CopyValue, $"{entry.Title} copied");
+        }
+    }
+
+    private void OpenSystemReference(SystemReferenceEntry entry)
+    {
+        string copyValue = Environment.ExpandEnvironmentVariables(entry.CopyValue ?? string.Empty);
+        if (entry.RequiresExistingPath
+            && !File.Exists(copyValue)
+            && !Directory.Exists(copyValue))
+        {
+            _viewModel.StatusText = $"Not found: {copyValue}";
+            return;
+        }
+
+        try
+        {
+            string target = Environment.ExpandEnvironmentVariables(entry.Target);
+            string arguments = Environment.ExpandEnvironmentVariables(entry.Arguments ?? string.Empty);
+            Process.Start(new ProcessStartInfo(target)
+            {
+                UseShellExecute = true,
+                Arguments = arguments,
+            });
+            _viewModel.StatusText = $"Opened {entry.Title}";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = $"Could not open {entry.Title}";
+            ShowOwnedMessage(ex.Message, "System reference", MessageBoxImage.Warning);
+        }
+    }
+
+    private void RefreshSystemReferenceData()
+    {
+        _systemFacts.Clear();
+        _systemReferences.Clear();
+
+        Architecture osArchitecture = RuntimeInformation.OSArchitecture;
+        Architecture processArchitecture = RuntimeInformation.ProcessArchitecture;
+        string runtimeTarget = osArchitecture switch
+        {
+            Architecture.Arm64 => "win-arm64",
+            Architecture.X64 => "win-x64",
+            Architecture.X86 => "win-x86",
+            Architecture.Arm => "win-arm",
+            _ => $"win-{osArchitecture.ToString().ToLowerInvariant()}",
+        };
+
+        _systemFacts.Add(new SystemFactItem("Recommended package", runtimeTarget));
+        _systemFacts.Add(new SystemFactItem("OS architecture", osArchitecture.ToString()));
+        _systemFacts.Add(new SystemFactItem("Process architecture", processArchitecture.ToString()));
+        _systemFacts.Add(new SystemFactItem("Windows", RuntimeInformation.OSDescription));
+        _systemFacts.Add(new SystemFactItem(".NET runtime", RuntimeInformation.FrameworkDescription));
+        _systemFacts.Add(new SystemFactItem("Machine", Environment.MachineName));
+        _systemFacts.Add(new SystemFactItem("User", Environment.UserName));
+        _systemFacts.Add(new SystemFactItem("Logical processors", Environment.ProcessorCount.ToString(CultureInfo.InvariantCulture)));
+
+        string windows = Environment.GetEnvironmentVariable("SystemRoot") ?? @"C:\Windows";
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        string hosts = Path.Combine(windows, "System32", "drivers", "etc", "hosts");
+        string gitConfig = Path.Combine(userProfile, ".gitconfig");
+        string sshConfig = Path.Combine(userProfile, ".ssh", "config");
+        string vsCodeSettings = Path.Combine(appData, "Code", "User", "settings.json");
+        string powerShellProfile = Path.Combine(documents, "PowerShell", "Microsoft.PowerShell_profile.ps1");
+        string terminalStoreSettings = Path.Combine(localAppData, "Packages", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "LocalState", "settings.json");
+        string terminalUnpackagedSettings = Path.Combine(localAppData, "Microsoft", "Windows Terminal", "settings.json");
+        string terminalSettings = File.Exists(terminalStoreSettings) ? terminalStoreSettings : terminalUnpackagedSettings;
+        string defaultWorkspace = Path.Combine(localAppData, "JUtilityPalette", "workspace.json");
+
+        void Add(
+            string key,
+            string category,
+            string title,
+            string description,
+            string glyph,
+            string target,
+            string arguments,
+            string copyValue,
+            bool requiresExistingPath = false,
+            bool isQuick = false)
+        {
+            _systemReferences.Add(new SystemReferenceEntry(
+                key, category, title, description, glyph, target, arguments, copyValue, requiresExistingPath, isQuick));
+        }
+
+        Add("sysinfo", "System", "System Information", "Hardware, BIOS, Windows build and system summary.", "SI", "msinfo32.exe", "", "msinfo32", false, true);
+        Add("winver", "System", "About Windows", "Windows edition and build dialog.", "W", "winver.exe", "", "winver");
+        Add("device-manager", "System", "Device Manager", "Hardware devices, drivers and adapters.", "DM", "devmgmt.msc", "", "devmgmt.msc");
+        Add("windows-features", "System", "Windows Features", "Enable or disable optional Windows components.", "WF", "optionalfeatures.exe", "", "optionalfeatures", false, true);
+        Add("task-manager", "System", "Task Manager", "Processes, startup, performance and services overview.", "TM", "taskmgr.exe", "", "taskmgr", false, true);
+
+        Add("hosts", "Windows", "Hosts file", "Open the Windows hosts file in Notepad. Saving changes may require administrator rights.", "H", "notepad.exe", $"\"{hosts}\"", hosts, true, true);
+        Add("environment", "Windows", "Environment Variables", "User and system environment variables such as PATH.", "ENV", "rundll32.exe", "sysdm.cpl,EditEnvironmentVariables", "rundll32 sysdm.cpl,EditEnvironmentVariables", false, true);
+        Add("services", "Windows", "Services", "Inspect Windows services and startup modes.", "SVC", "services.msc", "", "services.msc", false, true);
+        Add("startup", "Windows", "Startup Apps", "Windows Settings page for startup applications.", "ST", "ms-settings:startupapps", "", "ms-settings:startupapps");
+        Add("power", "Windows", "Power Options", "Classic Windows power-plan configuration.", "PWR", "control.exe", "powercfg.cpl", "powercfg.cpl");
+
+        Add("network-status", "Network", "Network status", "Current network configuration in Windows Settings.", "NET", "ms-settings:network-status", "", "ms-settings:network-status", false, true);
+        Add("network-adapters", "Network", "Network adapters", "Classic adapter list for Ethernet, Wi-Fi, VPN and virtual adapters.", "NIC", "control.exe", "ncpa.cpl", "ncpa.cpl", false, true);
+        Add("proxy", "Network", "Proxy settings", "Windows proxy configuration.", "PX", "ms-settings:network-proxy", "", "ms-settings:network-proxy");
+        Add("firewall", "Network", "Advanced Firewall", "Windows Defender Firewall with Advanced Security.", "FW", "wf.msc", "", "wf.msc");
+        Add("ipconfig", "Network", "IP configuration", "Open a command window with ipconfig /all.", "IP", "cmd.exe", "/k ipconfig /all", "ipconfig /all");
+
+        Add("vscode-settings", "Developer", "VS Code settings.json", "User-level VS Code settings file.", "VS", "notepad.exe", $"\"{vsCodeSettings}\"", vsCodeSettings, true, true);
+        Add("git-config", "Developer", "Global Git config", "Your user-level .gitconfig.", "GIT", "notepad.exe", $"\"{gitConfig}\"", gitConfig, true);
+        Add("ssh-config", "Developer", "SSH config", "User SSH host aliases and options.", "SSH", "notepad.exe", $"\"{sshConfig}\"", sshConfig, true);
+        Add("powershell-profile", "Developer", "PowerShell profile", "Current-user PowerShell profile script path.", "PS", "notepad.exe", $"\"{powerShellProfile}\"", powerShellProfile, true);
+        Add("terminal-settings", "Developer", "Windows Terminal settings", "Windows Terminal settings.json (Store or unpackaged location).", "WT", "notepad.exe", $"\"{terminalSettings}\"", terminalSettings, true);
+
+        Add("user-profile", "Paths", "User profile", "Your home/profile directory.", "~", "explorer.exe", $"\"{userProfile}\"", userProfile, true);
+        Add("local-appdata", "Paths", "Local AppData", "Per-user local application data.", "LA", "explorer.exe", $"\"{localAppData}\"", localAppData, true);
+        Add("roaming-appdata", "Paths", "Roaming AppData", "Per-user roaming application configuration.", "RA", "explorer.exe", $"\"{appData}\"", appData, true);
+        Add("temp", "Paths", "Temp", "Current user's temporary directory.", "TMP", "explorer.exe", $"\"{Path.GetTempPath()}\"", Path.GetTempPath(), true);
+        Add("program-data", "Paths", "ProgramData", "Machine-wide application data.", "PD", "explorer.exe", $"\"{programData}\"", programData, true);
+        Add("system32", "Paths", "System32", "Windows system executable and library directory.", "32", "explorer.exe", $"\"{Environment.SystemDirectory}\"", Environment.SystemDirectory, true);
+        Add("app-folder", "Paths", "Power Ops app folder", "Folder containing the running Power Ops executable.", "APP", "explorer.exe", $"\"{AppContext.BaseDirectory}\"", AppContext.BaseDirectory, true);
+        Add("workspace", "Paths", "Default Power Ops workspace", "Default workspace.json path; custom --data-dir instances can use another location.", "WS", "notepad.exe", $"\"{defaultWorkspace}\"", defaultWorkspace, true);
     }
 
     private void AddTool_Click(object sender, RoutedEventArgs e)
