@@ -1608,30 +1608,71 @@ Check("schema v5 workspace migrates to v6 with empty clipboard media", () =>
     }
 });
 
-Check("clipboard media rejects rooted paths", () =>
+Check("clipboard media rejects paths outside the managed media directory", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityClipboardMediaPathGuard-" + Guid.NewGuid().ToString("N"));
     try
     {
         WorkspaceStore store = new(root);
         WorkspaceState state = store.Load();
+        string[] unsafePaths =
+        [
+            "workspace.json",
+            "../outside.png",
+            "media/../workspace.json",
+            "media//broken.png",
+            OperatingSystem.IsWindows() ? @"C:\temp\unsafe.png" : "/tmp/unsafe.png",
+        ];
+
+        foreach (string unsafePath in unsafePaths)
+        {
+            state.ClipboardMedia.Clear();
+            state.ClipboardMedia.Add(new ClipboardMediaEntry
+            {
+                Title = "Unsafe",
+                RelativePath = unsafePath,
+            });
+
+            bool threw = false;
+            try
+            {
+                store.Save(state);
+            }
+            catch (InvalidDataException)
+            {
+                threw = true;
+            }
+
+            True(threw);
+        }
+    }
+    finally
+    {
+        if (Directory.Exists(root))
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+});
+
+Check("clipboard media accepts nested managed media paths", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "JUtilityClipboardMediaNested-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        WorkspaceStore store = new(root);
+        WorkspaceState state = store.Load();
         state.ClipboardMedia.Add(new ClipboardMediaEntry
         {
-            Title = "Unsafe",
-            RelativePath = OperatingSystem.IsWindows() ? @"C:\temp\unsafe.png" : "/tmp/unsafe.png",
+            Kind = ClipboardMediaKind.Image,
+            Title = "Nested",
+            RelativePath = @"media\Datapass\nested.png",
         });
 
-        bool threw = false;
-        try
-        {
-            store.Save(state);
-        }
-        catch (InvalidDataException)
-        {
-            threw = true;
-        }
+        store.Save(state);
+        WorkspaceState loaded = store.Load();
 
-        True(threw);
+        Equal("media/Datapass/nested.png", loaded.ClipboardMedia.Single().RelativePath);
     }
     finally
     {
