@@ -80,7 +80,12 @@ Captures support subject/category, source URL, labels, status, priority, pin/com
 
 ### Clipboard
 
-A one-click library for premade prompts, commands, URLs, signatures, fragments, and other reusable text. Pinned snippets can appear in the quick ribbon.
+A local clipboard library with two internal surfaces:
+
+- **Text** — one-click reusable prompts, commands, URLs, signatures, fragments, and other text. Pinned snippets can appear in the quick ribbon.
+- **Images & clips** — paste a screenshot directly from the Windows clipboard or import PNG/JPG/WebP/GIF images and short MP4/WebM/MOV clips. Media can be categorized, tagged, associated with a project, pinned, searched, copied back to the clipboard, or opened in the default Windows app.
+
+Managed media files live under the active workspace data directory in `media/`. The JSON workspace stores metadata and workspace-relative paths rather than embedding large binary/base64 payloads, so exports remain practical for AI inspection. Deleting a managed media item deletes its local managed file.
 
 ### Prompt Builder
 
