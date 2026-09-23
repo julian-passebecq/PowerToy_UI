@@ -242,6 +242,7 @@ public sealed class WorkspaceStore
         || name.Equals(nameof(WorkspaceState.Projects), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.RepositoryLists), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Portals), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.Tools), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Resources), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.ClipboardSnippets), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.PromptModules), StringComparison.OrdinalIgnoreCase)
@@ -333,6 +334,7 @@ public sealed class WorkspaceStore
         state.Projects = (state.Projects ?? []).Where(item => item is not null).ToList();
         state.RepositoryLists = (state.RepositoryLists ?? []).Where(item => item is not null).ToList();
         state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
+        state.Tools = (state.Tools ?? []).Where(item => item is not null).ToList();
         state.Resources = (state.Resources ?? []).Where(item => item is not null).ToList();
         state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
         state.PromptModules = (state.PromptModules ?? []).Where(item => item is not null).ToList();
@@ -346,6 +348,7 @@ public sealed class WorkspaceStore
         ValidateUniqueIds(state.Projects, item => item.Id, "Projects");
         ValidateUniqueIds(state.RepositoryLists, item => item.Id, "RepositoryLists");
         ValidateUniqueIds(state.Portals, item => item.Id, "Portals");
+        ValidateUniqueIds(state.Tools, item => item.Id, "Tools");
         ValidateUniqueIds(state.Resources, item => item.Id, "Resources");
         ValidateUniqueIds(state.ClipboardSnippets, item => item.Id, "ClipboardSnippets");
         ValidateUniqueIds(state.PromptModules, item => item.Id, "PromptModules");
@@ -365,6 +368,9 @@ public sealed class WorkspaceStore
 
         foreach (PortalEntry portal in state.Portals)
         {
+            portal.QuickActions = (portal.QuickActions ?? []).Where(item => item is not null).ToList();
+            portal.Links = (portal.Links ?? []).Where(item => item is not null).ToList();
+            ValidateUniqueIds(portal.QuickActions, item => item.Id, $"Portals[{portal.Name}].QuickActions");
             ValidateUniqueIds(portal.Links, item => item.Id, $"Portals[{portal.Name}].Links");
         }
 
@@ -428,14 +434,25 @@ public sealed class WorkspaceStore
             portal.Category = NormalizeText(portal.Category, "General");
             portal.IconKey = NormalizeText(portal.IconKey, "↗");
             portal.MainUrl = NormalizeOptionalSingleLine(portal.MainUrl);
+            portal.QuickActions = (portal.QuickActions ?? []).Where(item => item is not null).ToList();
             portal.Links = (portal.Links ?? []).Where(item => item is not null).ToList();
-            foreach (PortalLinkEntry link in portal.Links)
+            foreach (PortalLinkEntry link in portal.QuickActions.Concat(portal.Links))
             {
                 link.Label = NormalizeText(link.Label, "Link");
                 link.Url = NormalizeOptionalSingleLine(link.Url);
                 link.Project = NormalizeOptionalSingleLine(link.Project);
                 link.Note = NullToEmpty(link.Note);
             }
+        }
+
+        foreach (ToolLauncherEntry tool in state.Tools)
+        {
+            tool.Name = NormalizeText(tool.Name, "Untitled tool");
+            tool.Category = NormalizeText(tool.Category, "Utilities");
+            tool.IconKey = NormalizeText(tool.IconKey, "▶");
+            tool.Command = NormalizeOptionalSingleLine(tool.Command);
+            tool.Arguments = NullToEmpty(tool.Arguments);
+            tool.WorkingDirectory = NormalizeOptionalSingleLine(tool.WorkingDirectory);
         }
 
         foreach (WorkspaceResourceEntry resource in state.Resources)
@@ -634,6 +651,25 @@ public sealed class WorkspaceStore
     };
 
         StarterCatalogService.Merge(state.Portals, state.ClipboardSnippets);
+        state.Tools =
+        [
+            new ToolLauncherEntry
+            {
+                Name = "VS Code",
+                Category = "Development",
+                IconKey = "VS",
+                Command = "code",
+                SortOrder = 10,
+            },
+            new ToolLauncherEntry
+            {
+                Name = "Windows Terminal",
+                Category = "Development",
+                IconKey = ">_",
+                Command = "wt",
+                SortOrder = 20,
+            },
+        ];
         return state;
     }
 }
