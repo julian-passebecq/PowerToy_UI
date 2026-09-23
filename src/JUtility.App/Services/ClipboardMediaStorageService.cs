@@ -92,7 +92,7 @@ public sealed class ClipboardMediaStorageService
         string[] segments = normalized.Split('/', StringSplitOptions.None);
         if (normalized.Length == 0
             || Path.IsPathRooted(normalized)
-            || normalized.Contains(':', StringComparison.Ordinal)
+            || normalized.Contains(':')
             || segments.Length < 2
             || !segments[0].Equals("media", StringComparison.OrdinalIgnoreCase)
             || segments.Any(segment => segment.Length == 0 || segment is "." or ".."))
