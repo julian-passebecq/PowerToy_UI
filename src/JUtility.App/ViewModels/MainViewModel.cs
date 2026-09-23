@@ -442,7 +442,33 @@ public sealed class MainViewModel : ObservableObject
     public StarterCatalogSummary AddStarterCatalog()
     {
         StarterCatalogSummary summary = StarterCatalogService.Merge(Portals, ClipboardSnippets);
+
+        if (!Tools.Any(tool => string.Equals(tool.Name, "VS Code", StringComparison.OrdinalIgnoreCase)))
+        {
+            Tools.Add(new ToolLauncherEntry
+            {
+                Name = "VS Code",
+                Category = "Development",
+                IconKey = "VS",
+                Command = "code",
+                SortOrder = Tools.Count == 0 ? 10 : Tools.Max(tool => tool.SortOrder) + 10,
+            });
+        }
+
+        if (!Tools.Any(tool => string.Equals(tool.Name, "Windows Terminal", StringComparison.OrdinalIgnoreCase)))
+        {
+            Tools.Add(new ToolLauncherEntry
+            {
+                Name = "Windows Terminal",
+                Category = "Development",
+                IconKey = ">_",
+                Command = "wt",
+                SortOrder = Tools.Count == 0 ? 10 : Tools.Max(tool => tool.SortOrder) + 10,
+            });
+        }
+
         SelectedPortal ??= Portals.FirstOrDefault();
+        SelectedTool ??= Tools.FirstOrDefault();
         SelectedSnippet ??= ClipboardSnippets.FirstOrDefault();
         return summary;
     }
