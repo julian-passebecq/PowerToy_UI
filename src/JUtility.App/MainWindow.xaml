@@ -296,6 +296,7 @@
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Repository Hub" Click="PrimaryNav_Click" Content="◫  Repository Hub" AutomationProperties.Name="Repository Hub"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Portals" Click="PrimaryNav_Click" Content="↗  Portal Launcher" AutomationProperties.Name="Portal Launcher"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Tools" Click="PrimaryNav_Click" Content="▶  Tool Launcher" AutomationProperties.Name="Tool Launcher"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="System" Click="PrimaryNav_Click" Content="ⓘ  System / Cheat Sheet" AutomationProperties.Name="System and Cheat Sheet"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Resources" Click="PrimaryNav_Click" Content="◆  Resource Hub" AutomationProperties.Name="Resource Hub"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture" AutomationProperties.Name="Capture"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard" AutomationProperties.Name="Clipboard"/>
@@ -853,6 +854,69 @@
                     </StackPanel>
                   </Grid>
                 </Grid>
+              </TabItem>
+
+
+              <TabItem Header="System">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <StackPanel Margin="12">
+                    <DockPanel Margin="0,0,0,10">
+                      <StackPanel>
+                        <TextBlock Text="System / Cheat Sheet" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Live machine facts, useful Windows configuration and developer paths." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      </StackPanel>
+                      <Button Content="Refresh" Click="RefreshSystemInfo_Click" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                    </DockPanel>
+
+                    <ItemsControl x:Name="SystemFactsList">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Width="220" MinHeight="74" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,8,8">
+                            <StackPanel>
+                              <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="Quick configuration &amp; paths" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,6"/>
+                    <ItemsControl x:Name="SystemReferenceList">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,7">
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                              </Grid.ColumnDefinitions>
+                              <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding Glyph}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              </Border>
+                              <StackPanel Grid.Column="1" Margin="8,0,10,0">
+                                <DockPanel>
+                                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                  <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding CopyValue}" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                              </StackPanel>
+                              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Open" Tag="{Binding}" Click="OpenSystemReference_Click"/>
+                                <Button Content="Copy" Tag="{Binding}" Click="CopySystemReference_Click"/>
+                              </StackPanel>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </ScrollViewer>
               </TabItem>
 
               <TabItem Header="Resources">
