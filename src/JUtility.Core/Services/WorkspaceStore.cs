@@ -600,7 +600,7 @@ public sealed class WorkspaceStore
         string path = NormalizeOptionalSingleLine(value).Replace('\\', '/');
         if (path.Length == 0
             || Path.IsPathRooted(path)
-            || path.Contains(':', StringComparison.Ordinal))
+            || path.Contains(':'))
         {
             throw new InvalidDataException($"Clipboard media '{title}' must use a managed path under media/.");
         }
