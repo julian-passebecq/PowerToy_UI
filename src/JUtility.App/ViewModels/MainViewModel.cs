@@ -74,6 +74,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<WorkspaceResourceEntry> Resources { get; }
     public ObservableCollection<ClipboardSnippetEntry> ClipboardSnippets { get; }
     public ObservableCollection<ClipboardMediaEntry> ClipboardMedia { get; }
+    public int ClipboardItemCount => ClipboardSnippets.Count + ClipboardMedia.Count;
     public ObservableCollection<PromptModuleEntry> PromptModules { get; }
     public ObservableCollection<StickyNoteEntry> Notes { get; }
     public ObservableCollection<RecentPromptEntry> RecentPrompts { get; }
@@ -553,12 +554,14 @@ public sealed class MainViewModel : ObservableObject
         };
         ClipboardSnippets.Add(snippet);
         SelectedSnippet = snippet;
+        RaisePropertyChanged(nameof(ClipboardItemCount));
         StatusText = "Clipboard snippet added";
     }
 
     public void RemoveClipboardSnippet(ClipboardSnippetEntry snippet)
     {
         ClipboardSnippets.Remove(snippet);
+        RaisePropertyChanged(nameof(ClipboardItemCount));
         if (ReferenceEquals(SelectedSnippet, snippet))
         {
             SelectedSnippet = ClipboardSnippets.FirstOrDefault();
@@ -571,6 +574,7 @@ public sealed class MainViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(media);
         ClipboardMedia.Insert(0, media);
         SelectedMedia = media;
+        RaisePropertyChanged(nameof(ClipboardItemCount));
         StatusText = media.Kind == ClipboardMediaKind.Video ? "Clip saved" : "Image saved";
     }
 
@@ -578,6 +582,7 @@ public sealed class MainViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(media);
         ClipboardMedia.Remove(media);
+        RaisePropertyChanged(nameof(ClipboardItemCount));
         if (ReferenceEquals(SelectedMedia, media))
         {
             SelectedMedia = ClipboardMedia.FirstOrDefault();
@@ -904,6 +909,7 @@ public sealed class MainViewModel : ObservableObject
         RaisePropertyChanged(nameof(IncludeCompletedCaptures));
         RaisePropertyChanged(nameof(GitHubOwner));
         RaisePropertyChanged(nameof(LastModule));
+        RaisePropertyChanged(nameof(ClipboardItemCount));
     }
 
     private void SyncState()
