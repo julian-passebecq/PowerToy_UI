@@ -64,6 +64,11 @@ Environment: Linux sandbox, .NET SDK 8.0.131, offline restore (no NuGet sources;
 - **Full WPF Release build: NOT RUN** in this environment (the WindowsDesktop targeting pack is unavailable offline). This slice adds no App code and the App does not import the new namespace, but the Windows CI gate (`.\scripts\build.ps1`) must confirm before the slice is called green.
 - Native UI, hotkey registration, Ring/Shelf rendering, MX Master mappings and idle resource use: NOT RUN (no UI exists yet in this slice).
 
+Windows follow-up (2026-09-24, Claude Code on the user's Windows 11 laptop, .NET SDK 9.0.101, tested revision `9fae4238cce61c1a876b0e89b614b741e4c5e421`):
+
+- `.\scripts\build.ps1`: **PASS**. Full solution Release build including the WPF app, `JUtility.SmokeTests` **68/68 PASS** (the Linux-only locking failure does not occur on Windows), `JUtility.WorkspaceTests` **34/34 PASS**.
+- Native UI and hotkey behaviour remain NOT RUN; nothing in this slice is wired into the app yet.
+
 ### Remaining V2.1 work (in order)
 
 1. App wiring: register one handler per catalog ID in the WPF layer, reusing existing Capture/Clipboard/Explorer/workspace/tab code paths; route existing menu/shortcut commands through the dispatcher.
