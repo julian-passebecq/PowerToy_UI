@@ -14,6 +14,8 @@ public partial class MainWindow
     private readonly Grid _webRoot = new();
     private readonly StackPanel _webPicker = new() { Margin = new Thickness(18) };
     private EmbeddedWebHost? _webHost;
+    // Deep links requested for an embedded app (e.g. "Open in Mongoku" on a report card), consumed on show.
+    private readonly Dictionary<string, string> _pendingEmbeddedNavigation = new(StringComparer.Ordinal);
 
     private UIElement CreateWebPage()
     {
@@ -97,13 +99,27 @@ public partial class MainWindow
         CurrentModuleSubtitle.Text = "Embedded web app · " + app.Url;
         try
         {
-            await _webHost.ShowAsync(actionId, app);
+            _pendingEmbeddedNavigation.Remove(actionId, out string? navigateTo);
+            await _webHost.ShowAsync(actionId, app, navigateTo);
         }
         catch (Exception ex)
         {
             _webHost.Remove(actionId);
             ShowWebPicker($"{app.Name} could not open inside Power Ops: {ex.Message}");
         }
+    }
+
+    /// <summary>Opens a page of a configured web app in that app's own mode (embedded tab, app window or browser).</summary>
+    private void OpenWebAppAt(WebAppEntry app, Uri page)
+    {
+        if (app.OpenMode == WebOpenMode.Embedded)
+        {
+            _pendingEmbeddedNavigation[QuickWebApps.ActionId(app.Id)] = page.AbsoluteUri;
+            OpenEmbeddedWebApp(app);
+            return;
+        }
+
+        OpenWebApp(new WebAppEntry { Id = app.Id, Name = app.Name, Url = page.AbsoluteUri, OpenMode = app.OpenMode, Browser = app.Browser });
     }
 
     private void OpenWebAppOutside(WebAppEntry app)

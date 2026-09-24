@@ -307,6 +307,9 @@ public partial class MainWindow
         var interaction = new MenuItem { Header = "Interaction settings..." };
         interaction.Click += (_, _) => EditInteraction();
         _actionsMenu.Items.Add(interaction);
+        var reportCards = new MenuItem { Header = "Mongoku report cards..." };
+        reportCards.Click += (_, _) => ManageReportCards();
+        _actionsMenu.Items.Add(reportCards);
         var webApps = new MenuItem { Header = "Web apps..." };
         webApps.Click += (_, _) => ManageWebApps();
         _actionsMenu.Items.Add(webApps);

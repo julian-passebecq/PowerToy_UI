@@ -411,6 +411,7 @@ public partial class MainWindow
     {
         if (_launchpadBody is null) return;
         _launchpadBody.Children.Clear();
+        RenderReportCards(_launchpadBody);
         _launchpadBody.Children.Add(new TextBlock { Text = "Your websites & project destinations", FontSize = 24, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         _launchpadBody.Children.Add(new TextBlock { Text = "Uses existing Repository, Portal and Resource data. Links are not live health checks. No embedded browser is running.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray, Margin = new Thickness(0, 6, 0, 8) });
         _launchpadBody.Children.Add(SessionButton("Refresh saved links", RefreshLaunchpad));

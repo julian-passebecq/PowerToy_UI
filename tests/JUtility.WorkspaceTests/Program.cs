@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using JUtility.Core.Actions;
+using System.Net;
 using JUtility.Core.Models;
+using JUtility.Core.Reports;
 using JUtility.Core.Workspaces;
 
 var tests = new List<(string Name, Action Test)>();
@@ -602,6 +604,79 @@ Test("Embedded navigation allows only http(s); pop-ups go to the default browser
     var export = PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), ["web"]);
     Check(!export.Contains("webview2") && export.Contains("No runtime snapshot"), "content export never includes browser data");
 });
+// ---- V2.1 Mongoku report cards ----
+const string FoilStatusSample = """
+{"reportId":"FOIL_STATUS_NOW","title":"FOIL status now","description":"PM scorecards","presentation":{"kind":"cards"},"generatedAt":"2026-09-24T23:12:53.000Z","readOnly":true,
+ "sections":[{"id":"a","label":"PM scorecards","authority":"FOIL Project Management","sourceId":"x","rows":[],"trace":{},"meta":{"state":"SOURCE_UNBOUND","returnedRows":0,"responseBytes":0,"truncated":false}},
+             {"id":"b","label":"Recent events","authority":"DATAPASSCONTROL","rows":[{"secret":"never shown"}],"meta":{"state":"TRUNCATED","returnedRows":30,"truncated":true,"futureField":1}},
+             {"id":"c","label":"Projects","meta":{"state":"OK","returnedRows":31}}]}
+""";
+Test("Report cards parse Mongoku reports into section states and counts only", () =>
+{
+    var s = ReportCards.Parse(FoilStatusSample, DateTimeOffset.Now);
+    Check(s.ReportId == "FOIL_STATUS_NOW" && s.Title == "FOIL status now" && s.ReadOnly == true && s.GeneratedAt?.Year == 2026);
+    Check(s.Sections.Count == 3 && s.Sections[0].Health == SectionHealth.Unavailable && s.Sections[0].Explanation.Contains("not bound"));
+    Check(s.Sections[1].Health == SectionHealth.Partial && s.Sections[1].ReturnedRows == 30 && s.Sections[1].Truncated);
+    Check(s.Sections[2].Health == SectionHealth.Ok && s.Sections[2].Authority is null);
+    Check(s.Overall == SectionHealth.Unavailable, "worst section wins");
+    Check(!JsonSerializer.Serialize(s).Contains("never shown"), "row contents are never kept");
+    var empty = ReportCards.Parse("""{"reportId":"X","sections":[]}""", DateTimeOffset.Now);
+    Check(empty.Overall == SectionHealth.Unknown && empty.Title == "X" && empty.ReadOnly is null && empty.GeneratedAt is null, "missing data stays unknown, never OK");
+    var noMeta = ReportCards.Parse("""{"sections":[{"label":"L"}]}""", DateTimeOffset.Now);
+    Check(noMeta.Sections[0].Health == SectionHealth.Unknown && noMeta.Sections[0].ReturnedRows is null);
+    Reject(() => ReportCards.Parse("[1,2]", DateTimeOffset.Now));
+});
+Test("Report card settings validate ids and addresses and never store credentials", () => Temporary(dir =>
+{
+    var store = new ReportCardStore(dir);
+    Check(store.Load().Cards.Count == 0 && !File.Exists(store.FilePath), "load writes nothing");
+    var ok = new ReportCardSettings { Cards = [new ReportCard { SourceUrl = "http://localhost:3100", ReportId = "FOIL_STATUS_NOW" }] };
+    store.Save(ok); Check(store.Load().Cards.Single().ReportId == "FOIL_STATUS_NOW");
+    foreach (var bad in new[] { ("http://localhost:3100/", "foil_status"), ("http://localhost:3100/", "../../api"), ("http://localhost:3100/", ""), ("file:///C:/x", "FOIL_NEXT"), ("http://admin:pw@localhost:3100/", "FOIL_NEXT") })
+        Reject(() => ReportCards.Validate(new ReportCardSettings { Cards = [new ReportCard { SourceUrl = bad.Item1, ReportId = bad.Item2 }] }));
+    Reject(() => ReportCards.Validate(new ReportCardSettings { Cards = Enumerable.Range(0, 9).Select(_ => new ReportCard { ReportId = "FOIL_NEXT" }).ToList() }));
+    File.WriteAllText(store.FilePath, "{ corrupt"); Reject(() => store.Load()); Reject(() => store.Save(ok));
+    Check(File.ReadAllText(store.FilePath) == "{ corrupt", "corrupt bytes preserved");
+}));
+Test("Report card addresses: API URL, and deep links into Mongoku", () =>
+{
+    var foil = new ReportCard { SourceUrl = "http://localhost:3100", ReportId = "FOIL_NEXT" };
+    Check(ReportCards.ReportUri(foil).AbsoluteUri == "http://localhost:3100/api/datapass/reports/FOIL_NEXT");
+    Check(ReportCards.DeepLink(foil).AbsoluteUri == "http://localhost:3100/foil/report/FOIL_NEXT");
+    Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "http://localhost:3100/", ReportId = "GLOBAL_PROJECTS" }).AbsoluteUri == "http://localhost:3100/projects");
+    Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "https://mongoku.example.com/base/", ReportId = "OTHER_REPORT" }).AbsoluteUri == "https://mongoku.example.com/base/");
+    Check(ReportCards.WorkspaceUri("https://mongoku.example.com/base").AbsoluteUri == "https://mongoku.example.com/base/api/datapass/workspace", "base path kept");
+});
+Test("Report card fetch turns every failure into a readable message (fake server)", () =>
+{
+    var card = new ReportCard { SourceUrl = "http://localhost:3100/", ReportId = "FOIL_STATUS_NOW" };
+    ReportFetchResult Run(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
+        ReportCards.FetchAsync(card, new FakeHandler(respond)).GetAwaiter().GetResult();
+    HttpResponseMessage Json(HttpStatusCode code, string body) => new(code) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+    HttpRequestMessage? seen = null;
+    var ok = Run(r => { seen = r; return Json(HttpStatusCode.OK, FoilStatusSample); });
+    Check(ok.Succeeded && ok.Summary!.Sections.Count == 3);
+    Check(seen!.Method == HttpMethod.Get && seen.RequestUri!.AbsolutePath == "/api/datapass/reports/FOIL_STATUS_NOW" && seen.Headers.Accept.ToString().Contains("application/json"), "read-only GET");
+    Check(Run(_ => Json(HttpStatusCode.BadRequest, """{"ok":false,"error":"Unknown report: FOIL_STATUS_NOW"}""")).Error!.Contains("Unknown report"));
+    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)).Error!.Contains("requires sign-in"));
+    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.Redirect)).Error!.Contains("redirected"));
+    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.NotFound)).Error!.Contains("no Mongoku report API"));
+    Check(Run(_ => throw new HttpRequestException("refused", new System.Net.Sockets.SocketException(10061))).Error!.Contains("not reachable"));
+    Check(Run(_ => throw new TaskCanceledException("timeout")).Error!.Contains("did not answer"));
+    Check(Run(_ => Json(HttpStatusCode.OK, "{ not json")).Error!.Contains("could not read"));
+    var huge = new string('x', ReportCards.MaxResponseBytes + 10);
+    Check(Run(_ => Json(HttpStatusCode.OK, huge)).Error!.Contains("larger than"), "size cap with Content-Length");
+    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new UnknownLengthStream(ReportCards.MaxResponseBytes + 10)) }).Error!.Contains("larger than"), "size cap without Content-Length");
+});
+Test("Report list comes from the Mongoku workspace (ids, titles, descriptions only)", () =>
+{
+    const string workspace = """{"schemaVersion":3,"projects":[{"name":"private"}],"reports":[{"id":"GLOBAL_PROJECTS","title":"Global projects","description":"Portfolio"},{"id":"FOIL_NEXT","title":"FOIL next"},{"id":"bad id"},{"title":"no id"}]}""";
+    var (list, error) = ReportCards.ListReportsAsync("http://localhost:3100/", new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(workspace) })).GetAwaiter().GetResult();
+    Check(error is null && list.Select(x => x.Id).SequenceEqual(new[] { "GLOBAL_PROJECTS", "FOIL_NEXT" }) && list[0].Description == "Portfolio");
+    var (none, noneError) = ReportCards.ListReportsAsync("http://localhost:3100/", new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"reports":[]}""") })).GetAwaiter().GetResult();
+    Check(none.Count == 0 && noneError!.Contains("no saved reports"));
+    Reject(() => ReportCards.ListReportsAsync("javascript:alert(1)", new FakeHandler(_ => throw new InvalidOperationException("must not be called"))).GetAwaiter().GetResult());
+});
 int failures = 0;
 foreach (var test in tests)
 {
@@ -610,3 +685,25 @@ foreach (var test in tests)
 }
 Console.WriteLine($"Workspace tests: {tests.Count - failures}/{tests.Count} passed; {failures} failed.");
 return failures == 0 ? 0 : 1;
+
+sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(respond(request));
+}
+
+/// <summary>Chunked-style body: no Content-Length, so only the streaming size cap can stop it.</summary>
+sealed class UnknownLengthStream(long length) : Stream
+{
+    private long _position;
+    public override bool CanRead => true; public override bool CanSeek => false; public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => _position; set => throw new NotSupportedException(); }
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        int n = (int)Math.Min(count, length - _position); Array.Fill(buffer, (byte)'x', offset, n); _position += n; return n;
+    }
+    public override void Flush() { }
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+}

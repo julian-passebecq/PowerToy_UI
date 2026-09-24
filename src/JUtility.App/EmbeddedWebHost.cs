@@ -61,8 +61,10 @@ internal sealed class EmbeddedWebHost : DockPanel
 
     public int LiveViewCount => _views.Count;
 
-    public async Task ShowAsync(string actionId, WebAppEntry app)
+    /// <param name="navigateTo">Optional deep link (e.g. a Mongoku report page) inside the same app.</param>
+    public async Task ShowAsync(string actionId, WebAppEntry app, string? navigateTo = null)
     {
+        if (navigateTo is not null && !EmbeddedWebPolicy.AllowNavigation(navigateTo)) navigateTo = null;
         _current = actionId;
         if (_views.TryGetValue(actionId, out var existing) && existing.App.Url != app.Url)
         {
@@ -79,7 +81,11 @@ internal sealed class EmbeddedWebHost : DockPanel
             _viewArea.Children.Add(view);
             await view.EnsureCoreWebView2Async(_environment);
             Configure(actionId, view.CoreWebView2);
-            view.CoreWebView2.Navigate(new Uri(app.Url.Trim()).AbsoluteUri);
+            view.CoreWebView2.Navigate(navigateTo ?? new Uri(app.Url.Trim()).AbsoluteUri);
+        }
+        else if (navigateTo is not null)
+        {
+            _views[actionId].View.CoreWebView2?.Navigate(navigateTo);
         }
 
         foreach ((string id, (WebView2 view, _)) in _views)
