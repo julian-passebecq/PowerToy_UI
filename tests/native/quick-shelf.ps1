@@ -1,4 +1,5 @@
 # Native Windows check for the V2.1 Quick Shelf, using fresh isolated --data-dir folders.
+# Leave the desktop idle while it runs: real mouse/keyboard input overrides synthesized input and Windows then refuses focus changes.
 # WARNING: moves/clicks the mouse, synthesizes Ctrl+Alt+Shift+L and Esc, and briefly takes focus.
 # Run from the repo root after .\scripts\build.ps1. Never points at the personal workspace.
 $ErrorActionPreference = 'Stop'

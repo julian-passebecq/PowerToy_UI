@@ -1,4 +1,5 @@
 # Native Windows check for V2.1 global shortcuts (RegisterHotKey), using fresh isolated --data-dir folders.
+# Leave the desktop idle while it runs: real mouse/keyboard input overrides synthesized input and Windows then refuses focus changes.
 # WARNING: synthesizes Ctrl+Alt+Shift+P / Ctrl+Alt+Shift+O keystrokes and briefly takes focus.
 # Run from the repo root after .\scripts\build.ps1. Never points at the personal workspace.
 $ErrorActionPreference = 'Stop'

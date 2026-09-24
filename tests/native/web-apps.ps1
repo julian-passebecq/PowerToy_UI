@@ -1,4 +1,5 @@
 # Native Windows check for V2.1 web apps (app-window mode), using a fresh isolated --data-dir and a
+# Leave the desktop idle while it runs: real mouse/keyboard input overrides synthesized input and Windows then refuses focus changes.
 # throwaway local HTTP page that stands in for Mongoku. Clicks the Quick Shelf and presses Ctrl+Alt+Shift+W.
 # Closes only the test app window it opened (matched by its unique page title); other browser windows are untouched.
 $ErrorActionPreference = 'Stop'

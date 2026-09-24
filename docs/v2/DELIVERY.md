@@ -201,7 +201,11 @@ Date: 2026-09-24. Author: Claude Code (Windows laptop). Decision record: `docs/v
   - a Shelf click opens a Chrome app window (`Chrome_WidgetWin_1`) on the page;
   - the bound global shortcut opens it again;
   - only the test window is closed, and Power Ops exits cleanly.
-- `tests/native/quick-actions-hotkeys.ps1` and `tests/native/quick-shelf.ps1`: re-run, both **PASS**.
+- Regression re-runs at `64f26e0` were **flaky**:
+  - `quick-actions-hotkeys.ps1` failed 1 of 2 runs (`app.open` did not get the foreground) and then passed.
+  - `quick-shelf.ps1` failed 2 of 4 runs and passed the other 2. In the failed runs the synthesized drag moved 0 px and focus requests were refused. This matches concurrent real mouse/keyboard use during the runs, which overrides synthesized input and triggers the Windows foreground lock.
+  - `QuickShelfWindow.cs` and `Services/` are unchanged since `0547e17` (4/4 PASS on an idle desktop).
+  - The scripts now say the desktop must be idle. Treat this as **not yet re-confirmed on an idle desktop** for this commit.
 - NOT RUN:
   - the real Mongoku (not running on this laptop);
   - `Browser` mode, which would open a tab in the user's live browser;
