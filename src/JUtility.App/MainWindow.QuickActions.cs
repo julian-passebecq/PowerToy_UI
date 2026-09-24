@@ -66,8 +66,9 @@ public partial class MainWindow
         Register(QuickActionCatalog.WorkspacePrevious, () => CycleSessionWorkspace(-1), WorkspaceCycleUnavailable);
         Register(QuickActionCatalog.TabNext, () => CycleSessionTab(1), TabCycleUnavailable);
         Register(QuickActionCatalog.TabPrevious, () => CycleSessionTab(-1), TabCycleUnavailable);
-        // ring.show and shelf.toggle stay unregistered until their windows exist; the dispatcher
-        // reports them truthfully as "Not available in this build."
+        Register(QuickActionCatalog.ShelfToggle, ToggleQuickShelf, ShelfUnavailable);
+        // ring.show stays unregistered until the Quick Ring exists; the dispatcher reports it
+        // truthfully as "Not available in this build."
 
         // Leave the WM_HOTKEY callback before running: actions may open windows or message boxes.
         _hotkeys.Pressed += (_, hotkey) => Dispatcher.BeginInvoke(
@@ -235,6 +236,7 @@ public partial class MainWindow
         }
 
         IReadOnlyList<string> failures = ApplyGlobalHotkeys();
+        ShowQuickShelfAtStartup();
         if (failures.Count > 0)
         {
             ShowOwnedMessage(_hotkeyStatus, "Power Ops global shortcuts", MessageBoxImage.Warning);
@@ -261,6 +263,7 @@ public partial class MainWindow
         }
 
         RefreshActionsMenu();
+        if (_shelf?.IsVisible == true) RenderQuickShelf();
         return failures;
     }
 
@@ -294,6 +297,9 @@ public partial class MainWindow
         }
 
         _actionsMenu.Items.Add(new Separator());
+        var shelf = new MenuItem { Header = "Customize Quick Shelf..." };
+        shelf.Click += (_, _) => CustomizeQuickShelf();
+        _actionsMenu.Items.Add(shelf);
         var settings = new MenuItem { Header = "Global shortcuts..." };
         settings.Click += (_, _) => EditGlobalShortcuts();
         _actionsMenu.Items.Add(settings);

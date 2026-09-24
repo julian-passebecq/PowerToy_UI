@@ -353,6 +353,48 @@ Test("Terminal action uses only an explicitly configured Tool Launcher entry", (
     Check(Pick(("Windows Terminal", " "), ("Cmd", "cmd.exe")) == "Cmd", "blank command is not configured");
     Check(Pick(("VS Code", "code"), ("Notes", "notepad")) is null, "never guesses an executable");
 });
+// ---- V2.1 Quick Actions slice 3: Quick Shelf ----
+Test("Quick Shelf renders the active workspace layout and probes each button once on demand", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var work = Guid.NewGuid();
+    QuickActionLayouts.SetWorkspaceShelf(s, work, ["terminal.open", "ring.show", "folder.downloads"]);
+    var probes = new List<string>();
+    var items = QuickShelfModel.Build(s, work,
+        id => { probes.Add(id); return id == "terminal.open" ? "Add a terminal first." : null; },
+        id => id == "folder.downloads" ? "Ctrl+Alt+Shift+D" : null);
+    Check(items.Select(x => x.Id).SequenceEqual(new[] { "terminal.open", "ring.show", "folder.downloads" }), "workspace order");
+    Check(probes.SequenceEqual(items.Select(x => x.Id)), "one probe per button");
+    Check(!items[0].IsAvailable && items[0].ToolTip.Contains("Unavailable: Add a terminal first."), "reason is shown, action kept");
+    Check(items[2].IsAvailable && items[2].ToolTip.StartsWith("Downloads (Ctrl+Alt+Shift+D)\n"), "gesture in tooltip");
+    Check(items.All(x => x.GlyphText.Length == 1 && x.GlyphText[0] >= ''), "private-use icon glyphs");
+    Check(QuickShelfModel.Build(s, Guid.NewGuid(), _ => null, _ => null).Select(x => x.Id).SequenceEqual(s.Shelf), "other workspaces inherit");
+});
+Test("Quick Shelf eligibility matches layout validation", () =>
+{
+    var shelf = QuickActionLayouts.Eligible(ActionSurface.QuickShelf).Select(x => x.Id).ToList();
+    var ring = QuickActionLayouts.Eligible(ActionSurface.QuickRing).Select(x => x.Id).ToList();
+    Check(!shelf.Contains("shelf.toggle") && shelf.Contains("ring.show") && !shelf.Any(x => x.StartsWith("tab.")));
+    Check(!ring.Contains("ring.show") && ring.Contains("shelf.toggle"));
+    foreach (string id in shelf) QuickActionLayouts.ValidateLayout([id], ActionSurface.QuickShelf);
+    foreach (string id in ring) QuickActionLayouts.ValidateLayout([id], ActionSurface.QuickRing);
+});
+Test("Quick Shelf is shown at startup only in Quick Shelf mode", () =>
+{
+    var s = QuickActionLayouts.Defaults(); Check(!QuickShelfModel.ShowAtStartup(s), "off by default");
+    foreach (InteractionMode mode in Enum.GetValues<InteractionMode>()) { s.Mode = mode; Check(QuickShelfModel.ShowAtStartup(s) == (mode == InteractionMode.QuickShelf)); }
+});
+Test("Settings copy is independent and shelf position is validated and persisted", () => Temporary(dir =>
+{
+    var s = QuickActionLayouts.Defaults(); s.ShelfLeft = -1920.5; s.ShelfTop = 12;
+    var copy = QuickActionSettingsStore.Copy(s); copy.Shelf.Add("workspace.next"); copy.ShelfLeft = 5;
+    Check(!s.Shelf.Contains("workspace.next") && s.ShelfLeft == -1920.5, "copy does not alias");
+    var store = new QuickActionSettingsStore(dir); store.Save(s);
+    var loaded = store.Load(); Check(loaded.ShelfLeft == -1920.5 && loaded.ShelfTop == 12, "negative-coordinate monitors persist");
+    foreach (double bad in new[] { double.NaN, double.PositiveInfinity, 1e9 }) { s.ShelfTop = bad; Reject(() => QuickActionLayouts.Validate(s)); }
+    s.ShelfTop = null; s.ShelfLeft = null; QuickActionLayouts.Validate(s);
+    var legacy = JsonNode.Parse(File.ReadAllText(store.FilePath))!.AsObject(); legacy.Remove("ShelfLeft"); legacy.Remove("ShelfTop");
+    File.WriteAllText(store.FilePath, legacy.ToJsonString()); Check(store.Load().ShelfLeft is null, "slice-1 files without a position still load");
+}));
 int failures = 0;
 foreach (var test in tests)
 {

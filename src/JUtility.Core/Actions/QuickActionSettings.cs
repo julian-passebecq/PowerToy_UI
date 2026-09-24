@@ -50,6 +50,9 @@ public sealed class QuickActionSettings
     public ShelfOrientation ShelfOrientation { get; set; } = ShelfOrientation.Horizontal;
     public bool ShelfAlwaysOnTop { get; set; } = true;
     public bool ShelfAutoHide { get; set; }
+    // Last dragged position in WPF device-independent pixels; null = default placement. Clamped on screen when shown.
+    public double? ShelfLeft { get; set; }
+    public double? ShelfTop { get; set; }
     public List<WorkspaceActionOverride> WorkspaceOverrides { get; set; } = [];
 }
 
@@ -75,6 +78,13 @@ public static class QuickActionLayouts
 
     public static QuickActionSettings Defaults() => new();
 
+    /// <summary>Catalog actions that may be placed on the given surface (same rules as <see cref="ValidateLayout"/>).</summary>
+    public static IReadOnlyList<QuickActionDefinition> Eligible(ActionSurface surface)
+    {
+        string self = surface == ActionSurface.QuickRing ? QuickActionCatalog.RingShow : QuickActionCatalog.ShelfToggle;
+        return QuickActionCatalog.All.Where(x => x.GlobalAllowed && x.Risk != ActionRisk.Destructive && x.Id != self).ToList().AsReadOnly();
+    }
+
     public static IReadOnlyList<string> ResolveRing(QuickActionSettings settings, Guid workspaceId) =>
         (Override(settings, workspaceId)?.Ring ?? settings.Ring).AsReadOnly();
 
@@ -94,6 +104,11 @@ public static class QuickActionLayouts
             throw new InvalidDataException("Unsupported quick-actions format/version. Existing files were not rewritten.");
         if (!Enum.IsDefined(settings.Mode) || !Enum.IsDefined(settings.ShelfOrientation))
             throw new InvalidDataException("Invalid interaction mode or shelf orientation.");
+        foreach (double? coordinate in new[] { settings.ShelfLeft, settings.ShelfTop })
+        {
+            if (coordinate is double value && (!double.IsFinite(value) || Math.Abs(value) > 100_000))
+                throw new InvalidDataException("Invalid Quick Shelf position.");
+        }
         ValidateLayout(settings.Ring, ActionSurface.QuickRing);
         ValidateLayout(settings.Shelf, ActionSurface.QuickShelf);
         if (settings.WorkspaceOverrides is null || settings.WorkspaceOverrides.Count > MaxOverrides)
@@ -286,6 +301,10 @@ public sealed class QuickActionSettingsStore
 
     public QuickActionSettingsStore(string directory) =>
         FilePath = Path.Combine(Path.GetFullPath(directory), "quick-actions.json");
+
+    /// <summary>Deep, independent copy so edits can be validated and saved before replacing live settings.</summary>
+    public static QuickActionSettings Copy(QuickActionSettings settings) =>
+        JsonSerializer.Deserialize<QuickActionSettings>(JsonSerializer.SerializeToUtf8Bytes(settings, Json), Json)!;
 
     /// <summary>Missing file = defaults (nothing written). Malformed/future files fail closed and are preserved.</summary>
     public QuickActionSettings Load() => File.Exists(FilePath) ? Read(FilePath) : QuickActionLayouts.Defaults();

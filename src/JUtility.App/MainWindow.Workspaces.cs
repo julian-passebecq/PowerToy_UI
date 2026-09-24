@@ -163,6 +163,7 @@ public partial class MainWindow
             if (module.Id == "home") RefreshLaunchpad();
         }
         finally { _restoringSession = false; }
+        RefreshQuickShelfForWorkspace();
     }
     private void RenderSessionNavigation()
     {
