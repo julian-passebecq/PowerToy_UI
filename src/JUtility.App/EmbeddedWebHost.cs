@@ -4,6 +4,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using JUtility.Core.Actions;
+using JUtility.Core.Reports;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 
@@ -18,6 +19,8 @@ namespace JUtility.App;
 internal sealed class EmbeddedWebHost : DockPanel
 {
     private readonly string _userDataFolder;
+    private readonly Func<Uri, BasicCredential?> _signInFor;
+    private readonly Dictionary<string, int> _signInAttempts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (WebView2 View, WebAppEntry App)> _views = new(StringComparer.Ordinal);
     private readonly Grid _viewArea = new();
     private readonly TextBlock _title = new() { FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 6, 0) };
@@ -26,9 +29,11 @@ internal sealed class EmbeddedWebHost : DockPanel
     private CoreWebView2Environment? _environment;
     private string? _current;
 
-    public EmbeddedWebHost(string userDataFolder)
+    /// <param name="signInFor">Saved basic-auth sign-in for an address (Windows Credential Manager), or null.</param>
+    public EmbeddedWebHost(string userDataFolder, Func<Uri, BasicCredential?> signInFor)
     {
         _userDataFolder = userDataFolder;
+        _signInFor = signInFor;
         var toolbar = new DockPanel { Margin = new Thickness(4) };
         var left = new StackPanel { Orientation = Orientation.Horizontal };
         left.Children.Add(ToolbarButton("", "Back", () => Current()?.GoBack()));
@@ -142,6 +147,20 @@ internal sealed class EmbeddedWebHost : DockPanel
             }
         };
         core.PermissionRequested += (_, e) => e.State = CoreWebView2PermissionState.Deny;
+        core.BasicAuthenticationRequested += (_, e) =>
+        {
+            // Supply the saved Mongoku sign-in once per navigation, only to the web app's own origin and only over
+            // https or localhost. If it is rejected (or none is saved) WebView2 shows its normal sign-in prompt.
+            if (!_views.TryGetValue(actionId, out var entry) || !Uri.TryCreate(e.Uri, UriKind.Absolute, out Uri? challenge)) return;
+            var appUri = new Uri(entry.App.Url.Trim());
+            if (ReportAuth.Origin(challenge) != ReportAuth.Origin(appUri) || ReportAuth.RefusalToSend(challenge) is not null) return;
+            if (_signInAttempts.GetValueOrDefault(actionId) >= 1) return;
+            if (_signInFor(appUri) is not BasicCredential saved) return;
+            _signInAttempts[actionId] = _signInAttempts.GetValueOrDefault(actionId) + 1;
+            e.Response.UserName = saved.UserName;
+            e.Response.Password = saved.Password;
+        };
+        core.NavigationCompleted += (_, e) => { if (e.IsSuccess) _signInAttempts.Remove(actionId); };
         core.DocumentTitleChanged += (_, _) => { if (_current == actionId) UpdateToolbar(); };
         core.SourceChanged += (_, _) => { if (_current == actionId) UpdateToolbar(); };
         core.NavigationCompleted += (_, e) =>

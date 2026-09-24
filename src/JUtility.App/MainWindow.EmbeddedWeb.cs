@@ -86,7 +86,7 @@ public partial class MainWindow
 
         if (_webHost is null)
         {
-            _webHost = new EmbeddedWebHost(EmbeddedWebPolicy.UserDataFolder(_viewModel.DataDirectory));
+            _webHost = new EmbeddedWebHost(EmbeddedWebPolicy.UserDataFolder(_viewModel.DataDirectory), uri => SavedSignIn(uri.AbsoluteUri, out _));
             _webHost.OpenOutsideRequested += (_, entry) => OpenWebAppOutside(entry);
             _webHost.CloseRequested += (_, id) => { _webHost.Remove(id); ShowWebPicker($"The web view was closed and its memory released. Click {QuickWebApps.Find(_quickActionSettings, id)?.Name ?? "it"} to reopen."); };
             _webRoot.Children.Add(_webHost);

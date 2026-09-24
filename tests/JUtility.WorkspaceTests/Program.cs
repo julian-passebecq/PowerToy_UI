@@ -658,7 +658,7 @@ Test("Report card fetch turns every failure into a readable message (fake server
     Check(ok.Succeeded && ok.Summary!.Sections.Count == 3);
     Check(seen!.Method == HttpMethod.Get && seen.RequestUri!.AbsolutePath == "/api/datapass/reports/FOIL_STATUS_NOW" && seen.Headers.Accept.ToString().Contains("application/json"), "read-only GET");
     Check(Run(_ => Json(HttpStatusCode.BadRequest, """{"ok":false,"error":"Unknown report: FOIL_STATUS_NOW"}""")).Error!.Contains("Unknown report"));
-    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)).Error!.Contains("requires sign-in"));
+    Check(Run(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)).Error!.Contains("uses web sign-in (OIDC)"), "401 without a Basic challenge = Mongoku OIDC");
     Check(Run(_ => new HttpResponseMessage(HttpStatusCode.Redirect)).Error!.Contains("redirected"));
     Check(Run(_ => new HttpResponseMessage(HttpStatusCode.NotFound)).Error!.Contains("no Mongoku report API"));
     Check(Run(_ => throw new HttpRequestException("refused", new System.Net.Sockets.SocketException(10061))).Error!.Contains("not reachable"));
@@ -676,6 +676,51 @@ Test("Report list comes from the Mongoku workspace (ids, titles, descriptions on
     var (none, noneError) = ReportCards.ListReportsAsync("http://localhost:3100/", new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"reports":[]}""") })).GetAwaiter().GetResult();
     Check(none.Count == 0 && noneError!.Contains("no saved reports"));
     Reject(() => ReportCards.ListReportsAsync("javascript:alert(1)", new FakeHandler(_ => throw new InvalidOperationException("must not be called"))).GetAwaiter().GetResult());
+});
+// ---- V2.1 protected Mongoku (basic auth, Windows Credential Manager) ----
+Test("Mongoku sign-in: one entry per origin, sent only over https or to this computer", () =>
+{
+    Check(ReportAuth.Target("HTTP://LocalHost:3100/some/path") == "PowerOps/Mongoku/http://localhost:3100");
+    Check(ReportAuth.Target("https://mongoku.example.com/") == "PowerOps/Mongoku/https://mongoku.example.com", "default port folded");
+    foreach (string ok in new[] { "https://mongoku.example.com/", "http://localhost:3100/", "http://127.0.0.1:3100/", "http://[::1]:3100/" })
+        Check(ReportAuth.RefusalToSend(new Uri(ok)) is null, ok);
+    Check(ReportAuth.RefusalToSend(new Uri("http://192.168.1.20:3100/"))!.Contains("plain http"), "no passwords over LAN http");
+    foreach (var bad in new[] { new BasicCredential("", "p"), new BasicCredential("a:b", "p"), new BasicCredential("user", ""), new BasicCredential("user", "p\u0001"), new BasicCredential(new string('u', 129), "p") })
+        Reject(() => ReportAuth.Validate(bad));
+    ReportAuth.Validate(new BasicCredential("mongoku_readonly", "pässwörd with spaces"));
+    var secret = new BasicCredential("u", "TopSecret-123");
+    Check(!secret.ToString().Contains("TopSecret") && !$"{secret}".Contains("TopSecret"), "password never printed");
+    Check(ReportAuth.Header(new BasicCredential("user", "pässword")).Parameter == Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("user:pässword")));
+});
+Test("Report cards sign in to a basic-auth Mongoku and explain each 401 (fake server)", () =>
+{
+    var good = new BasicCredential("reader", "right-password");
+    string expected = ReportAuth.Header(good).ToString();
+    var headers = new List<string?>();
+    HttpResponseMessage Server(HttpRequestMessage r)
+    {
+        headers.Add(r.Headers.Authorization?.ToString());
+        if (r.Headers.Authorization?.ToString() == expected)
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(FoilStatusSample) };
+        var denied = new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("Unauthorized") };
+        denied.Headers.WwwAuthenticate.ParseAdd("Basic");
+        return denied;
+    }
+    var card = new ReportCard { SourceUrl = "http://localhost:3100/", ReportId = "FOIL_STATUS_NOW" };
+    var none = ReportCards.FetchAsync(card, new FakeHandler(Server)).GetAwaiter().GetResult();
+    Check(none.Error!.Contains("asks for a user name and password") && headers[^1] is null, "no header without a saved sign-in");
+    var wrong = ReportCards.FetchAsync(card, new FakeHandler(Server), new BasicCredential("reader", "nope")).GetAwaiter().GetResult();
+    Check(wrong.Error!.Contains("rejected the saved user name or password"));
+    var ok = ReportCards.FetchAsync(card, new FakeHandler(Server), good).GetAwaiter().GetResult();
+    Check(ok.Succeeded && headers[^1] == expected, "signed in");
+    Check(!(wrong.Error + none.Error).Contains("right-password") && !(wrong.Error).Contains("nope"), "messages never echo passwords");
+    var (list, _) = ReportCards.ListReportsAsync("http://localhost:3100/", new FakeHandler(r => { headers.Add(r.Headers.Authorization?.ToString()); return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"reports":[{"id":"FOIL_NEXT","title":"FOIL next"}]}""") }; }), good).GetAwaiter().GetResult();
+    Check(list.Count == 1 && headers[^1] == expected, "report list uses the same sign-in");
+    int calls = headers.Count;
+    var lan = ReportCards.FetchAsync(new ReportCard { SourceUrl = "http://192.168.1.20:3100/", ReportId = "FOIL_NEXT" }, new FakeHandler(Server), good).GetAwaiter().GetResult();
+    Check(lan.Error!.Contains("plain http") && headers.Count == calls, "password never sent over LAN http: no request at all");
+    var oidc = ReportCards.FetchAsync(card, new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("""{"message":"Session expired"}""") }), good).GetAwaiter().GetResult();
+    Check(oidc.Error!.Contains("OIDC"), "Mongoku web sign-in is recognised");
 });
 int failures = 0;
 foreach (var test in tests)

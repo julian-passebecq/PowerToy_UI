@@ -149,10 +149,10 @@ public static partial class ReportCards
     }
 
     /// <summary>One on-demand GET. Never throws for network/HTTP problems: the card shows the returned message.</summary>
-    public static async Task<ReportFetchResult> FetchAsync(ReportCard card, HttpMessageHandler handler, CancellationToken cancellation = default)
+    public static async Task<ReportFetchResult> FetchAsync(ReportCard card, HttpMessageHandler handler, BasicCredential? credential = null, CancellationToken cancellation = default)
     {
         Validate(new ReportCardSettings { Cards = [card] });
-        (string? body, string? error) = await GetAsync(ReportUri(card), card.SourceUrl, handler, cancellation).ConfigureAwait(false);
+        (string? body, string? error) = await GetAsync(ReportUri(card), card.SourceUrl, handler, credential, cancellation).ConfigureAwait(false);
         if (body is null) return new ReportFetchResult(null, error);
         try
         {
@@ -165,10 +165,10 @@ public static partial class ReportCards
     }
 
     /// <summary>Report ids and titles from the Mongoku workspace (there is no list endpoint). On demand, for the card editor.</summary>
-    public static async Task<(IReadOnlyList<ReportChoice> Reports, string? Error)> ListReportsAsync(string sourceUrl, HttpMessageHandler handler, CancellationToken cancellation = default)
+    public static async Task<(IReadOnlyList<ReportChoice> Reports, string? Error)> ListReportsAsync(string sourceUrl, HttpMessageHandler handler, BasicCredential? credential = null, CancellationToken cancellation = default)
     {
         QuickWebApps.ValidateUrl(sourceUrl, "Report source");
-        (string? body, string? error) = await GetAsync(WorkspaceUri(sourceUrl), sourceUrl, handler, cancellation).ConfigureAwait(false);
+        (string? body, string? error) = await GetAsync(WorkspaceUri(sourceUrl), sourceUrl, handler, credential, cancellation).ConfigureAwait(false);
         if (body is null) return ([], error);
         try
         {
@@ -194,21 +194,33 @@ public static partial class ReportCards
 
     public static ReportCardSettings Defaults() => new();
 
-    private static async Task<(string? Body, string? Error)> GetAsync(Uri uri, string sourceUrl, HttpMessageHandler handler, CancellationToken cancellation)
+    private static async Task<(string? Body, string? Error)> GetAsync(Uri uri, string sourceUrl, HttpMessageHandler handler, BasicCredential? credential, CancellationToken cancellation)
     {
-        string where = new Uri(EnsureSlash(sourceUrl)).GetLeftPart(UriPartial.Authority);
+        var source = new Uri(EnsureSlash(sourceUrl));
+        string where = source.GetLeftPart(UriPartial.Authority);
+        if (credential is not null && ReportAuth.RefusalToSend(source) is string refusal) return (null, refusal);
         using var client = new HttpClient(handler, disposeHandler: false) { Timeout = Timeout, MaxResponseContentBufferSize = MaxResponseBytes };
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        request.Headers.Accept.ParseAdd("application/json");
+        // The header is attached to this single request for the card's own origin; redirects are never followed.
+        if (credential is not null && ReportAuth.Origin(uri) == ReportAuth.Origin(source)) request.Headers.Authorization = ReportAuth.Header(credential);
         try
         {
-            using HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);
+            using HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);
             string? body = await ReadBoundedAsync(response.Content, cancellation).ConfigureAwait(false);
             if (body is null) return (null, $"The response from {where} is larger than {MaxResponseBytes / 1024 / 1024} MB; open it in Mongoku instead.");
             if (response.IsSuccessStatusCode) return (body, null);
+            bool basicChallenge = response.Headers.WwwAuthenticate.Any(x => x.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase));
             return (null, response.StatusCode switch
             {
-                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
-                    $"Mongoku at {where} requires sign-in. Power Ops does not store credentials; open the report in Mongoku instead.",
+                HttpStatusCode.Unauthorized when basicChallenge && credential is null =>
+                    $"Mongoku at {where} asks for a user name and password. Save them under Sign-in in Manage report cards (kept in Windows Credential Manager).",
+                HttpStatusCode.Unauthorized when basicChallenge =>
+                    $"Mongoku at {where} rejected the saved user name or password. Update them under Sign-in in Manage report cards.",
+                HttpStatusCode.Unauthorized =>
+                    $"Mongoku at {where} uses web sign-in (OIDC). Report cards cannot sign in that way; open the report in Mongoku.",
+                HttpStatusCode.Forbidden =>
+                    $"Mongoku at {where} refused access (403) for this account.",
                 >= HttpStatusCode.Ambiguous and < HttpStatusCode.BadRequest =>
                     $"Mongoku at {where} redirected the request (sign-in page?). Open the report in Mongoku instead.",
                 HttpStatusCode.NotFound => $"{where} has no Mongoku report API (is this the datapass/control-plane-v1 Mongoku?).",

@@ -6,13 +6,15 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
+using JUtility.App.Services;
 using JUtility.Core.Actions;
 using JUtility.Core.Reports;
 
 namespace JUtility.App;
 
 // V2.1 Mongoku report cards on the Launchpad: fetched only when the user presses Refresh, shown as section
-// states and row counts (never row contents), kept in memory only. No MongoDB access, no stored credential.
+// states and row counts (never row contents), kept in memory only. No MongoDB access. A protected Mongoku's
+// user name and password live only in Windows Credential Manager (ReportAuth / WindowsCredentialVault).
 public partial class MainWindow
 {
     private ReportCardStore? _reportStore;
@@ -23,6 +25,22 @@ public partial class MainWindow
     private readonly HashSet<Guid> _reportLoading = [];
     private StackPanel? _reportPanel;
     private SocketsHttpHandler? _reportHttp;
+    private readonly ICredentialVault _vault = new WindowsCredentialVault();
+
+    /// <summary>Saved Mongoku sign-in for an address, or null. Errors reading the vault are reported, never swallowed.</summary>
+    private BasicCredential? SavedSignIn(string sourceUrl, out string? problem)
+    {
+        problem = null;
+        try
+        {
+            return _vault.Read(ReportAuth.Target(sourceUrl));
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or UriFormatException)
+        {
+            problem = ex.Message;
+            return null;
+        }
+    }
 
     // Created on first Refresh: no sockets or connection pool exist before the user asks for a report.
     private SocketsHttpHandler ReportHttp => _reportHttp ??= new SocketsHttpHandler
@@ -185,7 +203,10 @@ public partial class MainWindow
         FillReportPanel();
         try
         {
-            _reportResults[card.Id] = await ReportCards.FetchAsync(card, ReportHttp);
+            BasicCredential? signIn = SavedSignIn(card.SourceUrl, out string? vaultProblem);
+            _reportResults[card.Id] = vaultProblem is not null
+                ? new ReportFetchResult(null, vaultProblem)
+                : await ReportCards.FetchAsync(card, ReportHttp, signIn);
         }
         catch (InvalidDataException ex)
         {
@@ -211,6 +232,47 @@ public partial class MainWindow
         }
 
         Process.Start(new ProcessStartInfo(page.AbsoluteUri) { UseShellExecute = true });
+    }
+
+    /// <summary>Asks for a Mongoku user name and password. The password never leaves the PasswordBox except into the vault.</summary>
+    private BasicCredential? AskSignIn(string origin)
+    {
+        var body = new StackPanel { Margin = new Thickness(18) };
+        body.Children.Add(new TextBlock
+        {
+            Text = $"Mongoku sign-in for {origin}. Stored in Windows Credential Manager for your Windows account; sent only to {origin}.",
+            TextWrapping = TextWrapping.Wrap,
+        });
+        body.Children.Add(new TextBlock { Text = "User name", Margin = new Thickness(0, 10, 0, 0) });
+        var user = new TextBox { MaxLength = 128 };
+        AutomationProperties.SetName(user, "User name");
+        body.Children.Add(user);
+        body.Children.Add(new TextBlock { Text = "Password", Margin = new Thickness(0, 6, 0, 0) });
+        var password = new PasswordBox { MaxLength = 256, Margin = new Thickness(3) };
+        AutomationProperties.SetName(password, "Password");
+        body.Children.Add(password);
+        var problem = new TextBlock { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap };
+        body.Children.Add(problem);
+        BasicCredential? result = null;
+        Window dialog = SessionDialogWindow("Mongoku sign-in", body);
+        dialog.Height = 330;
+        body.Children.Add(SessionButton("Save", () =>
+        {
+            var candidate = new BasicCredential(user.Text.Trim(), password.Password);
+            try
+            {
+                ReportAuth.Validate(candidate);
+            }
+            catch (InvalidDataException ex)
+            {
+                problem.Text = ex.Message;
+                return;
+            }
+
+            result = candidate;
+            dialog.DialogResult = true;
+        }));
+        return SessionDialog(dialog) ? result : null;
     }
 
     private void ManageReportCards() => SessionAction(() =>
@@ -255,7 +317,8 @@ public partial class MainWindow
             error.Text = "Asking Mongoku for its saved reports...";
             try
             {
-                (IReadOnlyList<ReportChoice> choices, string? problem) = await ReportCards.ListReportsAsync(source.Text.Trim(), ReportHttp);
+                BasicCredential? signIn = SavedSignIn(source.Text.Trim(), out _);
+                (IReadOnlyList<ReportChoice> choices, string? problem) = await ReportCards.ListReportsAsync(source.Text.Trim(), ReportHttp, signIn);
                 reports.ItemsSource = choices;
                 reports.DisplayMemberPath = nameof(ReportChoice.Title);
                 reports.SelectedIndex = choices.Count > 0 ? 0 : -1;
@@ -271,6 +334,49 @@ public partial class MainWindow
             }
         };
         reports.SelectionChanged += (_, _) => description.Text = reports.SelectedItem is ReportChoice c ? $"{c.Id}: {c.Description}" : string.Empty;
+
+        // Sign-in for a Mongoku protected with MONGOKU_AUTH_BASIC. Stored per address in Windows Credential Manager.
+        var signInStatus = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray, Margin = new Thickness(0, 6, 0, 2) };
+        void RefreshSignIn()
+        {
+            string url = source.Text.Trim();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || uri.Scheme is not ("http" or "https"))
+            {
+                signInStatus.Text = "Sign-in: enter a valid Mongoku address first.";
+                return;
+            }
+
+            BasicCredential? saved = SavedSignIn(url, out string? problem);
+            string where = ReportAuth.Origin(uri);
+            signInStatus.Text = problem
+                ?? (saved is null
+                    ? $"Sign-in for {where}: none saved. Only needed when that Mongoku uses MONGOKU_AUTH_BASIC."
+                    : $"Sign-in for {where}: saved for user '{saved.UserName}' in Windows Credential Manager.")
+                + (ReportAuth.RefusalToSend(uri) is string refusal ? " " + refusal : string.Empty);
+        }
+
+        source.LostFocus += (_, _) => RefreshSignIn();
+        var signInButtons = new WrapPanel();
+        signInButtons.Children.Add(SessionButton("Save user and password...", () =>
+        {
+            string url = source.Text.Trim();
+            QuickWebApps.ValidateUrl(url, "Mongoku address");
+            if (ReportAuth.RefusalToSend(new Uri(url)) is string refusal) { error.Text = refusal; return; }
+            if (AskSignIn(ReportAuth.Origin(new Uri(url))) is not BasicCredential entered) return;
+            _vault.Write(ReportAuth.Target(url), entered);
+            error.Text = "Sign-in saved in Windows Credential Manager. Refresh a card to use it.";
+            RefreshSignIn();
+        }));
+        signInButtons.Children.Add(SessionButton("Forget sign-in", () =>
+        {
+            string url = source.Text.Trim();
+            QuickWebApps.ValidateUrl(url, "Mongoku address");
+            error.Text = _vault.Delete(ReportAuth.Target(url)) ? "Saved sign-in removed from Windows Credential Manager." : "No saved sign-in for this address.";
+            RefreshSignIn();
+        }));
+        body.Children.Add(signInStatus);
+        body.Children.Add(signInButtons);
+        RefreshSignIn();
         body.Children.Add(load);
         body.Children.Add(reports);
         body.Children.Add(description);
