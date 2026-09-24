@@ -10,7 +10,7 @@ Windows:
 Architecture:
 Branch: `codex/to-be-tested-v1`
 Commit tested:
-Tester/model: Codex / Luna Light
+Tester/model: Codex / GPT-6 Luna Medium (High only if escalated for a difficult defect)
 
 ## Automated gate
 
