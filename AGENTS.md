@@ -1,53 +1,28 @@
-# Codex live acceptance test v1 — current priority
+# Power Ops V2 foundation branch
 
-This branch, `codex/to-be-tested-v1`, exists specifically for a **live Windows acceptance pass of Power Ops / J Utility Palette**.
+Current task, 2026-09-24: the user authorized a broader modular-workspace V2/V3 design and implementation of a useful V2 foundation. This supersedes the inherited V1 acceptance-only restriction on THIS branch.
 
-## Model policy
+Branch: `codex/power-ops-v2-workspaces`.
+Base: `df3aa1626fee3c96f6008793214852b273595ffc` (Explorer checkpoint, schema v7, Windows CI #312 passed).
 
-Default model/reasoning for this acceptance pass:
+Do not modify `codex/to-be-tested-v1` or `main` for this work, and do not merge. V1 native acceptance remains separate and incomplete. Existing source success is not native desktop evidence.
 
-**GPT-6 Luna — Medium**
+## Scope and architecture
 
-Computer-control / desktop automation does **not** by itself require High reasoning. Stay on Luna Medium for the normal test matrix, routine code changes, build/test commands, and straightforward bug fixes.
+Read `docs/v2/ARCHITECTURE.md` and `docs/v2/DELIVERY.md` when available. This is an incremental WPF shell, not an Electron rewrite, GitHub Desktop clone, browser fleet, monitoring server or credential vault.
 
-Escalate the session to **GPT-6 Luna — High** only when a confirmed defect is genuinely difficult, for example:
+Share the existing business data. Save UI sessions separately in `shell-workspaces.json` (format powerops-shell, version 1); preserve business workspace schema v7. Workspaces are named VIEWS, not access-control boundaries. Saved tabs currently preserve module/search/filter state, not editor undo or every control's selection/scroll.
 
-- the same failure persists after one careful reproduce/fix/retest cycle;
-- the root cause crosses multiple layers or is still ambiguous after inspection;
-- WPF focus, summon/hide, window placement, mixed DPI, native interop, concurrency, persistence/recovery, or other stateful behavior needs deeper reasoning;
-- a proposed fix is risky enough that broader architectural reasoning is warranted.
+No new polling services, subprocess inventory probes, external writes, automatic updates or credentials. Navigation visibility does NOT yet unload the inherited eager WPF editors. State that limitation explicitly.
 
-Do not switch to High merely to click through the UI or control the Windows desktop. Do not downgrade the acceptance pass to Light just to save tokens if doing so would reduce reliability.
+## Verification
 
-Before doing anything else, read and follow:
+Run `.\scripts\build.ps1` (full Release solution, existing smoke suite, new package-free workspace tests). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture. Do not call the inherited V1-only launcher, which asserts a different branch.
 
-`handover/CODEX_LIVE_TEST_V1.md`
+Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer control is unavailable, use user-assisted steps and identify who observed each result.
 
-The priority for this branch is not another source-only review. **Run the application on the user's Windows computer and test it interactively using the available computer-control / desktop-automation capability.**
+## Delivery
 
-Use an isolated `--data-dir` for all write/delete/import/export/media scenarios. Do not use personal files as destructive fixtures. If computer-control or specific hardware (for example Mouse Button 4/5 or a second monitor) is unavailable, mark those scenarios BLOCKED instead of claiming success.
+Keep changes focused; no production deployments or main merge. Secret-bearing values, user data and machine paths must not enter public logs or exports unnoticed. Content exports are review formats, not full backups; layout imports must validate and preview before replacement. Preserve malformed or future-state bytes instead of silently resetting them.
 
-Confirmed defects may be fixed on this branch only. Keep changes focused, add regression coverage when practical, rerun `.\scripts\build.ps1`, retest the live scenario, and record results in:
-
-`handover/CODEX_LIVE_TEST_V1_RESULTS.md`
-
-Do not merge this branch and do not push live-acceptance fixes directly to `main`.
-
----
-
-# Working in this repository
-
-## Current user direction — 2026-09-24
-
-The Power Ops implementation has been promoted to `main`. The dedicated live Windows acceptance pass remains isolated on `codex/to-be-tested-v1`.
-
-For this acceptance branch, the live-test instructions above override older project-management handoff text when there is any conflict.
-
-Read `projectmanagement/README.md` and `projectmanagement/STATUS.md` for durable project context.
-
-- Do not assume a successful core test run means the WPF app works interactively. Run the real app and record native command exit codes.
-- Use isolated fixture data for destructive, import, recovery, and failure tests. Never use the user's live workspace as a test fixture.
-- Keep durable evidence in the results ledger; identify the exact tested revision and any uncommitted changes.
-- Never label unexecuted checks as passed.
-- Do not start unrelated implementation work during this acceptance pass.
-- This workflow does not automatically start another model or create background jobs. If High reasoning is needed, explicitly escalate only for the difficult defect and continue the same acceptance objective.
+Model choice is the user's session setting; this file does not configure or launch an agent. Use the selected efficient model for ordinary work and request escalation only for a reproducible difficult defect.
