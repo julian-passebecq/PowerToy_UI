@@ -54,3 +54,19 @@ The repository is an empty placeholder (README only, created 2026-09-24). There 
 - Scraping another browser's cookies or local storage.
 - Background health polling of web apps.
 - Exposing Power Ops commands to arbitrary web pages.
+
+## Implementation note (2026-09-25, slice 7, `c4caf56`)
+
+Point 4 is implemented as opt-in "Embedded in Power Ops" web apps with the conditions above, with one change: the **standard `WebView2` control** is used instead of `WebView2CompositionControl`. The composition control requires the Windows SDK projection (`Microsoft.Windows.SDK.NET`, a Windows 10 target framework, about 25 MB) and crashed Power Ops during layout without it. Airspace does not matter here, because nothing overlays the module area in-window, and the Shelf, Ring, menus and pop-ups are separate windows.
+
+Measured on the user's laptop:
+
+| State | Total working set |
+| --- | --- |
+| Never opened | 241.8 MB |
+| One embedded page | 612.1 MB (6 WebView2 processes, 372 MB) |
+| After "Close web view" | 230.9 MB, all WebView2 processes gone |
+
+Keep the feature for local tools. Do not keep many pages open.
+
+Real Mongoku embedding is not yet verified: during the test the local dev server's HTML route stopped responding while `/api/health` stayed up. See `DELIVERY.md`.

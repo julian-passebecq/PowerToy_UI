@@ -310,8 +310,66 @@ Date: 2026-09-24. Author: Claude Code (Windows laptop). Code commit: `ae1ce80`, 
   - the Summon-conflict fix button;
   - Quick Shelf and Quick Ring modes through the dialog.
 
+## V2.1 - slice 7 (embedded web apps: WebView2 "Web" tab)
+
+Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `c4caf56`, parent `e87e398`.
+
+### Changed
+
+- New web-app mode **Embedded in Power Ops**. The Mongoku preset defaults to it; the Gemini, ChatGPT and Claude presets stay in app windows because they rely on the browser sign-in.
+- An embedded app opens in a new **Web** module tab (`EmbeddedWebPolicy.ShowInWorkspace`), which is stored in `shell-workspaces.json`. An existing tab is reused, and when the tab limit is reached the active tab is retargeted.
+- `EmbeddedWebHost` is the only type that references WebView2, and it is created on the first embedded open. Until then no WebView2 assembly is loaded, no process starts and no profile folder exists.
+  - One environment is shared, with its profile in `<data-dir>/webview2`.
+  - There is one view per embedded app open in the current workspace. A view is disposed when its tab closes, when the workspace changes, or on **Close web view**, and its processes then exit.
+- Hardening:
+  - http(s) navigation only;
+  - pop-ups and `target=_blank` open in the default browser;
+  - all permission requests are denied;
+  - no host objects and no web messages;
+  - password saving and autofill are off;
+  - devtools are off.
+
+  Content export never includes browser data.
+- Toolbar: back, forward, reload, **Open outside** (app window or browser), **Close web view**. The status line shows loading, errors, and "waiting for server".
+- Control choice: the standard `WebView2` (HwndHost) control. `WebView2CompositionControl` needs the Windows SDK projection (`Microsoft.Windows.SDK.NET`) and **crashed Power Ops in layout** without it. That was caught by the native test and replaced. Airspace does not matter here, because nothing overlays the module area in-window.
+- **Inherited accessibility defect fixed:** the module `TabControl` template exposed no module content to UI Automation or screen readers. It now names `PART_SelectedContentHost` and has a collapsed items host, with no visual change.
+- First NuGet dependency: `Microsoft.Web.WebView2` 1.0.4191.47.
+
+### Evidence (tested revision `c4caf56`)
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **57/57** (3 new: reusable Web tab and valid shell state, live-view policy, navigation and pop-up policy plus export exclusion).
+- `tests/native/web-embedded.ps1` (stand-in page with a localStorage load counter; input is only a global shortcut plus UI Automation Invoke): **PASS, 17/17**. It observed:
+  - lazy: 0 WebView2 processes, no WebView2 modules loaded and no profile folder before first use;
+  - the shortcut opens the page in a Power Ops Web tab; the request came from the WebView2 user agent; the tab is persisted;
+  - reload keeps localStorage;
+  - moving to another tab and back keeps the live page (no reload);
+  - **Close web view ends every WebView2 process**;
+  - reopening and restarting keep state, and after a restart it stays lazy until opened.
+- Memory (working set; the sum over processes overstates because of shared pages), measured at `c4caf56`:
+
+  | State | Power Ops | WebView2 | Total |
+  | --- | --- | --- | --- |
+  | Never opened | 241.8 MB | 0 processes | 241.8 MB |
+  | One embedded page open | 239.8 MB | 6 processes, 372.4 MB | 612.1 MB |
+  | After Close web view | 230.9 MB | 0 processes | 230.9 MB |
+  | Restarted, not reopened | 221.2 MB | 0 processes | 221.2 MB |
+
+  **Decision:** keep it as opt-in. It costs nothing until used and is fully released on close. It is not suitable for many always-open pages, which matches the policy.
+- An IPv6-only (`::1`) local server, like Mongoku's dev server, loads fine embedded.
+- Real Mongoku: the user's other session had Mongoku `datapass/control-plane-v1` running at `http://localhost:3100`, reporting `mongo-read-only` with `writesEnabled: false`.
+  - A first plain GET returned the home page (HTTP 200, 372 KB, "Datapass Mongo Control").
+  - Minutes later its HTML route stopped answering, with requests timing out after 15 s and 60 s, while `/api/health` still answered in 73 ms. The embedded view therefore stayed on `about:blank` waiting, which is correct behaviour; the status text now says it is waiting.
+  - Power Ops sent no further requests. That session was actively editing Mongoku, and it cannot be ruled out that the few test page loads contributed.
+  - **Real Mongoku embedded: NOT VERIFIED**; re-run `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` when its page responds.
+- On the same revision, `interaction`, `quick-actions-hotkeys`, `quick-shelf`, `web-apps` and `quick-ring`: all **PASS**.
+- NOT RUN:
+  - a pop-up opening the default browser (it would open a tab in the user's browser);
+  - blocked non-http navigation from inside a page (covered by unit tests);
+  - downloads and file pickers;
+  - WebView2 runtime missing (message path only);
+  - multi-monitor/DPI.
+
 ### Remaining V2.1 work (in order)
 
-1. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
-2. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
-3. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
+1. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
+2. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
