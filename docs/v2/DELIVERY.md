@@ -376,7 +376,50 @@ Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `c4caf56`, 
   - WebView2 runtime missing (message path only);
   - multi-monitor/DPI.
 
+## V2.1 - slice 8 (Mongoku report cards on the Launchpad)
+
+Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `82032cf`, parent `bff596f`.
+
+### Changed
+
+- **Mongoku reports** section at the top of the Launchpad, one card per configured saved report.
+  - Cards are stored in a separate bounded `report-cards.json`: format `powerops-report-cards` v1, at most 8 cards, an http(s) source without credentials, and report ids matching `^[A-Z0-9_]{1,64}$`. Loading fails closed and never overwrites existing bytes.
+- **On demand only:** nothing is fetched until **Refresh**. The HTTP handler is created on the first Refresh; it follows no redirects and sends no cookies or credentials, with a 15 s timeout and a streaming 4 MB cap.
+- Only `GET {source}/api/datapass/reports/{id}` is used; there is no MongoDB access. The editor lists reports from `GET /api/datapass/workspace` on demand (ids, titles and descriptions only).
+- Cards show section **states and row counts only, never row contents**:
+  - each state has an explanation (source unbound, truncated, registry unavailable/ambiguous, namespace unresolved);
+  - they also show Mongoku's `generatedAt`, its read-only flag and the fetch time;
+  - the worst section sets the card colour; a report with no sections is Unknown, never OK;
+  - results stay in memory only.
+- Failures are explained: not reachable, no answer within 15 s, sign-in required (401/403), redirected (likely a sign-in page), unknown report (Mongoku's own error text), no report API (404), response too large.
+- **Open in Mongoku** deep-links to `/foil/report/{id}` (FOIL_*) or `/projects` (GLOBAL_PROJECTS). It uses the same mode as the user's Mongoku web app, including the embedded tab, which navigates straight to the report page.
+- Accessibility: card buttons are named "Refresh {title}" / "Open {title} in Mongoku", with `_` spoken as a space (WPF treats the first underscore as an access key). A new card takes the report's title by default.
+
+### Evidence (tested revision `82032cf`)
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **62/62**. The 5 new tests use a fake HTTP server:
+  - parsing, where rows are never kept and missing data stays unknown;
+  - validation, the store and preserved corrupt bytes;
+  - URIs and deep links;
+  - every failure message, including the size cap with and without Content-Length;
+  - the report list from the workspace.
+- `tests/native/report-cards.ps1` against the live local Mongoku (`datapass/control-plane-v1`, `mongo-read-only`, `writesEnabled: false`; the script refuses to run otherwise): **PASS, 16/16**. Only UI Automation Invoke was used. It observed:
+  - four cards "Not loaded yet", and **no TCP connection from Power Ops to Mongoku before Refresh**;
+  - FOIL status now shows both sections with the same row counts as the API and "2 unavailable · 0 complete" (both sections SOURCE_UNBOUND in this Mongoku);
+  - Global projects shows 7 sections, and its 1 truncated section is stated as "more rows exist than the report limit";
+  - no row contents displayed;
+  - an unknown report shows Mongoku's "Unknown report: NOPE_UNKNOWN_REPORT";
+  - a stopped source shows "Mongoku is not reachable at http://localhost:1";
+  - **Open in Mongoku** landed the embedded Mongoku tab on `http://localhost:3100/foil/report/FOIL_STATUS_NOW`;
+  - `report-cards.json` is unchanged and no report data is written;
+  - clean exit, and Mongoku still `writesEnabled: false`.
+- The same revision re-ran `web-embedded`, `interaction`, `quick-actions-hotkeys`, `web-apps` and `quick-ring`: all **PASS**.
+- `quick-shelf` failed 2 foreground checks once ("click again" and "Esc focus return") and then passed twice in a row. `QuickShelfWindow.cs` only differs from the 4/4 revision by a type rename. This is the known foreground-lock sensitivity when the desktop is in use.
+- NOT RUN:
+  - a Mongoku with basic auth or OIDC (the sign-in message path is unit-tested only);
+  - a remote Mongoku over https;
+  - the card editor dialog end-to-end (UI Automation of the dialog was not scripted).
 ### Remaining V2.1 work (in order)
 
-1. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
+1. Optional: sign-in support for a protected Mongoku (credential in Windows Credential Manager, never in JSON) once a shared/remote deployment is chosen.
 2. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
