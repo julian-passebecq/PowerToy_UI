@@ -1,10 +1,22 @@
 # Codex live test v1 handoff
 
-Updated: 2026-09-23
+Updated: 2026-09-24
 
-## Copy/paste prompt for Codex Luna Light
+## Copy/paste prompt for Codex GPT-6 Luna Medium
+
+### Model / reasoning policy
+
+Use **GPT-6 Luna — Medium** as the default for the complete live acceptance pass.
+
+- Desktop/computer control itself does **not** require High reasoning.
+- Stay on Medium for navigation, UI interaction, build/test commands, the test matrix, and straightforward fixes.
+- Escalate to **GPT-6 Luna — High** only for a confirmed difficult defect: persistent failure after one careful fix/retest cycle, unclear multi-layer root cause, WPF focus/summon/DPI/native interop/concurrency/state-recovery issues, or a risky cross-cutting fix.
+- Do not use High merely because the task controls the PC.
+- Do not run the main acceptance pass on Light if that would reduce reliability.
 
 > You are taking over the Power Ops / J Utility Palette repository for a **live Windows acceptance test**, not a source-only review.
+>
+> Use **GPT-6 Luna — Medium** for the normal pass. Computer-control does not require High. Escalate to **Luna High** only for a confirmed difficult defect that remains hard after a careful reproduce/inspect/fix/retest cycle or involves complex WPF/native/state behavior. Do not switch to High just to control the desktop.
 >
 > Work on branch `codex/to-be-tested-v1`.
 >
@@ -28,7 +40,9 @@ Implementation baseline under test:
 
 `95eed387e6719765d05ccbbaa0190bf0fbdcd9f5`
 
-That baseline passed Windows CI run **#302** before the handoff-only files were added. Codex must still rerun the local build/smoke gate on this branch before live UI testing.
+That baseline passed Windows CI run **#302** before the handoff-only files were added. It was later promoted to `main` through merge commit `96fdaf580ff9556dbc7330ae8c7831fabf0cb8ae`; Windows CI **#304** passed before promotion and **#305** passed on `main` after promotion.
+
+The acceptance pass still belongs on `codex/to-be-tested-v1` so any live defects and fixes remain isolated until reviewed. Codex must rerun the local build/smoke gate on this branch before live UI testing.
 
 Source branch:
 
