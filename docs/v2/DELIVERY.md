@@ -69,11 +69,57 @@ Windows follow-up (2026-09-24, Claude Code on the user's Windows 11 laptop, .NET
 - `.\scripts\build.ps1`: **PASS**. Full solution Release build including the WPF app, `JUtility.SmokeTests` **68/68 PASS** (the Linux-only locking failure does not occur on Windows), `JUtility.WorkspaceTests` **34/34 PASS**.
 - Native UI and hotkey behaviour remain NOT RUN; nothing in this slice is wired into the app yet.
 
+## V2.1 Quick Actions - slice 2 (app wiring + opt-in global shortcuts)
+
+Date: 2026-09-24. Author: Claude Code (Windows laptop). Code commit: `16e8311`, parent `88e5792`.
+
+### Changed
+
+- `MainWindow.QuickActions.cs` is the only place catalog IDs receive an implementation. It reuses existing code paths: `OpenExplorerPath`/`OpenPinnedExplorerFolder`, `AddCaptureNote` (extracted from `AddNote_Click`), `LaunchTool`, `RestoreSession`, and the Summon show/hide logic.
+  - `capture.region` launches the supported Windows `ms-screenclip:` flow.
+  - `folder.downloads` resolves the Downloads known folder (`SHGetKnownFolderPath`).
+  - `terminal.open` uses only an explicitly configured Tool Launcher entry (`QuickActionTargets.PickTerminal`) and never guesses an executable.
+  - Clipboard/Capture activate an existing tab for that module before retargeting the current tab.
+  - `ring.show`/`shelf.toggle` are deliberately unregistered and report "Not available in this build".
+- Ctrl+Shift+E and Ctrl+Tab/Ctrl+Shift+Tab now run through the dispatcher (`InAppShortcut` surface), so in-app keys and global/menu surfaces share one implementation.
+- New **Actions** menu: every registered action (Full UI surface), with its active global gesture shown, plus **Global shortcuts...** dialog (enable checkbox, add/remove bindings, validation errors inline, per-binding registration result after save).
+- `GlobalHotkeyService`: `RegisterHotKey` on a message-only `HwndSource`; no keyboard hook, no timer. Registers only when `GlobalShortcutsEnabled`; each failed binding produces a visible message; all IDs are unregistered on re-apply and on window close. WM_HOTKEY work is deferred out of the window procedure.
+- Out-of-app refusals (unavailable, not allowed, failed) bring Power Ops forward and show a message; in-app shortcut refusals only update the status bar.
+- `app.toggle` decides "in front" from `GetForegroundWindow()`, not WPF `IsActive` (see defect below).
+- Core: `WorkspaceSessions.CycleTab/CycleWorkspace`, `QuickActionHotkeys.Plan` and `DescribeRegistrationFailure`, `QuickActionTargets.PickTerminal`.
+
+### Defect found and fixed during native testing
+
+After a background launch Windows kept another app in the foreground, but WPF still reported `IsActive`, so the first toggle **minimized** a window the user could not see instead of bringing it forward. Reproduced by `tests/native/quick-actions-hotkeys.ps1`; fixed by checking the real foreground window; re-run passes in both directions.
+
+### Evidence (tested revision `16e8311`)
+
+- `.\scripts\build.ps1`: **PASS**. Release solution build with 0 warnings and 0 errors, `JUtility.SmokeTests` **68/68**, `JUtility.WorkspaceTests` **39/39** (5 new).
+- `tests/native/quick-actions-hotkeys.ps1` on Windows 11 Pro 10.0.26200. Each run used fresh isolated `--data-dir` folders under `%TEMP%` and never touched the personal workspace. Result: **PASS**. The script observed:
+  - a fresh data dir registers nothing and writes no `quick-actions.json`;
+  - enabled bindings are owned by Power Ops (a probe gets 1409);
+  - toggle brings a non-foreground window forward and minimizes a foreground one, observed in both directions across runs;
+  - `app.open` restores and foregrounds;
+  - a second instance with the same bindings shows the "Power Ops global shortcuts" warning and keeps running while the first instance keeps the hotkey;
+  - closing releases both hotkeys;
+  - loading does not rewrite the settings file.
+- Machine note: **Ctrl+Alt+Space (the proposed default) is already registered by another application on this laptop**, so enabling the default binding here would show a registration failure. The first test run pressed it three times before this was detected; those presses went to that other application. The default is left unchanged because the feature is off by default and the failure is shown; the user should choose another gesture here.
+
+### NOT RUN (user-assisted checklist)
+
+Observer should record name, date and result for each:
+
+1. Summon window mode: global toggle hides/shows with Open-near-cursor; Hide-on-focus-loss still behaves.
+2. Actions menu: each item runs; Terminal with no terminal tool shows the "Add a terminal" message; Explorer with a missing pinned folder shows "Pinned folder not found".
+3. `capture.region` opens the Windows snip overlay; `folder.downloads` opens Downloads.
+4. `capture.quick` from another app: Power Ops comes forward on Capture with a new item and the title box focused.
+5. Workspace next/previous from a global shortcut; tab cycling with Ctrl+Tab while not in a text box.
+6. Global shortcuts dialog: invalid gesture (e.g. `Ctrl+C`, `Alt+F4`) is rejected inline; disabling removes registrations immediately.
+7. Idle CPU/handles before/after enabling shortcuts; typing in other applications is unaffected.
+
 ### Remaining V2.1 work (in order)
 
-1. App wiring: register one handler per catalog ID in the WPF layer, reusing existing Capture/Clipboard/Explorer/workspace/tab code paths; route existing menu/shortcut commands through the dispatcher.
-2. Global summon: `RegisterHotKey`/`UnregisterHotKey` on a message-only window, only when `GlobalShortcutsEnabled`; visible per-binding registration failure; unregister on disable/exit.
-3. Quick Shelf window (orientation, always-on-top, auto-hide, per-workspace layout, keyboard accessible).
-4. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
-5. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
-6. Native acceptance + idle/latency measurements; add rows to `NATIVE_RESULTS.md`.
+1. Quick Shelf window (orientation, always-on-top, auto-hide, per-workspace layout, keyboard accessible).
+2. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
+3. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
+4. Native acceptance + idle/latency measurements.
