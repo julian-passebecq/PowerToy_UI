@@ -12,6 +12,21 @@ public static class ProjectClipboardFormatter
         AddIf(parts, project.CopyName, project.Name);
         AddIf(parts, project.CopyRepo, project.RepoUrl);
         AddIf(parts, project.CopySite, project.SiteUrl);
+        AddIf(parts, project.CopyServer, project.ServerUrl);
+        AddIf(parts, project.CopyChatGpt, project.ChatGptUrl);
+        AddIf(parts, project.CopyExtra, project.ExtraUrl);
+        return string.Join(" ", parts);
+    }
+
+    public static string FormatUrls(ProjectEntry project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+
+        List<string> parts = [];
+        AddIf(parts, project.CopyRepo, project.RepoUrl);
+        AddIf(parts, project.CopySite, project.SiteUrl);
+        AddIf(parts, project.CopyServer, project.ServerUrl);
+        AddIf(parts, project.CopyChatGpt, project.ChatGptUrl);
         AddIf(parts, project.CopyExtra, project.ExtraUrl);
         return string.Join(" ", parts);
     }
@@ -24,7 +39,7 @@ public static class ProjectClipboardFormatter
             Environment.NewLine,
             projects
                 .Where(project => project.IncludeInCopyAll && !project.IsArchived)
-                .Select(FormatRow)
+                .Select(FormatUrls)
                 .Where(line => !string.IsNullOrWhiteSpace(line)));
     }
 

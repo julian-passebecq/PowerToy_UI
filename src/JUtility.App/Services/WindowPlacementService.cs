@@ -1,13 +1,13 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using JUtility.Core.Services;
 
 namespace JUtility.App.Services;
 
 internal static class WindowPlacementService
 {
     private const uint MonitorDefaultToNearest = 0x00000002;
-    private const uint SwpNoSize = 0x0001;
     private const uint SwpNoZOrder = 0x0004;
     private const uint SwpNoActivate = 0x0010;
 
@@ -26,27 +26,62 @@ internal static class WindowPlacementService
             return;
         }
 
-        int width = windowRect.Right - windowRect.Left;
-        int height = windowRect.Bottom - windowRect.Top;
         NativeRect work = monitorInfo.WorkArea;
+        WindowBounds target = WindowPlacementMath.PlaceNearCursor(
+            cursor.X,
+            cursor.Y,
+            windowRect.Right - windowRect.Left,
+            windowRect.Bottom - windowRect.Top,
+            work.Left,
+            work.Top,
+            work.Right,
+            work.Bottom,
+            gap);
 
-        int x = cursor.X + gap;
-        int y = cursor.Y + gap;
+        SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            target.Left,
+            target.Top,
+            target.Width,
+            target.Height,
+            SwpNoZOrder | SwpNoActivate);
+    }
 
-        if (x + width > work.Right)
+    public static void EnsureVisible(Window window)
+    {
+        IntPtr handle = new WindowInteropHelper(window).Handle;
+        if (handle == IntPtr.Zero || !GetWindowRect(handle, out Rect windowRect))
         {
-            x = cursor.X - gap - width;
+            return;
         }
 
-        if (y + height > work.Bottom)
+        IntPtr monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
+        MonitorInfo monitorInfo = new() { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
         {
-            y = cursor.Y - gap - height;
+            return;
         }
 
-        x = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - width));
-        y = Math.Clamp(y, work.Top, Math.Max(work.Top, work.Bottom - height));
+        NativeRect work = monitorInfo.WorkArea;
+        WindowBounds target = WindowPlacementMath.ClampToWorkArea(
+            windowRect.Left,
+            windowRect.Top,
+            windowRect.Right - windowRect.Left,
+            windowRect.Bottom - windowRect.Top,
+            work.Left,
+            work.Top,
+            work.Right,
+            work.Bottom);
 
-        SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SwpNoSize | SwpNoZOrder | SwpNoActivate);
+        SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            target.Left,
+            target.Top,
+            target.Width,
+            target.Height,
+            SwpNoZOrder | SwpNoActivate);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -93,6 +128,9 @@ internal static class WindowPlacementService
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(Point point, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -1,5 +1,7 @@
 # Architecture
 
+This page describes the original implementation. The target boundaries, reliability invariants, and phased changes are maintained in [projectmanagement/VISION_ARCHITECTURE.md](../projectmanagement/VISION_ARCHITECTURE.md).
+
 ## Why this repository is separate
 
 The previous prototype lived inside a full fork of Microsoft PowerToys. That made a very small personal utility expensive to clone, build, review, and maintain.

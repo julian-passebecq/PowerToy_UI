@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,13 +13,21 @@ jobs:
   build-and-smoke-test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: 8.0.x
-      - name: Restore
-        run: dotnet restore .\JUtilityPalette.sln
-      - name: Build
-        run: dotnet build .\JUtilityPalette.sln -c Release --no-restore
-      - name: Smoke tests
-        run: dotnet run --project .\tests\JUtility.SmokeTests\JUtility.SmokeTests.csproj -c Release --no-build
+      - name: Full build and smoke gate
+        shell: pwsh
+        run: .\scripts\build.ps1
+      - name: Build self-contained Power Ops package
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: .\scripts\publish.ps1 -Runtime win-x64
+      - name: Upload Power Ops package
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: PowerOps-win-x64
+          path: artifacts/PowerOps-win-x64.zip
+          if-no-files-found: error

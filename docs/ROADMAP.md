@@ -1,5 +1,7 @@
 # Roadmap
 
+Current delivery priorities, acceptance gates, and the active sprint are maintained in [projectmanagement/BACKLOG.md](../projectmanagement/BACKLOG.md) and [STATUS.md](../projectmanagement/STATUS.md). The list below records the original V1 scope and candidate ideas; it does not supersede the current sprint plan.
+
 ## V1 - implemented in the clean repo
 
 - adaptive Sidebar / Compact / Expanded window sizes;

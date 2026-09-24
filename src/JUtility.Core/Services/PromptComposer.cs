@@ -27,6 +27,8 @@ public static partial class PromptComposer
             replacements["project"] = project.Name;
             replacements["repo"] = project.RepoUrl;
             replacements["site"] = project.SiteUrl;
+            replacements["server"] = project.ServerUrl;
+            replacements["chatgpt"] = project.ChatGptUrl;
             replacements["extra"] = project.ExtraUrl;
         }
 
