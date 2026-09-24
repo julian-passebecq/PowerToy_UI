@@ -212,10 +212,57 @@ Date: 2026-09-24. Author: Claude Code (Windows laptop). Decision record: `docs/v
   - the dialog UI end-to-end;
   - Edge fallback on a machine without Chrome.
 
+## V2.1 Quick Actions - slice 5 (Quick Ring)
+
+Date: 2026-09-24. Author: Claude Code (Windows laptop). Code commit: `19738ad`, parent `6b66a88`.
+
+### Changed
+
+- `QuickRingWindow`: a transparent, topmost tool window with a disc of up to 8 slots numbered clockwise from the top (built-in actions and web apps) and a centre button that runs `app.open`. It is presentation only: every slot goes through the dispatcher (`ActionSurface.QuickRing`), and `ring.show` is now registered.
+- Showing and placement:
+  - `ring.show` (global shortcut, Actions menu or a Shelf button) centres the ring on the pointer and clamps it to that monitor's work area (`WindowPlacementService.CenterOnCursor`, `WindowPlacementMath.CenterOn`);
+  - it records the previously focused window and activates the ring.
+- Keyboard: the centre is focused first; arrows move and wrap; 1-8 (or numpad) run a slot directly; Enter/Space run the focused slot. Esc hides the ring and returns focus to the previous window.
+- Running a slot hides the ring and restores focus first, then runs the action, so actions open in the user's context.
+- Dismissal: only the disc is hit-testable. An outside click activates the other window, and the ring hides without pulling focus back.
+- Availability is probed once per slot on show. The window is created on first use and reused; nothing runs while it is hidden.
+- **Customize Quick Ring** dialog: default or per-workspace slots. The list editor is now shared with the Quick Shelf dialog (`MainWindow.LayoutEditor.cs`).
+- Core: `QuickSurfaceModel`/`QuickSurfaceItem` shared by Shelf and Ring, and `QuickRingModel` (slot geometry, arrow and digit model).
+
+### Test-safety correction (native scripts)
+
+During the slice 5 runs a probe showed the user actively working in Chrome. The native scripts synthesize arrow, digit, Tab and Esc keys and coordinate clicks, which would go to whatever window is in front if Power Ops is not.
+- The scripts now refuse to send a key unless the foreground window belongs to the test's Power Ops process, and refuse to click or drag unless the point is over it. They bring Power Ops forward with a global shortcut, which Windows consumes and never delivers to another app, instead of a title-bar click. They clean up on abort.
+- The aborted first ring run stopped before sending any non-shortcut key.
+- Earlier slices' runs predate these guards. Their only non-shortcut keys were sent after checks that expected Power Ops to be in front, but that was not enforced.
+- Also fixed: PowerShell passes `$null` as `""` to `FindWindow`, so the ring script now uses `[NullString]::Value`.
+
+### Evidence (tested revision `19738ad`)
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **51/51** (4 new: slot geometry, keyboard model, workspace/web-app ring, pointer placement including negative coordinates).
+- `tests/native/quick-ring.ps1`: **PASS, 19/19 checks**. It observed:
+  - no ring window exists before first use;
+  - the shortcut shows it (first show 137 ms, warm show 28 ms, measured from the synthesized key press to a visible window) centred exactly on the pointer, as the foreground window;
+  - slot names in order, slot 1 at the top and slot 2 on the right;
+  - the centre is focused first, and the arrows move clockwise and wrap;
+  - Esc hides it and returns focus to the previous window;
+  - digit 1 and a slot click each run the slot's action (the test page opened);
+  - an outside click dismisses it without running anything;
+  - the top-left corner clamps to (0,0);
+  - the centre brings the minimized Power Ops forward;
+  - 15.6 ms CPU (one timer tick) in 10 s while hidden after use;
+  - clean exit.
+- Re-run on the same revision with the guarded scripts: `quick-actions-hotkeys.ps1`, `quick-shelf.ps1` and `web-apps.ps1` all **PASS**. This re-confirms the Shelf result that was flaky at `64f26e0`.
+- NOT RUN:
+  - multi-monitor and mixed-DPI placement (single display);
+  - MX Master / Logi Options+ invoking the ring (no device in this session);
+  - the Customize Quick Ring dialog end-to-end;
+  - slots with external effects (screenshot, Explorer, terminal);
+  - screen-reader announcement.
+
 ### Remaining V2.1 work (in order)
 
-1. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
-2. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
-3. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
-4. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
-5. Native acceptance + idle/latency measurements.
+1. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
+2. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
+3. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
+4. Native acceptance + idle/latency measurements.
