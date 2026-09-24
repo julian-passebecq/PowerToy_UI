@@ -176,6 +176,7 @@ Safe-Click ([int]($c.X + $c.Width / 2)) ([int]($c.Y + $c.Height / 2)); Start-Sle
 Rec 'centre: Power Ops brought to front' ([R]::GetForegroundWindow() -eq $main)
 
 # 7. Hidden ring costs nothing.
+Start-Sleep -Seconds 3   # let the just-restored main window finish its layout save / redraw before measuring
 $p.Refresh(); $cpu0 = $p.TotalProcessorTime; Start-Sleep -Seconds 10; $p.Refresh()
 $cpu = ($p.TotalProcessorTime - $cpu0).TotalMilliseconds
 Rec 'idle after use: no CPU while hidden' ($cpu -lt 50) "$([Math]::Round($cpu, 1)) ms CPU in 10 s"

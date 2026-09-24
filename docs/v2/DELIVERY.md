@@ -260,9 +260,58 @@ During the slice 5 runs a probe showed the user actively working in Chrome. The 
   - slots with external effects (screenshot, Explorer, terminal);
   - screen-reader announcement.
 
+## V2.1 Quick Actions - slice 6 (Interaction settings + MX Master / Logi Options+ guide)
+
+Date: 2026-09-24. Author: Claude Code (Windows laptop). Code commit: `ae1ce80`, parent `8a805b6`.
+
+### Changed
+
+- **Actions → Interaction settings...** offers five modes (Off, Quick Shelf, Quick Ring, MX Master guide, Hybrid), each with a one-line explanation. Everything is edited on a copy and saved at once; hotkeys are then re-applied, and the Shelf is shown when the mode is Quick Shelf.
+- **Add recommended shortcuts** (`InteractionGuide.AddRecommended`):
+  - Shortcuts per mode:
+    - Hybrid / MX Master guide: Quick Ring, Show/hide, Quick Capture, Clipboard;
+    - Quick Ring: Quick Ring, Show/hide;
+    - Quick Shelf: Quick Shelf, Show/hide.
+  - Candidates are Ctrl+Alt+Shift+letter with F-key fallbacks. They are typeable, so Logi Options+ can record them, and they pass the conflict policy.
+  - Each candidate is probed in Windows before it is offered (`GlobalHotkeyService.IsAvailable`: a trial `RegisterHotKey` on the message window, released immediately).
+  - A working user binding is kept. A binding that another program owns is replaced and the report says so.
+  - The result is idempotent, nothing is registered until Save, and the report lists every decision.
+- **MX Master / Logi Options+ guide** (`InteractionGuide.MxMasterSteps`) is generated from the configured shortcuts:
+  - gesture press → Quick Ring; gesture up/down → Quick Capture/Clipboard; a spare button → Show/hide;
+  - application-specific Back/Forward for `JUtilityPalette.exe` → Ctrl+Shift+Tab / Ctrl+Tab;
+  - each step has a Copy button;
+  - a step for an unbound or disabled action is flagged, not promised.
+
+  No Logitech driver or API is used: Options+ sends ordinary keystrokes.
+- The Summon mouse-hook double-interception warning appears when relevant, with a one-click "Use Ctrl + middle click for Summon" fix.
+
+### Evidence (tested revision `ae1ce80`)
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **54/54** (3 new):
+  - valid, conflict-free recommendations;
+  - keep, fall back, replace, idempotent and nothing-free cases;
+  - guide steps reflect the bindings, the warning, and disabled shortcuts.
+- `tests/native/interaction.ps1`: **PASS, 16/16**. It drives the dialog through UI Automation Invoke/Select/ExpandCollapse only (no synthesized clicks or typing; the Copy buttons are not pressed, to leave the user's clipboard alone) and observed:
+  - the dialog opens from the Actions menu with five modes and Off selected;
+  - Hybrid expands the guide;
+  - "Add recommended shortcuts" reports: Ctrl+Alt+Shift+R added; **Show/hide's default Ctrl+Alt+Space is owned by another program on this laptop and was replaced with Ctrl+Alt+Shift+P**; N and V added;
+  - the guide offers "Copy Ctrl+Alt+Shift+R", and the Back/Forward steps are present;
+  - nothing is registered before Save;
+  - Save shows no warning, persists Hybrid with the four expected bindings, and all four are then owned by Power Ops;
+  - the Quick Ring shortcut shows and hides the ring;
+  - exit releases every shortcut.
+- The same revision re-ran `quick-actions-hotkeys.ps1`, `quick-shelf.ps1` and `web-apps.ps1`: **PASS**.
+- `quick-ring.ps1` failed once, only on its idle check: 125 ms CPU in 10 s, measured 0.9 s after the test restored the main window, so it included that window's layout save and redraw.
+  - The script now waits 3 s before measuring.
+  - Two re-runs were **PASS, 0 ms CPU in 10 s**.
+- NOT RUN:
+  - a physical MX Master with Logi Options+ (no device in this session): the guide's button names and Options+ menu wording still need checking against the installed Options+ version;
+  - the Copy buttons;
+  - the Summon-conflict fix button;
+  - Quick Shelf and Quick Ring modes through the dialog.
+
 ### Remaining V2.1 work (in order)
 
-1. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
-2. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
-3. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
-4. Native acceptance + idle/latency measurements.
+1. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
+2. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
+3. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
