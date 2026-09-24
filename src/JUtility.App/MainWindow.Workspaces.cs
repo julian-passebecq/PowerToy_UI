@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using JUtility.App.Services;
+using JUtility.Core.Actions;
 using JUtility.Core.Models;
 using JUtility.Core.Services;
 using JUtility.Core.Workspaces;
@@ -124,6 +125,7 @@ public partial class MainWindow
         Add(tabs, "New tab (Ctrl+T)", () => NewSessionTab(WorkspaceSessions.ActiveTab(CurrentWorkspace()).ModuleId));
         Add(tabs, "Close tab (Ctrl+W)", CloseSessionTab);
         Add(tabs, "Reopen closed tab (Ctrl+Shift+T)", ReopenSessionTab);
+        menu.Items.Add(CreateActionsMenu());
         var view = Group("_View");
         Add(view, "Show / hide quick ribbon", () => { RememberSession(); CurrentWorkspace().RibbonVisible = !CurrentWorkspace().RibbonVisible; RestoreSession(); MarkSessionDirty(); });
         Add(view, "Feature catalog", () => NavigateSession("features"));
@@ -256,12 +258,10 @@ public partial class MainWindow
         if (e.Key == Key.W && keys == ModifierKeys.Control) action = CloseSessionTab;
         if (e.Key == Key.Tab)
         {
-            action = () =>
-            {
-                RememberSession(); var p = CurrentWorkspace(); int i = p.Tabs.FindIndex(t => t.Id == p.ActiveTabId);
-                p.ActiveTabId = p.Tabs[(i + (keys == ModifierKeys.Control ? 1 : p.Tabs.Count - 1)) % p.Tabs.Count].Id;
-                RestoreSession(); MarkSessionDirty();
-            };
+            // Same implementation as the tab.next/tab.previous quick actions.
+            e.Handled = true;
+            RunQuickAction(keys == ModifierKeys.Control ? QuickActionCatalog.TabNext : QuickActionCatalog.TabPrevious, ActionSurface.InAppShortcut);
+            return;
         }
         if (keys == ModifierKeys.Control && (int)e.Key >= (int)Key.D1 && (int)e.Key <= (int)Key.D9)
         {

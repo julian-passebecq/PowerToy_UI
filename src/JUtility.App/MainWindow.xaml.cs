@@ -131,6 +131,7 @@ public partial class MainWindow : Window
         RepositoryTree.ItemsSource = _projectTreeNodes;
 
         _summonService.Triggered += SummonService_Triggered;
+        InitializeQuickActions();
         Loaded += MainWindow_Loaded;
         Deactivated += MainWindow_Deactivated;
         Closing += MainWindow_Closing;
@@ -181,6 +182,7 @@ public partial class MainWindow : Window
         ApplyExtraColumnVisibility();
         ApplyWindowBehavior(initialLoad: true);
         _loaded = true;
+        LoadQuickActionSettings();
     }
 
     private void MainWindow_Deactivated(object? sender, EventArgs e)
@@ -559,7 +561,7 @@ public partial class MainWindow : Window
                 editingText: editingText))
         {
             e.Handled = true;
-            OpenPinnedExplorerFolder();
+            RunQuickAction(JUtility.Core.Actions.QuickActionCatalog.FolderExplorer, JUtility.Core.Actions.ActionSurface.InAppShortcut);
             return;
         }
 
@@ -605,9 +607,10 @@ public partial class MainWindow : Window
         OpenExplorerFolder(folder);
     }
 
-    private void OpenExplorerFolder(ExplorerFolderEntry? folder)
+    private void OpenExplorerFolder(ExplorerFolderEntry? folder) => OpenExplorerPath(folder?.Path, folder?.Name);
+
+    private void OpenExplorerPath(string? path, string? name)
     {
-        string? path = folder?.Path;
         if (!string.IsNullOrWhiteSpace(path) && !Directory.Exists(path))
         {
             _viewModel.StatusText = $"Folder not found: {path}";
@@ -623,7 +626,7 @@ public partial class MainWindow : Window
             }
 
             Process.Start(startInfo);
-            _viewModel.StatusText = folder is null ? "Opened File Explorer" : $"Opened {folder.Name} in File Explorer";
+            _viewModel.StatusText = name is null ? "Opened File Explorer" : $"Opened {name} in File Explorer";
         }
         catch (Exception ex)
         {
@@ -3357,7 +3360,9 @@ public partial class MainWindow : Window
         _viewModel.StatusText = "Clipboard URL captured as bookmark";
     }
 
-    private void AddNote_Click(object sender, RoutedEventArgs e)
+    private void AddNote_Click(object sender, RoutedEventArgs e) => AddCaptureNote();
+
+    private void AddCaptureNote()
     {
         PrepareCaptureAddContext();
         _viewModel.AddNote();

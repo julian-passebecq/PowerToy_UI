@@ -133,6 +133,23 @@ public static class WorkspaceSessions
         if (!profile.VisibleModules.Contains(tab.ModuleId)) profile.VisibleModules.Add(tab.ModuleId);
         profile.Tabs.Add(tab); profile.ActiveTabId = tab.Id;
     }
+    /// <summary>Moves the active tab by <paramref name="delta"/> with wrap-around. False when there is nothing to switch to.</summary>
+    public static bool CycleTab(WorkspaceProfile profile, int delta)
+    {
+        if (profile.Tabs.Count < 2) return false;
+        int index = profile.Tabs.FindIndex(x => x.Id == profile.ActiveTabId);
+        profile.ActiveTabId = profile.Tabs[Wrap(index + delta, profile.Tabs.Count)].Id;
+        return true;
+    }
+    /// <summary>Switches the active workspace view with wrap-around; business data is untouched.</summary>
+    public static bool CycleWorkspace(ShellState state, int delta)
+    {
+        if (state.Workspaces.Count < 2) return false;
+        int index = state.Workspaces.FindIndex(x => x.Id == state.ActiveWorkspaceId);
+        state.ActiveWorkspaceId = state.Workspaces[Wrap(index + delta, state.Workspaces.Count)].Id;
+        return true;
+    }
+    private static int Wrap(int value, int count) => ((value % count) + count) % count;
     public static void SaveView(ShellState state, string name)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new InvalidDataException("Give the saved view a name.");

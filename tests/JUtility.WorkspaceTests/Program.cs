@@ -302,6 +302,57 @@ Test("Quick actions store round-trips, writes nothing on load and preserves corr
     Reject(() => store.Load());
     Check(Directory.GetFiles(dir, "*.tmp").Length == 0);
 }));
+// ---- V2.1 Quick Actions slice 2: app wiring helpers ----
+Test("Tab cycling wraps both ways and reports when there is nothing to switch", () =>
+{
+    var p = WorkspaceSessions.NewProfile("T");
+    Check(!WorkspaceSessions.CycleTab(p, 1), "single tab cannot cycle");
+    var first = p.Tabs[0].Id; WorkspaceSessions.AddTab(p, "capture"); WorkspaceSessions.AddTab(p, "clipboard");
+    var last = p.ActiveTabId;
+    Check(WorkspaceSessions.CycleTab(p, 1) && p.ActiveTabId == first, "next wraps to first");
+    Check(WorkspaceSessions.CycleTab(p, -1) && p.ActiveTabId == last, "previous wraps to last");
+    Check(WorkspaceSessions.CycleTab(p, -1) && p.ActiveTabId == p.Tabs[1].Id);
+});
+Test("Workspace cycling wraps, changes only the active view and needs two views", () =>
+{
+    var s = WorkspaceSessions.Defaults(); var before = JsonSerializer.Serialize(s.Workspaces, WorkspaceSessions.Json);
+    Check(WorkspaceSessions.CycleWorkspace(s, -1) && s.ActiveWorkspaceId == s.Workspaces[^1].Id);
+    Check(WorkspaceSessions.CycleWorkspace(s, 1) && s.ActiveWorkspaceId == s.Workspaces[0].Id);
+    Check(JsonSerializer.Serialize(s.Workspaces, WorkspaceSessions.Json) == before, "profiles are not mutated");
+    var single = new ShellState { Workspaces = [WorkspaceSessions.NewProfile("Only")] }; single.ActiveWorkspaceId = single.Workspaces[0].Id;
+    Check(!WorkspaceSessions.CycleWorkspace(single, 1));
+});
+Test("Global hotkey plan is empty until explicitly enabled and maps bindings to stable IDs", () =>
+{
+    var s = QuickActionLayouts.Defaults();
+    Check(QuickActionHotkeys.Plan(s).Count == 0, "fresh install registers nothing");
+    s.GlobalShortcutsEnabled = true;
+    s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "ctrl+alt+shift+r", ActionId = "capture.region" });
+    var plan = QuickActionHotkeys.Plan(s);
+    Check(plan.Count == 2 && plan[0].Id == QuickActionHotkeys.FirstId && plan[1].Id == QuickActionHotkeys.FirstId + 1);
+    Check(plan[0].ActionId == "app.toggle" && plan[0].Gesture.VirtualKey == 0x20);
+    Check(plan[1].Gesture.ToString() == "Ctrl+Alt+Shift+R" && plan[1].Gesture.NativeModifiers == (0x1 | 0x2 | 0x4 | 0x4000));
+    Check(plan.All(x => x.Id is >= 0 and <= 0xBFFF), "application hotkey ID range");
+    s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+F11", ActionId = "tab.next" });
+    Reject(() => QuickActionHotkeys.Plan(s));
+});
+Test("Hotkey registration failures produce visible, specific messages", () =>
+{
+    var g = HotkeyGesture.Parse("Ctrl+Alt+Space");
+    Check(QuickActionHotkeys.DescribeRegistrationFailure(g, 1409).Contains("already used"));
+    string other = QuickActionHotkeys.DescribeRegistrationFailure(g, 5);
+    Check(other.Contains("error 5") && other.Contains("Ctrl+Alt+Space"));
+});
+Test("Terminal action uses only an explicitly configured Tool Launcher entry", () =>
+{
+    (string Name, string Command)[] Tools(params (string, string)[] items) => items;
+    string? Pick(params (string, string)[] items) =>
+        QuickActionTargets.PickTerminal(Tools(items).Select(x => new[] { x.Name, x.Command }), x => x[0], x => x[1])?[0];
+    Check(Pick(("VS Code", "code"), ("Shell", "pwsh"), ("Windows Terminal", "wt")) == "Windows Terminal", "named entry wins");
+    Check(Pick(("VS Code", "code"), ("My shell", "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\"")) == "My shell", "known shell by path");
+    Check(Pick(("Windows Terminal", " "), ("Cmd", "cmd.exe")) == "Cmd", "blank command is not configured");
+    Check(Pick(("VS Code", "code"), ("Notes", "notepad")) is null, "never guesses an executable");
+});
 int failures = 0;
 foreach (var test in tests)
 {
