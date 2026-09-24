@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using JUtility.Core.Actions;
 using JUtility.Core.Models;
 using JUtility.Core.Workspaces;
 
@@ -153,6 +154,154 @@ Test("Export rejects empty or unknown module selection", () =>
     Reject(() => PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), []));
     Reject(() => PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), ["unknown"]));
 });
+// ---- V2.1 Quick Actions: one typed catalog behind every surface ----
+QuickActionDispatcher CountingDispatcher(Dictionary<string, int> runs, Dictionary<string, int> probes)
+{
+    var d = new QuickActionDispatcher();
+    foreach (var a in QuickActionCatalog.All)
+    {
+        string id = a.Id;
+        d.Register(id, new QuickActionHandler(
+            () => runs[id] = runs.GetValueOrDefault(id) + 1,
+            () => { probes[id] = probes.GetValueOrDefault(id) + 1; return null; }));
+    }
+    return d;
+}
+Test("Action catalog has stable unique IDs, complete metadata and no destructive built-ins", () =>
+{
+    var ids = QuickActionCatalog.All.Select(x => x.Id).ToList();
+    Check(ids.Distinct().Count() == ids.Count);
+    foreach (string id in new[] { "app.toggle", "app.open", "capture.region", "capture.quick", "clipboard.open", "folder.downloads",
+        "folder.explorer", "terminal.open", "workspace.resume", "workspace.next", "workspace.previous", "tab.next", "tab.previous" })
+        Check(ids.Contains(id), "missing " + id);
+    Check(!ids.Contains("mail.latestCode"), "provider-backed actions must not ship in this slice");
+    Check(QuickActionCatalog.All.All(x => x.Label.Length > 0 && x.Description.Length > 0 && x.Category.Length > 0 && x.Glyph.Length == 4));
+    Check(QuickActionCatalog.All.All(x => x.Risk == ActionRisk.Safe));
+});
+Test("Each action has exactly one implementation shared by every surface", () =>
+{
+    var runs = new Dictionary<string, int>(); var d = CountingDispatcher(runs, new());
+    Reject(() => d.Register("capture.region", new QuickActionHandler(() => { })));
+    Reject(() => d.Register("unknown.action", new QuickActionHandler(() => { })));
+    foreach (var surface in new[] { ActionSurface.FullUi, ActionSurface.QuickRing, ActionSurface.QuickShelf, ActionSurface.GlobalShortcut, ActionSurface.InAppShortcut })
+        Check(d.Invoke("capture.region", surface).Succeeded);
+    Check(runs["capture.region"] == 5);
+});
+Test("Focused-only tab actions are refused from global surfaces without running", () =>
+{
+    var runs = new Dictionary<string, int>(); var d = CountingDispatcher(runs, new());
+    foreach (var surface in new[] { ActionSurface.GlobalShortcut, ActionSurface.QuickRing, ActionSurface.QuickShelf })
+        Check(d.Invoke("tab.next", surface).Outcome == QuickActionOutcome.NotAllowed);
+    Check(!runs.ContainsKey("tab.next"));
+    Check(d.Invoke("tab.next", ActionSurface.InAppShortcut).Succeeded && runs["tab.next"] == 1);
+});
+Test("Quick Actions never probe availability on registration or layout resolution", () =>
+{
+    var probes = new Dictionary<string, int>(); var d = CountingDispatcher(new(), probes);
+    var s = QuickActionLayouts.Defaults(); _ = QuickActionLayouts.ResolveRing(s, Guid.NewGuid()); _ = QuickActionLayouts.ResolveShelf(s, Guid.NewGuid());
+    Check(probes.Count == 0, "no background polling");
+    Check(d.UnavailableReason("terminal.open") is null && probes["terminal.open"] == 1);
+});
+Test("Unavailable, unregistered, unknown and throwing actions report instead of crashing", () =>
+{
+    var d = new QuickActionDispatcher(); bool ran = false;
+    d.Register("terminal.open", new QuickActionHandler(() => ran = true, () => "Choose a terminal in Settings first."));
+    d.Register("folder.downloads", new QuickActionHandler(() => throw new IOException("boom")));
+    var unavailable = d.Invoke("terminal.open", ActionSurface.QuickRing);
+    Check(unavailable.Outcome == QuickActionOutcome.Unavailable && unavailable.Message.Contains("Settings") && !ran);
+    Check(d.Invoke("clipboard.open", ActionSurface.QuickRing).Outcome == QuickActionOutcome.Unavailable);
+    Check(d.Invoke("does.not.exist", ActionSurface.GlobalShortcut).Outcome == QuickActionOutcome.NotAllowed);
+    var failed = d.Invoke("folder.downloads", ActionSurface.QuickShelf);
+    Check(failed.Outcome == QuickActionOutcome.Failed && failed.Message.Contains("boom"));
+});
+Test("Quick Actions defaults are opt-in, bounded and valid", () =>
+{
+    var s = QuickActionLayouts.Defaults(); QuickActionLayouts.Validate(s);
+    Check(s.Mode == InteractionMode.Off && !s.GlobalShortcutsEnabled);
+    Check(s.Ring.Count <= QuickActionLayouts.MaxRing && s.Shelf.Count <= QuickActionLayouts.MaxShelf);
+    Check(!s.Ring.Contains("app.open"), "ring centre opens Power Ops; not a slot");
+    s.Ring.Add("workspace.next"); Check(!QuickActionLayouts.DefaultRing.Contains("workspace.next"), "defaults are not aliased");
+});
+Test("Ring and Shelf layouts reject oversize, duplicate, unknown, focused-only and self entries", () =>
+{
+    Reject(() => QuickActionLayouts.ValidateLayout([], ActionSurface.QuickRing));
+    Reject(() => QuickActionLayouts.ValidateLayout(QuickActionCatalog.All.Where(x => x.GlobalAllowed && x.Id != "ring.show").Select(x => x.Id).Take(9).ToList(), ActionSurface.QuickRing));
+    Reject(() => QuickActionLayouts.ValidateLayout(["capture.region", "capture.region"], ActionSurface.QuickShelf));
+    Reject(() => QuickActionLayouts.ValidateLayout(["nope"], ActionSurface.QuickShelf));
+    Reject(() => QuickActionLayouts.ValidateLayout(["tab.next"], ActionSurface.QuickRing));
+    Reject(() => QuickActionLayouts.ValidateLayout(["ring.show"], ActionSurface.QuickRing));
+    Reject(() => QuickActionLayouts.ValidateLayout(["shelf.toggle"], ActionSurface.QuickShelf));
+    QuickActionLayouts.ValidateLayout(["ring.show", "capture.region"], ActionSurface.QuickShelf);
+});
+Test("Per-workspace ring/shelf overrides resolve, fall back and clear", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var work = Guid.NewGuid(); var other = Guid.NewGuid();
+    QuickActionLayouts.SetWorkspaceRing(s, work, ["terminal.open", "folder.explorer"]);
+    Check(QuickActionLayouts.ResolveRing(s, work).SequenceEqual(new[] { "terminal.open", "folder.explorer" }));
+    Check(QuickActionLayouts.ResolveRing(s, other).SequenceEqual(s.Ring));
+    Check(QuickActionLayouts.ResolveShelf(s, work).SequenceEqual(s.Shelf), "shelf still inherits");
+    Reject(() => QuickActionLayouts.SetWorkspaceRing(s, work, ["tab.next"]));
+    Check(QuickActionLayouts.ResolveRing(s, work).Count == 2, "failed update leaves previous override");
+    QuickActionLayouts.SetWorkspaceRing(s, work, null);
+    Check(s.WorkspaceOverrides.Count == 0 && QuickActionLayouts.ResolveRing(s, work).SequenceEqual(s.Ring));
+    Reject(() => QuickActionLayouts.SetWorkspaceRing(s, Guid.Empty, ["capture.region"]));
+});
+Test("Global hotkeys parse canonically to RegisterHotKey arguments", () =>
+{
+    var g = HotkeyGesture.Parse(" alt + ctrl + space ");
+    Check(g.ToString() == "Ctrl+Alt+Space" && g.VirtualKey == 0x20);
+    Check(g.NativeModifiers == (0x1 | 0x2 | 0x4000));
+    Check(HotkeyGesture.Parse("Ctrl+Alt+Shift+F9").VirtualKey == 0x78 && HotkeyGesture.Parse("Win+Ctrl+k").ToString() == "Ctrl+Win+K");
+    Check(HotkeyGesture.GlobalConflict(g) is null);
+});
+Test("Global hotkeys reject typing capture, OS-reserved and in-app shortcuts", () =>
+{
+    foreach (string bad in new[] { "", "Space", "Shift+A", "Ctrl+Alt", "Ctrl+Alt+A+B", "Ctrl+Ctrl+A", "Ctrl+Alt+Delete", "Ctrl+Alt+Tab" })
+        Reject(() => HotkeyGesture.Parse(bad));
+    foreach (string reserved in new[] { "Ctrl+C", "Ctrl+T", "Ctrl+1", "Alt+F4", "Alt+Space", "Win+L", "Ctrl+Shift+E", "Ctrl+Shift+T" })
+        Check(HotkeyGesture.GlobalConflict(HotkeyGesture.Parse(reserved)) is not null, reserved + " must conflict");
+});
+Test("Global shortcut bindings reject duplicates and focused-only actions", () =>
+{
+    var s = QuickActionLayouts.Defaults();
+    s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "alt+ctrl+SPACE", ActionId = "ring.show" });
+    Reject(() => QuickActionLayouts.Validate(s));
+    s = QuickActionLayouts.Defaults(); s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+F10", ActionId = "tab.next" });
+    Reject(() => QuickActionLayouts.Validate(s));
+    s = QuickActionLayouts.Defaults(); s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+Shift+R", ActionId = "ring.show" });
+    QuickActionLayouts.Validate(s);
+});
+Test("MX Master guidance warns about double interception with the Summon mouse hook", () =>
+{
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.MouseButton5, InteractionMode.Hybrid) is not null);
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.MouseButton4, InteractionMode.MxMasterGuide) is not null);
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Normal, SummonMouseBinding.MouseButton5, InteractionMode.Hybrid) is null);
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.CtrlMiddleClick, InteractionMode.Hybrid) is null);
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.MouseButton5, InteractionMode.QuickRing) is null);
+});
+Test("Quick actions store round-trips, writes nothing on load and preserves corrupt/future bytes", () => Temporary(dir =>
+{
+    var store = new QuickActionSettingsStore(dir);
+    var loaded = store.Load(); Check(!File.Exists(store.FilePath), "load must not create files");
+    loaded.Mode = InteractionMode.Hybrid; QuickActionLayouts.SetWorkspaceShelf(loaded, Guid.NewGuid(), ["capture.quick"]);
+    store.Save(loaded);
+    var again = store.Load(); Check(again.Mode == InteractionMode.Hybrid && again.WorkspaceOverrides.Count == 1);
+    Check(File.ReadAllText(store.FilePath).Contains("\"Hybrid\""), "enums persist as names");
+
+    File.WriteAllText(store.FilePath, "{ not json");
+    Reject(() => store.Load()); Reject(() => store.Save(QuickActionLayouts.Defaults()));
+    Check(File.ReadAllText(store.FilePath) == "{ not json", "corrupt bytes preserved");
+
+    var future = JsonNode.Parse(JsonSerializer.Serialize(QuickActionLayouts.Defaults()))!; future["SchemaVersion"] = 2;
+    File.WriteAllText(store.FilePath, future.ToJsonString());
+    Reject(() => store.Load());
+    var badMode = JsonNode.Parse(JsonSerializer.Serialize(QuickActionLayouts.Defaults()))!; badMode["Mode"] = 99;
+    File.WriteAllText(store.FilePath, badMode.ToJsonString());
+    Reject(() => store.Load());
+    File.WriteAllText(store.FilePath, new string(' ', QuickActionSettingsStore.MaxBytes + 1));
+    Reject(() => store.Load());
+    Check(Directory.GetFiles(dir, "*.tmp").Length == 0);
+}));
 int failures = 0;
 foreach (var test in tests)
 {
