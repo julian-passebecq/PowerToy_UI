@@ -25,7 +25,7 @@ public static class QuickShelfModel
     {
         return QuickActionLayouts.ResolveShelf(settings, workspaceId).Select(id =>
         {
-            QuickActionDefinition action = QuickActionCatalog.Get(id);
+            QuickActionDefinition action = QuickActionLayouts.Describe(settings, id);
             string? reason = unavailableReason(id);
             string? gesture = globalGesture(id);
             string tip = action.Label

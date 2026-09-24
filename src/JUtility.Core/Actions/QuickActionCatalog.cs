@@ -99,6 +99,44 @@ public sealed class QuickActionHandler(Action execute, Func<string?>? unavailabl
 public sealed class QuickActionDispatcher
 {
     private readonly Dictionary<string, QuickActionHandler> _handlers = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, QuickActionDefinition> _dynamic = new(StringComparer.Ordinal);
+
+    /// <summary>Built-in catalog followed by the currently registered user-defined actions (web apps).</summary>
+    public IEnumerable<QuickActionDefinition> Definitions => QuickActionCatalog.All.Concat(_dynamic.Values);
+
+    public QuickActionDefinition? Definition(string? actionId) =>
+        QuickActionCatalog.Find(actionId) ?? (actionId is not null && _dynamic.TryGetValue(actionId, out var definition) ? definition : null);
+
+    /// <summary>
+    /// Replaces every user-defined action under <paramref name="prefix"/> (e.g. "web:"). User actions can never
+    /// shadow a built-in ID, and each still has exactly one implementation.
+    /// </summary>
+    public void ReplaceDynamic(string prefix, IEnumerable<(QuickActionDefinition Definition, QuickActionHandler Handler)> actions)
+    {
+        if (string.IsNullOrEmpty(prefix) || !prefix.EndsWith(':')) throw new InvalidOperationException("Dynamic action prefixes end with ':'.");
+        var incoming = actions.ToList();
+        foreach (var (definition, handler) in incoming)
+        {
+            ArgumentNullException.ThrowIfNull(handler);
+            if (!definition.Id.StartsWith(prefix, StringComparison.Ordinal) || QuickActionCatalog.Find(definition.Id) is not null)
+                throw new InvalidOperationException($"'{definition.Id}' is not a valid {prefix} action ID.");
+        }
+
+        if (incoming.Select(x => x.Definition.Id).Distinct(StringComparer.Ordinal).Count() != incoming.Count)
+            throw new InvalidOperationException("Duplicate user-defined action.");
+
+        foreach (string id in _dynamic.Keys.Where(x => x.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+        {
+            _dynamic.Remove(id);
+            _handlers.Remove(id);
+        }
+
+        foreach (var (definition, handler) in incoming)
+        {
+            _dynamic[definition.Id] = definition;
+            _handlers[definition.Id] = handler;
+        }
+    }
 
     public void Register(string actionId, QuickActionHandler handler)
     {
@@ -115,7 +153,7 @@ public sealed class QuickActionDispatcher
     /// <summary>Null when the action can run now; otherwise a user-facing reason. Probes the handler on demand only.</summary>
     public string? UnavailableReason(string actionId)
     {
-        if (QuickActionCatalog.Find(actionId) is null) return "Unknown action.";
+        if (Definition(actionId) is null) return "Unknown action.";
         if (!_handlers.TryGetValue(actionId, out var handler)) return "Not available in this build.";
         try { return handler.UnavailableReason?.Invoke(); }
         catch (Exception ex) { return "Availability check failed: " + ex.Message; }
@@ -123,7 +161,7 @@ public sealed class QuickActionDispatcher
 
     public QuickActionResult Invoke(string actionId, ActionSurface surface, bool confirmed = false)
     {
-        var definition = QuickActionCatalog.Find(actionId);
+        var definition = Definition(actionId);
         if (definition is null) return new(QuickActionOutcome.NotAllowed, actionId, "Unknown action.");
         if (QuickActionCatalog.IsOutOfApp(surface) && !definition.GlobalAllowed)
             return new(QuickActionOutcome.NotAllowed, actionId, $"{definition.Label} only works while Power Ops is focused.");

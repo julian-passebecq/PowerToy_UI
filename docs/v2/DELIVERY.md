@@ -175,8 +175,43 @@ Clicking a Shelf button while Power Ops owned the foreground **activated the She
 4. Each Shelf action's external effect (snip overlay, Explorer, terminal), and the unavailable messages.
 5. Always-on-top off together with other always-on-top applications.
 
+## V2.1 - slice 4 (web apps: Mongoku, Grafana, AI chats)
+
+Date: 2026-09-24. Author: Claude Code (Windows laptop). Decision record: `docs/v2/WEB_SURFACES.md`. Code commit: see the commit titled "V2.1 slice 4: web apps as quick actions".
+
+### Changed
+
+- `quick-actions.json` gains `WebApps` (empty by default; max 24). Each entry has name, http(s) URL, open mode (`AppWindow` = Chrome/Edge `--app=` window with the user's existing profile, or `Browser` = default browser) and a browser choice (`Auto` follows a Chrome default, else Edge).
+  - URLs must be absolute `http`/`https` without embedded user name or password (no `file:`/`javascript:`).
+- Each web app becomes a `web:<id>` action. `QuickActionDispatcher.ReplaceDynamic` hosts these user-defined actions; they cannot shadow built-in IDs and still have exactly one implementation. They appear in the Actions menu, the Quick Shelf editor and the Global shortcuts dialog.
+  - Layout and shortcut validation accepts only web apps that exist.
+  - Removing a web app removes it from the Shelf, Ring, workspace overrides and shortcuts. A layout that would become empty returns to the default.
+- **Actions → Web apps...** dialog:
+  - presets: Mongoku `http://localhost:3100/`, Grafana `http://localhost:3000/` (edit to the real URL), Gemini, ChatGPT, Claude;
+  - new, remove, per-app mode and browser;
+  - "Test open".
+- No browser engine is hosted, nothing is fetched until the user acts, and there is no NuGet dependency.
+
+### Evidence
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **47/47** (4 new: URL/credential validation, cross-surface use and clean removal, dispatcher dynamic actions, browser choice).
+- `tests/native/web-apps.ps1`: **PASS**. Isolated data dir, with a throwaway localhost page standing in for Mongoku:
+  - the Shelf shows the named web-app button;
+  - zero requests are made before the user acts;
+  - a Shelf click opens a Chrome app window (`Chrome_WidgetWin_1`) on the page;
+  - the bound global shortcut opens it again;
+  - only the test window is closed, and Power Ops exits cleanly.
+- `tests/native/quick-actions-hotkeys.ps1` and `tests/native/quick-shelf.ps1`: re-run, both **PASS**.
+- NOT RUN:
+  - the real Mongoku (not running on this laptop);
+  - `Browser` mode, which would open a tab in the user's live browser;
+  - the dialog UI end-to-end;
+  - Edge fallback on a machine without Chrome.
+
 ### Remaining V2.1 work (in order)
 
 1. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
 2. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
-3. Native acceptance + idle/latency measurements.
+3. Optional embedded Web workspace tab (WebView2, lazy, measured; Mongoku first) per `WEB_SURFACES.md`.
+4. Mongoku read-only report card (`GET /api/datapass/reports/{id}`, on demand, credential outside JSON) once a deployment is chosen.
+5. Native acceptance + idle/latency measurements.

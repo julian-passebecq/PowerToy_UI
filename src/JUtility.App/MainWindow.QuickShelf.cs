@@ -158,6 +158,7 @@ public partial class MainWindow
         }
 
         _quickActionSettings = candidate;
+        RegisterWebApps();
         if (_shelf?.IsVisible == true) RenderQuickShelf();
         return null;
     }
@@ -176,7 +177,7 @@ public partial class MainWindow
         string workspaceName = _sessionShell is null ? string.Empty : CurrentWorkspace().Name;
         List<string> defaultList = [.. settings.Shelf];
         List<string>? workspaceList = settings.WorkspaceOverrides.FirstOrDefault(x => x.WorkspaceId == workspaceId)?.Shelf is { } saved ? [.. saved] : null;
-        IReadOnlyList<QuickActionDefinition> eligible = QuickActionLayouts.Eligible(ActionSurface.QuickShelf)
+        IReadOnlyList<QuickActionDefinition> eligible = QuickActionLayouts.Eligible(ActionSurface.QuickShelf, settings)
             .Where(x => _quickActions.IsRegistered(x.Id))
             .ToList();
 
@@ -226,7 +227,7 @@ public partial class MainWindow
         void Refresh(int select = -1)
         {
             List<string> ids = shown();
-            list.ItemsSource = ids.Select(QuickActionCatalog.Get).ToList();
+            list.ItemsSource = ids.Select(id => QuickActionLayouts.Describe(settings, id)).ToList();
             if (select >= 0 && select < ids.Count) list.SelectedIndex = select;
             addBox.ItemsSource = eligible.Where(x => !ids.Contains(x.Id)).ToList();
             addBox.SelectedIndex = addBox.Items.Count > 0 ? 0 : -1;

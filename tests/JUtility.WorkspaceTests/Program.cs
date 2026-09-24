@@ -395,6 +395,65 @@ Test("Settings copy is independent and shelf position is validated and persisted
     var legacy = JsonNode.Parse(File.ReadAllText(store.FilePath))!.AsObject(); legacy.Remove("ShelfLeft"); legacy.Remove("ShelfTop");
     File.WriteAllText(store.FilePath, legacy.ToJsonString()); Check(store.Load().ShelfLeft is null, "slice-1 files without a position still load");
 }));
+// ---- V2.1 web apps (Mongoku, Grafana, Gemini...) as quick actions ----
+Test("Web apps are opt-in and only accept plain http(s) addresses without credentials", () =>
+{
+    var s = QuickActionLayouts.Defaults(); Check(s.WebApps.Count == 0, "nothing configured by default");
+    foreach (var preset in QuickWebApps.Presets) { s.WebApps.Add(QuickWebApps.FromPreset(preset)); }
+    QuickActionLayouts.Validate(s);
+    Check(QuickWebApps.Presets.Single(x => x.Name == "Mongoku").Url == "http://localhost:3100/", "Mongoku default port");
+    foreach (string bad in new[] { "", "localhost:3100", "file:///C:/Windows", "javascript:alert(1)", "ftp://host/", "https://user:secret@grafana.example.com/", "https://" + new string('a', 2100) })
+    {
+        var t = QuickActionLayouts.Defaults(); t.WebApps.Add(new WebAppEntry { Name = "X", Url = bad });
+        Reject(() => QuickActionLayouts.Validate(t));
+    }
+    var dup = QuickActionLayouts.Defaults(); var app = new WebAppEntry { Name = "A", Url = "https://a.example/" };
+    dup.WebApps.Add(app); dup.WebApps.Add(new WebAppEntry { Id = app.Id, Name = "B", Url = "https://b.example/" });
+    Reject(() => QuickActionLayouts.Validate(dup));
+    var blank = QuickActionLayouts.Defaults(); blank.WebApps.Add(new WebAppEntry { Name = "  ", Url = "https://a.example/" });
+    Reject(() => QuickActionLayouts.Validate(blank));
+});
+Test("Web apps work on the Shelf, Ring and global shortcuts, and removal cleans every reference", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var mongoku = QuickWebApps.FromPreset(QuickWebApps.Presets[0]); s.WebApps.Add(mongoku);
+    string id = QuickWebApps.ActionId(mongoku.Id); var work = Guid.NewGuid();
+    s.Shelf.Add(id); s.Ring.Add(id); s.GlobalShortcutsEnabled = true;
+    s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+Shift+M", ActionId = id });
+    QuickActionLayouts.SetWorkspaceShelf(s, work, [id]);
+    QuickActionLayouts.Validate(s);
+    Check(QuickActionLayouts.Eligible(ActionSurface.QuickShelf, s).Any(x => x.Id == id), "offered in the Shelf editor");
+    Check(QuickShelfModel.Build(s, work, _ => null, _ => null).Single().Label == "Mongoku");
+    Check(QuickActionHotkeys.Plan(s).Any(x => x.ActionId == id));
+    var orphan = QuickActionSettingsStore.Copy(s); orphan.WebApps.Clear();
+    Reject(() => QuickActionLayouts.Validate(orphan));
+    QuickWebApps.RemoveWebApp(s, mongoku.Id);
+    QuickActionLayouts.Validate(s);
+    Check(!s.Shelf.Contains(id) && !s.Ring.Contains(id) && s.GlobalShortcuts.All(x => x.ActionId != id) && s.WorkspaceOverrides.Count == 0, "all references removed");
+});
+Test("Dispatcher hosts user-defined web actions without shadowing built-ins", () =>
+{
+    var d = new QuickActionDispatcher(); var app = new WebAppEntry { Name = "Grafana", Url = "http://localhost:3000/" };
+    var def = QuickWebApps.Definition(app); int runs = 0;
+    d.ReplaceDynamic(QuickWebApps.Prefix, [(def, new QuickActionHandler(() => runs++))]);
+    Check(d.Invoke(def.Id, ActionSurface.GlobalShortcut).Succeeded && d.Invoke(def.Id, ActionSurface.QuickShelf).Succeeded && runs == 2);
+    Check(d.Definitions.Any(x => x.Id == def.Id) && d.Definition(def.Id)!.Category == "Web apps");
+    Reject(() => d.ReplaceDynamic(QuickWebApps.Prefix, [(QuickActionCatalog.Get("app.open"), new QuickActionHandler(() => { }))]));
+    Reject(() => d.ReplaceDynamic("web", []));
+    Reject(() => d.ReplaceDynamic(QuickWebApps.Prefix, [(def, new QuickActionHandler(() => { })), (def, new QuickActionHandler(() => { }))]));
+    d.ReplaceDynamic(QuickWebApps.Prefix, []);
+    Check(d.Invoke(def.Id, ActionSurface.FullUi).Outcome == QuickActionOutcome.NotAllowed && !d.IsRegistered(def.Id), "replace removes old actions");
+    d.Register("app.open", new QuickActionHandler(() => { }));
+    Check(d.IsRegistered("app.open"), "built-ins unaffected");
+});
+Test("App-window browser follows default Chrome profile, else Edge", () =>
+{
+    const string chrome = @"C:\Chrome\chrome.exe", edge = @"C:\Edge\msedge.exe";
+    Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Auto, "ChromeHTML", chrome, edge) == chrome);
+    Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Auto, "MSEdgeHTM", chrome, edge) == edge);
+    Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Auto, "FirefoxURL-308046B0AF4A39CB", chrome, null) == chrome);
+    Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Edge, "ChromeHTML", chrome, null) is null, "explicit choice is never substituted");
+    Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Auto, null, null, null) is null);
+});
 int failures = 0;
 foreach (var test in tests)
 {

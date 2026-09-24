@@ -235,6 +235,7 @@ public partial class MainWindow
             return;
         }
 
+        RegisterWebApps();
         IReadOnlyList<string> failures = ApplyGlobalHotkeys();
         ShowQuickShelfAtStartup();
         if (failures.Count > 0)
@@ -282,8 +283,15 @@ public partial class MainWindow
         }
 
         _actionsMenu.Items.Clear();
-        foreach (QuickActionDefinition action in QuickActionCatalog.All.Where(x => _quickActions.IsRegistered(x.Id)))
+        bool webSeparator = false;
+        foreach (QuickActionDefinition action in _quickActions.Definitions.Where(x => _quickActions.IsRegistered(x.Id)))
         {
+            if (!webSeparator && QuickWebApps.IsWebActionId(action.Id))
+            {
+                webSeparator = true;
+                _actionsMenu.Items.Add(new Separator());
+            }
+
             string gestures = string.Join(", ", _hotkeys.Registered.Where(x => x.ActionId == action.Id).Select(x => x.Gesture.ToString()));
             var item = new MenuItem
             {
@@ -297,6 +305,9 @@ public partial class MainWindow
         }
 
         _actionsMenu.Items.Add(new Separator());
+        var webApps = new MenuItem { Header = "Web apps..." };
+        webApps.Click += (_, _) => ManageWebApps();
+        _actionsMenu.Items.Add(webApps);
         var shelf = new MenuItem { Header = "Customize Quick Shelf..." };
         shelf.Click += (_, _) => CustomizeQuickShelf();
         _actionsMenu.Items.Add(shelf);
@@ -326,7 +337,7 @@ public partial class MainWindow
         }
 
         QuickActionSettings settings = _quickActionSettings;
-        QuickActionDefinition[] assignable = QuickActionCatalog.All
+        QuickActionDefinition[] assignable = _quickActions.Definitions
             .Where(x => x.GlobalAllowed && x.Risk != ActionRisk.Destructive && _quickActions.IsRegistered(x.Id))
             .ToArray();
         var enabled = new CheckBox { Content = "Enable global shortcuts", IsChecked = settings.GlobalShortcutsEnabled, Margin = new Thickness(0, 6, 0, 8) };

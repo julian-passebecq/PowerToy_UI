@@ -54,6 +54,8 @@ public sealed class QuickActionSettings
     public double? ShelfLeft { get; set; }
     public double? ShelfTop { get; set; }
     public List<WorkspaceActionOverride> WorkspaceOverrides { get; set; } = [];
+    // Opt-in user destinations (Mongoku, Grafana, Gemini...). Each becomes a "web:" action usable on every surface.
+    public List<WebAppEntry> WebApps { get; set; } = [];
 }
 
 public static class QuickActionLayouts
@@ -79,11 +81,22 @@ public static class QuickActionLayouts
     public static QuickActionSettings Defaults() => new();
 
     /// <summary>Catalog actions that may be placed on the given surface (same rules as <see cref="ValidateLayout"/>).</summary>
-    public static IReadOnlyList<QuickActionDefinition> Eligible(ActionSurface surface)
+    public static IReadOnlyList<QuickActionDefinition> Eligible(ActionSurface surface, QuickActionSettings? settings = null)
     {
         string self = surface == ActionSurface.QuickRing ? QuickActionCatalog.RingShow : QuickActionCatalog.ShelfToggle;
-        return QuickActionCatalog.All.Where(x => x.GlobalAllowed && x.Risk != ActionRisk.Destructive && x.Id != self).ToList().AsReadOnly();
+        return QuickActionCatalog.All.Concat(QuickWebApps.Definitions(settings))
+            .Where(x => x.GlobalAllowed && x.Risk != ActionRisk.Destructive && x.Id != self).ToList().AsReadOnly();
     }
+
+    /// <summary>Built-in catalog entry or one of this settings file's web apps.</summary>
+    public static QuickActionDefinition Describe(QuickActionSettings settings, string id) => Lookup(id, QuickWebApps.Definitions(settings));
+
+    private static QuickActionDefinition Lookup(string id, IReadOnlyList<QuickActionDefinition>? webApps) =>
+        QuickActionCatalog.Find(id)
+        ?? webApps?.FirstOrDefault(x => x.Id == id)
+        ?? throw new InvalidDataException(QuickWebApps.IsWebActionId(id)
+            ? "A layout or shortcut refers to a web app that no longer exists."
+            : $"Unknown quick action: {id}");
 
     public static IReadOnlyList<string> ResolveRing(QuickActionSettings settings, Guid workspaceId) =>
         (Override(settings, workspaceId)?.Ring ?? settings.Ring).AsReadOnly();
@@ -109,8 +122,10 @@ public static class QuickActionLayouts
             if (coordinate is double value && (!double.IsFinite(value) || Math.Abs(value) > 100_000))
                 throw new InvalidDataException("Invalid Quick Shelf position.");
         }
-        ValidateLayout(settings.Ring, ActionSurface.QuickRing);
-        ValidateLayout(settings.Shelf, ActionSurface.QuickShelf);
+        QuickWebApps.Validate(settings.WebApps);
+        var webApps = QuickWebApps.Definitions(settings);
+        ValidateLayout(settings.Ring, ActionSurface.QuickRing, webApps);
+        ValidateLayout(settings.Shelf, ActionSurface.QuickShelf, webApps);
         if (settings.WorkspaceOverrides is null || settings.WorkspaceOverrides.Count > MaxOverrides)
             throw new InvalidDataException("Invalid workspace action override collection.");
         var seen = new HashSet<Guid>();
@@ -118,13 +133,13 @@ public static class QuickActionLayouts
         {
             if (entry is null || entry.WorkspaceId == Guid.Empty || !seen.Add(entry.WorkspaceId))
                 throw new InvalidDataException("Missing or duplicate workspace action override.");
-            if (entry.Ring is not null) ValidateLayout(entry.Ring, ActionSurface.QuickRing);
-            if (entry.Shelf is not null) ValidateLayout(entry.Shelf, ActionSurface.QuickShelf);
+            if (entry.Ring is not null) ValidateLayout(entry.Ring, ActionSurface.QuickRing, webApps);
+            if (entry.Shelf is not null) ValidateLayout(entry.Shelf, ActionSurface.QuickShelf, webApps);
         }
-        ValidateGlobalShortcuts(settings.GlobalShortcuts);
+        ValidateGlobalShortcuts(settings.GlobalShortcuts, webApps);
     }
 
-    public static void ValidateLayout(List<string>? ids, ActionSurface surface)
+    public static void ValidateLayout(List<string>? ids, ActionSurface surface, IReadOnlyList<QuickActionDefinition>? webApps = null)
     {
         int max = surface == ActionSurface.QuickRing ? MaxRing : MaxShelf;
         string name = surface == ActionSurface.QuickRing ? "Quick Ring" : "Quick Shelf";
@@ -135,14 +150,14 @@ public static class QuickActionLayouts
         string self = surface == ActionSurface.QuickRing ? QuickActionCatalog.RingShow : QuickActionCatalog.ShelfToggle;
         foreach (string id in ids)
         {
-            var action = QuickActionCatalog.Get(id);
+            var action = Lookup(id, webApps);
             if (!action.GlobalAllowed) throw new InvalidDataException($"{action.Label} only works inside Power Ops and cannot be placed on the {name}.");
             if (action.Risk == ActionRisk.Destructive) throw new InvalidDataException($"Destructive actions cannot be placed on the {name}.");
             if (id == self) throw new InvalidDataException($"The {name} cannot contain itself.");
         }
     }
 
-    public static void ValidateGlobalShortcuts(List<ShortcutBinding>? bindings)
+    public static void ValidateGlobalShortcuts(List<ShortcutBinding>? bindings, IReadOnlyList<QuickActionDefinition>? webApps = null)
     {
         if (bindings is null || bindings.Count > MaxGlobalShortcuts)
             throw new InvalidDataException("Invalid global shortcut collection.");
@@ -154,7 +169,7 @@ public static class QuickActionLayouts
             string? conflict = HotkeyGesture.GlobalConflict(gesture);
             if (conflict is not null) throw new InvalidDataException(conflict);
             if (!gestures.Add(gesture.ToString())) throw new InvalidDataException($"{gesture} is bound more than once.");
-            var action = QuickActionCatalog.Get(binding.ActionId);
+            var action = Lookup(binding.ActionId, webApps);
             if (!action.GlobalAllowed || action.Risk == ActionRisk.Destructive)
                 throw new InvalidDataException($"{action.Label} cannot be bound to a global shortcut.");
         }
@@ -180,7 +195,7 @@ public static class QuickActionLayouts
     {
         if (workspaceId == Guid.Empty) throw new InvalidDataException("Missing workspace.");
         List<string>? list = ids?.ToList();
-        if (list is not null) ValidateLayout(list, surface);
+        if (list is not null) ValidateLayout(list, surface, QuickWebApps.Definitions(settings));
         var entry = Override(settings, workspaceId);
         if (entry is null)
         {
