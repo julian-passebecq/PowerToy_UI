@@ -304,6 +304,9 @@ public partial class MainWindow
         }
 
         _actionsMenu.Items.Add(new Separator());
+        var interaction = new MenuItem { Header = "Interaction settings..." };
+        interaction.Click += (_, _) => EditInteraction();
+        _actionsMenu.Items.Add(interaction);
         var webApps = new MenuItem { Header = "Web apps..." };
         webApps.Click += (_, _) => ManageWebApps();
         _actionsMenu.Items.Add(webApps);

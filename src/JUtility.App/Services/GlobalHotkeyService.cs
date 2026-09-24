@@ -44,6 +44,20 @@ internal sealed class GlobalHotkeyService : IDisposable
         return failures;
     }
 
+    /// <summary>
+    /// True when Windows would accept this combination now: already registered by this instance, or a trial
+    /// registration succeeds (and is immediately released). Nothing stays registered by the probe.
+    /// </summary>
+    public bool IsAvailable(HotkeyGesture gesture)
+    {
+        if (_registered.Values.Any(x => x.Gesture == gesture)) return true;
+        _source ??= CreateSource();
+        const int probeId = 0xBFF0;
+        if (!RegisterHotKey(_source.Handle, probeId, (uint)gesture.NativeModifiers, (uint)gesture.VirtualKey)) return false;
+        UnregisterHotKey(_source.Handle, probeId);
+        return true;
+    }
+
     public void UnregisterAll()
     {
         if (_source is not null)

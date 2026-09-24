@@ -225,3 +225,14 @@ At minimum:
 7. Only then external-provider actions such as Gmail code, Git/agent activity, AtlasNote or cloud observations.
 
 Preserve existing V2 workspace/data contracts and keep work isolated on the V2 branch until reviewed.
+
+## Implementation status (2026-09-24, V2.1 slices 1-6)
+
+Implemented on `codex/power-ops-v2-workspaces` (see `DELIVERY.md` for evidence): typed catalog + dispatcher, opt-in global shortcuts (RegisterHotKey, no hooks), Quick Shelf, Quick Ring, web apps as actions, and **Actions > Interaction settings**:
+
+- five modes (Off, Quick Shelf, Quick Ring, MX Master guide, Hybrid) with explanations;
+- "Add recommended shortcuts" per mode: Ctrl+Alt+Shift+letter suggestions with fallbacks, each checked against Windows before it is offered; a binding already owned by another program is replaced (the default Ctrl+Alt+Space is taken on the user's laptop, so Show/hide becomes Ctrl+Alt+Shift+P there);
+- an MX Master / Logi Options+ guide generated from the shortcuts actually configured (gesture press -> Quick Ring, gesture up/down -> Quick Capture/Clipboard, a spare button -> show/hide, app-specific Back/Forward -> Ctrl+Shift+Tab/Ctrl+Tab), with Copy buttons; steps for unbound actions are flagged instead of promised;
+- the Summon mouse-hook double-interception warning with a one-click switch to Ctrl + middle click.
+
+Not yet verified with a physical MX Master and Logi Options+.

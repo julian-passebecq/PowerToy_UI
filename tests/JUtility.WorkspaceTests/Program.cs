@@ -494,6 +494,65 @@ Test("Ring placement centres on the pointer and stays inside the monitor work ar
     var negative = JUtility.Core.Services.WindowPlacementMath.CenterOn(-1915, 1070, 480, 480, -1920, 0, 0, 1080);
     Check(negative.Left == -1920 && negative.Top == 600, "left monitor with negative coordinates, bottom edge");
 });
+// ---- V2.1 Interaction settings + MX Master guide ----
+Test("Recommended shortcuts per mode are valid, typeable and conflict-free", () =>
+{
+    Check(InteractionGuide.Recommended(InteractionMode.Off).Count == 0);
+    Check(InteractionGuide.Recommended(InteractionMode.Hybrid).Select(x => x.ActionId).SequenceEqual(new[] { "ring.show", "app.toggle", "capture.quick", "clipboard.open" }));
+    Check(InteractionGuide.Recommended(InteractionMode.QuickShelf).Any(x => x.ActionId == "shelf.toggle"));
+    foreach (InteractionMode mode in Enum.GetValues<InteractionMode>())
+    {
+        Check(InteractionGuide.Describe(mode).Length > 0, "every mode explained");
+        foreach (var r in InteractionGuide.Recommended(mode))
+            foreach (string c in r.Candidates)
+            {
+                var g = HotkeyGesture.Parse(c);
+                Check(HotkeyGesture.GlobalConflict(g) is null && !g.Modifiers.HasFlag(HotkeyModifiers.Windows), c);
+                Check(QuickActionCatalog.Get(r.ActionId).GlobalAllowed, r.ActionId);
+            }
+    }
+});
+Test("Adding recommended shortcuts keeps user choices, skips taken combinations and is idempotent", () =>
+{
+    var s = QuickActionLayouts.Defaults(); // default binding: Ctrl+Alt+Space -> app.toggle, shortcuts disabled
+    s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+Shift+N", ActionId = "clipboard.open" });
+    var probed = new List<string>();
+    bool Free(HotkeyGesture g) { probed.Add(g.ToString()); return g.ToString() != "Ctrl+Alt+Shift+R"; } // R owned by another app
+    var lines = InteractionGuide.AddRecommended(s, InteractionMode.Hybrid, Free);
+    Check(lines.Single(x => x.ActionId == "ring.show").Gesture == "Ctrl+Alt+Shift+Q", "falls back when Windows reports R taken");
+    Check(lines.Single(x => x.ActionId == "app.toggle").Outcome == ShortcutPlanOutcome.AlreadyBound, "user binding kept");
+    Check(lines.Single(x => x.ActionId == "clipboard.open").Outcome == ShortcutPlanOutcome.AlreadyBound);
+    Check(lines.Single(x => x.ActionId == "capture.quick").Gesture == "Ctrl+Alt+Shift+F10", "N is already used by clipboard.open in settings");
+    Check(probed.Count(x => x == "Ctrl+Alt+Shift+N") == 1, "an existing binding is checked once, never re-offered as a candidate");
+    Check(s.GlobalShortcutsEnabled, "enabled once something was added");
+    QuickActionLayouts.Validate(s);
+    int count = s.GlobalShortcuts.Count;
+    Check(InteractionGuide.AddRecommended(s, InteractionMode.Hybrid, _ => true).All(x => x.Outcome == ShortcutPlanOutcome.AlreadyBound) && s.GlobalShortcuts.Count == count, "idempotent");
+    var taken = QuickActionLayouts.Defaults(); // Ctrl+Alt+Space owned by another program, as on the user's laptop
+    var replaced = InteractionGuide.AddRecommended(taken, InteractionMode.QuickRing, g => g.ToString() != "Ctrl+Alt+Space");
+    Check(replaced.Single(x => x.ActionId == "app.toggle").Outcome == ShortcutPlanOutcome.Replaced
+        && taken.GlobalShortcuts.Single(x => x.ActionId == "app.toggle").Gesture == "Ctrl+Alt+Shift+P", "unusable binding replaced");
+    Check(taken.GlobalShortcuts.Count == 2 && taken.GlobalShortcuts.All(x => x.Gesture != "Ctrl+Alt+Space"));
+    QuickActionLayouts.Validate(taken);
+    var none = QuickActionLayouts.Defaults(); none.GlobalShortcuts.Clear();
+    var blocked = InteractionGuide.AddRecommended(none, InteractionMode.QuickRing, _ => false);
+    Check(blocked.All(x => x.Outcome == ShortcutPlanOutcome.NoFreeCandidate) && none.GlobalShortcuts.Count == 0 && !none.GlobalShortcutsEnabled, "nothing enabled when nothing is free");
+});
+Test("MX Master guide reflects configured shortcuts and warns about double interception", () =>
+{
+    var s = QuickActionLayouts.Defaults(); s.GlobalShortcuts.Clear();
+    var steps = InteractionGuide.MxMasterSteps(s, null);
+    var ring = steps.Single(x => x.Title.Contains("Quick Ring"));
+    Check(ring.IsWarning && ring.CopyText is null, "missing binding is flagged, never promised");
+    Check(steps.Any(x => x.Title.StartsWith("Back") && x.CopyText == "Ctrl+Shift+Tab") && steps.Any(x => x.Title.StartsWith("Forward") && x.CopyText == "Ctrl+Tab"), "in-app tab shortcuts");
+    InteractionGuide.AddRecommended(s, InteractionMode.Hybrid, _ => true);
+    steps = InteractionGuide.MxMasterSteps(s, "hook conflict");
+    Check(steps.Single(x => x.Title.Contains("Quick Ring")).CopyText == "Ctrl+Alt+Shift+R");
+    Check(steps.Any(x => x.IsWarning && x.Detail == "hook conflict"), "summon hook warning included");
+    s.GlobalShortcutsEnabled = false;
+    Check(InteractionGuide.MxMasterSteps(s, null).Single(x => x.Title.Contains("Quick Ring")).IsWarning, "disabled shortcuts are not promised");
+    Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.CtrlMiddleClick, InteractionMode.Hybrid) is null, "the offered fix clears the warning");
+});
 int failures = 0;
 foreach (var test in tests)
 {
