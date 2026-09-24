@@ -65,8 +65,13 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="TabControl">
+            <!-- Headers stay hidden (navigation is the sidebar), but the collapsed items host and the standard
+                 PART_SelectedContentHost name let UI Automation / screen readers reach the selected module's content. -->
             <Border Background="{TemplateBinding Background}">
-              <ContentPresenter ContentSource="SelectedContent"/>
+              <Grid>
+                <TabPanel IsItemsHost="True" Visibility="Collapsed"/>
+                <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+              </Grid>
             </Border>
           </ControlTemplate>
         </Setter.Value>

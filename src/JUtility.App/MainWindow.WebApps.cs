@@ -25,17 +25,30 @@ public partial class MainWindow
             return (QuickWebApps.Definition(captured), new QuickActionHandler(() => OpenWebApp(captured), () => WebAppUnavailable(captured)));
         }).ToList());
         RefreshActionsMenu();
+        SyncEmbeddedWeb(); // a web app may have been removed, re-addressed or switched out of Embedded
     }
 
-    private string? WebAppUnavailable(WebAppEntry app) =>
-        app.OpenMode == WebOpenMode.AppWindow && AppWindowBrowser(app.Browser) is null
-            ? $"{app.Name}: Chrome or Edge was not found for an app window. Switch it to \"Default browser\" in Web apps."
-            : null;
+    private string? WebAppUnavailable(WebAppEntry app) => app.OpenMode switch
+    {
+        WebOpenMode.AppWindow when AppWindowBrowser(app.Browser) is null =>
+            $"{app.Name}: Chrome or Edge was not found for an app window. Switch it to \"Default browser\" in Web apps.",
+        WebOpenMode.Embedded when WebView2RuntimeVersion() is null =>
+            $"{app.Name}: the Microsoft Edge WebView2 runtime is not installed. Switch it to \"App window\" in Web apps.",
+        WebOpenMode.Embedded when _sessionShell is null =>
+            $"{app.Name}: workspace tabs did not load, so it cannot open inside Power Ops. Switch it to \"App window\" in Web apps.",
+        _ => null,
+    };
 
     private void OpenWebApp(WebAppEntry app)
     {
         QuickWebApps.ValidateUrl(app.Url, app.Name);
         string url = new Uri(app.Url.Trim()).AbsoluteUri;
+        if (app.OpenMode == WebOpenMode.Embedded)
+        {
+            OpenEmbeddedWebApp(app);
+            return;
+        }
+
         if (app.OpenMode == WebOpenMode.AppWindow)
         {
             var startInfo = new ProcessStartInfo(AppWindowBrowser(app.Browser)!) { UseShellExecute = false };
@@ -97,7 +110,12 @@ public partial class MainWindow
         var mode = new ComboBox
         {
             // WPF binds properties, not tuple fields, so use a record.
-            ItemsSource = new[] { new OpenModeChoice("App window (Chrome/Edge)", WebOpenMode.AppWindow), new OpenModeChoice("Default browser", WebOpenMode.Browser) },
+            ItemsSource = new[]
+            {
+                new OpenModeChoice("App window (Chrome/Edge)", WebOpenMode.AppWindow),
+                new OpenModeChoice("Embedded in Power Ops (local tools, e.g. Mongoku)", WebOpenMode.Embedded),
+                new OpenModeChoice("Default browser", WebOpenMode.Browser),
+            },
             DisplayMemberPath = nameof(OpenModeChoice.Label),
             SelectedValuePath = nameof(OpenModeChoice.Mode),
         };

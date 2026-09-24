@@ -553,6 +553,55 @@ Test("MX Master guide reflects configured shortcuts and warns about double inter
     Check(InteractionGuide.MxMasterSteps(s, null).Single(x => x.Title.Contains("Quick Ring")).IsWarning, "disabled shortcuts are not promised");
     Check(QuickActionLayouts.MouseDoubleInterceptionWarning(WindowBehaviorMode.Summon, SummonMouseBinding.CtrlMiddleClick, InteractionMode.Hybrid) is null, "the offered fix clears the warning");
 });
+// ---- V2.1 embedded web apps (WebView2 "Web" module) ----
+Test("Embedded web apps open in a reusable Web tab and keep shell state valid", () =>
+{
+    var shell = WorkspaceSessions.Defaults(); var ws = WorkspaceSessions.Active(shell);
+    ws.VisibleModules.Remove("web");
+    string mongoku = QuickWebApps.ActionId(Guid.NewGuid()), grafana = QuickWebApps.ActionId(Guid.NewGuid());
+    var tab = EmbeddedWebPolicy.ShowInWorkspace(ws, mongoku);
+    Check(ws.VisibleModules.Contains("web") && tab.ModuleId == "web" && tab.Filter == mongoku && ws.ActiveTabId == tab.Id);
+    WorkspaceSessions.Validate(shell);
+    int tabs = ws.Tabs.Count;
+    Check(EmbeddedWebPolicy.ShowInWorkspace(ws, mongoku).Id == tab.Id && ws.Tabs.Count == tabs, "existing tab reused");
+    EmbeddedWebPolicy.ShowInWorkspace(ws, grafana); Check(ws.Tabs.Count == tabs + 1);
+    while (ws.Tabs.Count < WorkspaceSessions.MaxTabs) WorkspaceSessions.AddTab(ws, "capture");
+    string third = QuickWebApps.ActionId(Guid.NewGuid());
+    var retarget = EmbeddedWebPolicy.ShowInWorkspace(ws, third);
+    Check(ws.Tabs.Count == WorkspaceSessions.MaxTabs && retarget.Filter == third && retarget.ModuleId == "web", "tab limit retargets the active tab");
+    WorkspaceSessions.Validate(shell);
+    var store = shell; Check(JsonSerializer.Serialize(store, WorkspaceSessions.Json).Contains(third), "persisted in the shell file, not a new schema");
+    Reject(() => EmbeddedWebPolicy.ShowInWorkspace(ws, "capture.quick"));
+    Check(ModuleCatalog.Get("web").Header == "Web");
+});
+Test("Only embedded apps open in the current workspace keep a live web view", () =>
+{
+    var s = QuickActionLayouts.Defaults();
+    var mongoku = new WebAppEntry { Name = "Mongoku", Url = "http://localhost:3100/", OpenMode = WebOpenMode.Embedded };
+    var gemini = new WebAppEntry { Name = "Gemini", Url = "https://gemini.google.com/app", OpenMode = WebOpenMode.AppWindow };
+    s.WebApps.AddRange([mongoku, gemini]);
+    var ws = WorkspaceSessions.NewProfile("W");
+    EmbeddedWebPolicy.ShowInWorkspace(ws, QuickWebApps.ActionId(mongoku.Id));
+    EmbeddedWebPolicy.ShowInWorkspace(ws, QuickWebApps.ActionId(gemini.Id));
+    EmbeddedWebPolicy.ShowInWorkspace(ws, QuickWebApps.ActionId(Guid.NewGuid())); // deleted app
+    var live = EmbeddedWebPolicy.LiveViews(ws, s);
+    Check(live.Count == 1 && live.Contains(QuickWebApps.ActionId(mongoku.Id)), string.Join(",", live));
+    WorkspaceSessions.CloseTab(ws); WorkspaceSessions.CloseTab(ws); WorkspaceSessions.CloseTab(ws);
+    Check(EmbeddedWebPolicy.LiveViews(ws, s).Count == 0, "closing the tab frees the view");
+    Check(EmbeddedWebPolicy.LiveViews(WorkspaceSessions.NewProfile("Other"), s).Count == 0, "other workspaces hold nothing");
+    Check(QuickWebApps.Presets.Single(x => x.Name == "Mongoku").OpenMode == WebOpenMode.Embedded
+        && QuickWebApps.Presets.Where(x => x.Name is "Gemini" or "ChatGPT" or "Claude").All(x => x.OpenMode == WebOpenMode.AppWindow), "chats keep the browser sign-in");
+});
+Test("Embedded navigation allows only http(s); pop-ups go to the default browser", () =>
+{
+    Check(EmbeddedWebPolicy.AllowNavigation("http://localhost:3100/servers") && EmbeddedWebPolicy.AllowNavigation("https://idp.example.com/authorize?x=1"));
+    foreach (string blocked in new[] { "file:///C:/Users", "javascript:alert(1)", "ms-settings:privacy", "about:blank", "", null! })
+        Check(!EmbeddedWebPolicy.AllowNavigation(blocked) && EmbeddedWebPolicy.ExternalTarget(blocked) is null, blocked ?? "null");
+    Check(EmbeddedWebPolicy.ExternalTarget("https://github.com/huggingface/Mongoku")!.Host == "github.com");
+    Check(EmbeddedWebPolicy.UserDataFolder(@"C:\data\PowerOps").EndsWith(@"PowerOps\webview2"), "profile lives in the Power Ops data folder");
+    var export = PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), ["web"]);
+    Check(!export.Contains("webview2") && export.Contains("No runtime snapshot"), "content export never includes browser data");
+});
 int failures = 0;
 foreach (var test in tests)
 {

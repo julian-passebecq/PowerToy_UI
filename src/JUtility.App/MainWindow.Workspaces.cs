@@ -51,6 +51,7 @@ public partial class MainWindow
         WorkspacePanel.Items.Add(new TabItem { Header = "Launchpad", Content = CreateLaunchpad() });
         WorkspacePanel.Items.Add(new TabItem { Header = "Environment inventory", Content = CreateInventoryPage() });
         WorkspacePanel.Items.Add(new TabItem { Header = "Feature catalog", Content = CreateFeaturePage() });
+        WorkspacePanel.Items.Add(new TabItem { Header = "Web", Content = CreateWebPage() });
 
         var original = (UIElement)Content;
         Content = null;
@@ -156,7 +157,7 @@ public partial class MainWindow
             SelectWorkspaceTab(module.Header);
             if (module.Id is "home" or "inventory" or "features")
             { CurrentModuleTitle.Text = module.Title; CurrentModuleSubtitle.Text = module.Purpose; }
-            QuickAddButton.IsEnabled = module.Id is not ("home" or "inventory" or "features");
+            QuickAddButton.IsEnabled = module.Id is not ("home" or "inventory" or "features" or "web");
             if (PowerOpsShell.Children.Count > 0) PowerOpsShell.Children[0].Visibility = profile.RibbonVisible ? Visibility.Visible : Visibility.Collapsed;
             _workspaceSelector.ItemsSource = _sessionShell.Workspaces.ToArray(); _workspaceSelector.SelectedItem = profile;
             RenderSessionNavigation(); RenderSessionTabs();
@@ -164,6 +165,7 @@ public partial class MainWindow
         }
         finally { _restoringSession = false; }
         RefreshQuickShelfForWorkspace();
+        SyncEmbeddedWeb();
     }
     private void RenderSessionNavigation()
     {
@@ -210,8 +212,9 @@ public partial class MainWindow
         var tab = WorkspaceSessions.ActiveTab(profile);
         tab.ModuleId = module.Id;
         tab.Search = GetModuleSearch(module.Header); tab.Filter = GetModuleFilter(module.Header);
-        QuickAddButton.IsEnabled = module.Id is not ("home" or "inventory" or "features");
+        QuickAddButton.IsEnabled = module.Id is not ("home" or "inventory" or "features" or "web");
         RenderSessionNavigation(); RenderSessionTabs(); MarkSessionDirty();
+        SyncEmbeddedWeb();
     }
     private void NavigateSession(string id)
     {

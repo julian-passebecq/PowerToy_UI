@@ -7,6 +7,10 @@
     <RootNamespace>JUtility.App</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Embedded web apps (V2.1): WebView2 uses the Evergreen runtime already on Windows; no Chromium is bundled. Loaded only on first embedded open. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\JUtility.Core\JUtility.Core.csproj" />
   </ItemGroup>
 </Project>

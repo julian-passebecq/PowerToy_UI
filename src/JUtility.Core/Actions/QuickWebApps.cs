@@ -1,7 +1,7 @@
 namespace JUtility.Core.Actions;
 
-// V2.1 web destinations. Power Ops launches them; it does not host a browser engine in this slice.
-// An embedded (WebView2) mode is a later, measured, lazy slice: see docs/v2/WEB_SURFACES.md.
+// V2.1 web destinations. Browser/AppWindow launch an external browser; Embedded shows the app in a Power Ops
+// "Web" tab through WebView2, created lazily on first use (EmbeddedWebPolicy, docs/v2/WEB_SURFACES.md).
 
 public enum WebOpenMode
 {
@@ -9,6 +9,8 @@ public enum WebOpenMode
     Browser,
     /// <summary>Chrome/Edge <c>--app=</c> window: no tabs or address bar, but the user's existing browser profile and sign-ins.</summary>
     AppWindow,
+    /// <summary>A Power Ops "Web" tab (WebView2, separate profile under the data directory). Meant for local/self-hosted tools such as Mongoku.</summary>
+    Embedded,
 }
 
 public enum WebBrowserChoice
@@ -38,7 +40,7 @@ public static class QuickWebApps
     // Starting points only; nothing is added until the user chooses one. Localhost ports are the projects' defaults.
     public static readonly IReadOnlyList<WebAppPreset> Presets = Array.AsReadOnly(new[]
     {
-        new WebAppPreset("Mongoku", "http://localhost:3100/", WebOpenMode.AppWindow, "Mongoku-datapass default port (pnpm dev / mongoku CLI)."),
+        new WebAppPreset("Mongoku", "http://localhost:3100/", WebOpenMode.Embedded, "Mongoku-datapass default port (pnpm dev / mongoku CLI). Opens in a Power Ops Web tab; switch to App window if its sign-in uses Google."),
         new WebAppPreset("Grafana", "http://localhost:3000/", WebOpenMode.AppWindow, "Grafana default port; change to your Grafana Cloud or server URL."),
         new WebAppPreset("Gemini", "https://gemini.google.com/app", WebOpenMode.AppWindow, "Uses your existing browser sign-in."),
         new WebAppPreset("ChatGPT", "https://chatgpt.com/", WebOpenMode.AppWindow, "Uses your existing browser sign-in."),
@@ -52,7 +54,12 @@ public static class QuickWebApps
     public static QuickActionDefinition Definition(WebAppEntry app)
     {
         string where = Uri.TryCreate(app.Url, UriKind.Absolute, out Uri? uri) ? uri.Authority : app.Url;
-        string how = app.OpenMode == WebOpenMode.AppWindow ? "in its own app window" : "in your default browser";
+        string how = app.OpenMode switch
+        {
+            WebOpenMode.AppWindow => "in its own app window",
+            WebOpenMode.Embedded => "in a Power Ops tab",
+            _ => "in your default browser",
+        };
         return new QuickActionDefinition(ActionId(app.Id), app.Name.Trim(), "Web apps", $"Open {where} {how}.", Glyph, null, true, ActionRisk.Safe);
     }
 
@@ -82,6 +89,9 @@ public static class QuickWebApps
         if (!string.IsNullOrEmpty(uri.UserInfo))
             throw new InvalidDataException($"{name}: do not put user names or passwords in the address; sign in on the page instead.");
     }
+
+    public static WebAppEntry? Find(QuickActionSettings? settings, string? actionId) =>
+        settings?.WebApps.FirstOrDefault(x => ActionId(x.Id) == actionId);
 
     public static WebAppEntry FromPreset(WebAppPreset preset) => new() { Name = preset.Name, Url = preset.Url, OpenMode = preset.OpenMode };
 
