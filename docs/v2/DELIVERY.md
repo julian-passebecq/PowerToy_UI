@@ -117,9 +117,66 @@ Observer should record name, date and result for each:
 6. Global shortcuts dialog: invalid gesture (e.g. `Ctrl+C`, `Alt+F4`) is rejected inline; disabling removes registrations immediately.
 7. Idle CPU/handles before/after enabling shortcuts; typing in other applications is unaffected.
 
+## V2.1 Quick Actions - slice 3 (Quick Shelf)
+
+Date: 2026-09-24. Author: Claude Code (Windows laptop). Code commit: `0547e17`, parent `5a589e9`.
+
+### Changed
+
+- `QuickShelfWindow` is presentation only; every button goes through the shared dispatcher (`ActionSurface.QuickShelf`), and `shelf.toggle` is now registered.
+  - It is a borderless tool window (not in Alt+Tab or the taskbar) with `WS_EX_NOACTIVATE`, so clicking a button runs the action without taking focus from the user's application.
+  - It is icon-first (Segoe Fluent/MDL2 glyphs), with an accessible name and tooltip per button (label, bound global shortcut, description, and the unavailable reason when one applies). Unavailable actions are dimmed, not hidden.
+  - Availability is probed only when the Shelf is shown or hovered. Buttons whose layout is unchanged are updated in place.
+- Layout options: horizontal or vertical, always on top, and auto-hide. Auto-hide collapses the Shelf to its handle 0.7 s after the pointer leaves, using a one-shot timer, and expands it on hover.
+- Moving: drag the handle, and the position is saved to `quick-actions.json` (`ShelfLeft`/`ShelfTop`, validated) and clamped onto a monitor when shown. Clicking the handle without dragging (or right-clicking it) opens a menu: Customize, Open Power Ops, Hide.
+- Keyboard: `shelf.toggle` (Actions menu or a global shortcut) shows the Shelf with focus on the first button. Tab and the arrow keys cycle, Enter runs, and Esc hides and returns focus to the previously focused window.
+- Per-workspace: each workspace view can have its own button list, otherwise it inherits the default. The Shelf re-renders when the active workspace changes.
+- **Customize Quick Shelf** dialog (Actions menu or Shelf menu):
+  - "show at startup" (sets `Mode = QuickShelf`), orientation, always on top, auto-hide;
+  - default vs "this workspace only" scope; add, remove, move up/down; revert the workspace to the default.
+  - Edits are made on a copy that is validated and saved before it replaces the live settings.
+- The Shelf closes with the main window. If `quick-actions.json` is unreadable, `shelf.toggle` reports why and nothing is written.
+- Core: `QuickShelfModel` (build items, startup rule), `QuickActionLayouts.Eligible`, `QuickActionSettingsStore.Copy`, and the Shelf position fields. Slice-1 files without a position still load.
+
+### Defect found and fixed during native testing
+
+Clicking a Shelf button while Power Ops owned the foreground **activated the Shelf** despite `WS_EX_NOACTIVATE`: a focusable WPF button takes keyboard focus on mouse down, and `SetFocus` activates the window. It was intermittent and depended on which process was in front. Fixed by making the buttons focusable only in keyboard mode (shown via shortcut), which ends when the Shelf deactivates. The native script now clicks in both foreground states.
+
+### Evidence (tested revision `0547e17`)
+
+- `.\scripts\build.ps1`: **PASS**. Release build with 0 warnings and 0 errors, `JUtility.SmokeTests` **68/68**, `JUtility.WorkspaceTests` **43/43** (4 new).
+- `tests/native/quick-actions-hotkeys.ps1`: **PASS** (slice 2 regression).
+- `tests/native/quick-shelf.ps1` on Windows 11 Pro 10.0.26200 at 150% scaling, with fresh isolated `--data-dir`, synthesized mouse/keyboard and UI Automation: **PASS in 4 consecutive runs**. It observed:
+  - Quick Shelf mode shows the Shelf at startup without taking the foreground;
+  - tool-window and no-activate styles are set;
+  - the 8 buttons expose their accessible names in the configured order;
+  - default placement is top centre;
+  - clicking "Open Power Ops" brings the main window forward, and the Shelf never becomes foreground, including when Power Ops already owned the foreground;
+  - the shortcut hides and shows the Shelf, and keyboard show focuses the first button;
+  - Tab moves to the next button; Esc hides and returns focus to the previous window;
+  - dragging moves the Shelf by exactly (120, 90) px and saves the position, which is restored exactly after restart;
+  - the active workspace's own list (2 buttons) is used;
+  - vertical auto-hide collapses to the handle, expands on hover and collapses again;
+  - closing Power Ops closes the Shelf and ends the process.
+- Idle sanity (30 s after an 8 s settle, isolated data dirs):
+
+  | Mode | CPU | Handles | Working set |
+  | --- | --- | --- | --- |
+  | Off | 0 ms | 652 → 651 | 246.9 MB |
+  | Quick Shelf visible | 0 ms | 655 → 654 | 247.6 MB |
+
+  This is a sanity check, not a benchmark.
+
+### NOT RUN (user-assisted)
+
+1. Multi-monitor, negative-coordinate and mixed-DPI placement: this laptop has one display.
+2. Customize dialog end-to-end: reordering, workspace scope, reverting the workspace to the default.
+3. Keyboard operation of the handle menu.
+4. Each Shelf action's external effect (snip overlay, Explorer, terminal), and the unavailable messages.
+5. Always-on-top off together with other always-on-top applications.
+
 ### Remaining V2.1 work (in order)
 
-1. Quick Shelf window (orientation, always-on-top, auto-hide, per-workspace layout, keyboard accessible).
-2. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
-3. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
-4. Native acceptance + idle/latency measurements.
+1. Quick Ring window (6-8 slots, centre opens Power Ops, Esc/outside-click dismiss, monitor/DPI-aware placement).
+2. Interaction settings UI + MX Master / Logi Options+ guide (show `MouseDoubleInterceptionWarning`).
+3. Native acceptance + idle/latency measurements.
