@@ -9,6 +9,11 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 public static class N {
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
+  public static uint PidAt(int x, int y) { var pt = new POINT { X = x, Y = y }; uint p; GetWindowThreadProcessId(GetAncestor(WindowFromPoint(pt), 2), out p); return p; }
   public delegate bool EnumProc(IntPtr h, IntPtr l);
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
@@ -61,6 +66,7 @@ $serve = {
 }
 $job = Start-ThreadJob -ScriptBlock $serve -ArgumentList $listener, $hits, $title
 
+trap { if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }; $listener.Stop(); $listener.Close(); Stop-Job $job -ErrorAction SilentlyContinue; 'Web app native checks: ABORTED - ' + $_.Exception.Message; exit 1 }
 $appId = [guid]::NewGuid()
 $actionId = 'web:' + $appId.ToString('N')
 $settings = [ordered]@{
@@ -85,7 +91,9 @@ function Wait-AppWindow { for ($i = 0; $i -lt 40; $i++) { $h = [N]::FindTitle($t
 function Close-AppWindow($h) { if ($h -ne [IntPtr]::Zero) { [void][N]::SendMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero); Start-Sleep -Milliseconds 800 } }
 
 if ($btn) {
-  $b = $btn.Current.BoundingRectangle; [N]::Click([int]($b.X + $b.Width / 2), [int]($b.Y + $b.Height / 2))
+  $b = $btn.Current.BoundingRectangle; $bx = [int]($b.X + $b.Width / 2); $by = [int]($b.Y + $b.Height / 2)
+  if ([N]::PidAt($bx, $by) -ne $p.Id) { throw 'Safety stop: the Shelf button is covered; refusing to click another application.' }
+  [N]::Click($bx, $by)
   $h = Wait-AppWindow
   Rec 'shelf click: app window opened on the page' ($h -ne [IntPtr]::Zero) $(if ($h -ne [IntPtr]::Zero) { "class=$([N]::Class($h))" } else { '' })
   Rec 'shelf click: page requested' ($hits.Count -ge 1) "requests=$($hits.Count)"

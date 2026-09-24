@@ -9,6 +9,10 @@ using System;
 using System.Runtime.InteropServices;
 public static class S {
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
+  public static uint PidAt(int x, int y) { var pt = new POINT { X = x, Y = y }; uint p; GetWindowThreadProcessId(GetAncestor(WindowFromPoint(pt), 2), out p); return p; }
   [DllImport("user32.dll", SetLastError=true)] public static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk);
   [DllImport("user32.dll", SetLastError=true)] public static extern bool UnregisterHotKey(IntPtr h, int id);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
@@ -70,6 +74,19 @@ function Rect($h) { $x = New-Object S+RECT; [void][S]::GetWindowRect($h, [ref]$x
 function Center($el) { $b = $el.Current.BoundingRectangle; return @([int]($b.X + $b.Width / 2), [int]($b.Y + $b.Height / 2)) }
 function Stop-App($p) { [void]$p.CloseMainWindow(); [void]$p.WaitForExit(15000); if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; return $false }; return $true }
 
+function Safe-Key([byte]$vk) {
+  if ([S]::Pid([S]::GetForegroundWindow()) -ne $p.Id) { throw "Safety stop: foreground window is not the test Power Ops process; refusing to send key 0x$('{0:X}' -f $vk)." }
+  [S]::Key(@(), $vk)
+}
+function Safe-Click([int]$x, [int]$y) {
+  if ([S]::PidAt($x, $y) -ne $p.Id) { throw "Safety stop: ($x,$y) is not over the test Power Ops process; refusing to click." }
+  [S]::Click($x, $y)
+}
+function Safe-Drag([int]$x, [int]$y, [int]$dx, [int]$dy) {
+  if ([S]::PidAt($x, $y) -ne $p.Id) { throw "Safety stop: ($x,$y) is not over the test Power Ops process; refusing to drag." }
+  [S]::Drag($x, $y, $dx, $dy)
+}
+trap { if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }; 'Quick Shelf native checks: ABORTED - ' + $_.Exception.Message; exit 1 }
 $probe = [S]::RegisterHotKey([IntPtr]::Zero, 0x7778, 0x4007, 0x4C)
 if (-not $probe) { 'BLOCKED: Ctrl+Alt+Shift+L is already owned by another application.'; exit 2 }
 [void][S]::UnregisterHotKey([IntPtr]::Zero, 0x7778)
@@ -93,12 +110,12 @@ Rec 'placement: near top of screen' ($rect.T -ge -50 -and $rect.T -lt 200) "top=
 
 # Clicking "Open Power Ops": action runs, main window comes forward, shelf itself never activates.
 $open = (Shelf-Buttons $shelf)[0]; $c = Center $open
-[S]::Click($c[0], $c[1]); Start-Sleep -Milliseconds 1200
+Safe-Click $c[0] $c[1]; Start-Sleep -Milliseconds 1200
 $fg = [S]::GetForegroundWindow()
 Rec 'click: Open Power Ops brings main window forward' ($fg -eq $p.MainWindowHandle)
 Rec 'click: shelf not activated by the click' ($fg -ne $hs)
 # Again while Power Ops already owns the foreground (the case where WPF focus could activate the Shelf).
-[S]::Click($c[0], $c[1]); Start-Sleep -Milliseconds 1200
+Safe-Click $c[0] $c[1]; Start-Sleep -Milliseconds 1200
 $fg = [S]::GetForegroundWindow()
 Rec 'click again: shelf still not activated' ($fg -ne $hs -and $fg -eq $p.MainWindowHandle)
 
@@ -110,10 +127,10 @@ $fgBeforeShow = [S]::GetForegroundWindow()
 Rec 'shortcut #2: shelf shown with keyboard focus' ([S]::IsWindowVisible($hs) -and [S]::GetForegroundWindow() -eq $hs)
 $focused = [System.Windows.Automation.AutomationElement]::FocusedElement.Current.Name
 Rec 'keyboard: first button focused' ($focused -eq 'Open Power Ops') $focused
-[S]::Key(@(), 0x09); Start-Sleep -Milliseconds 300
+Safe-Key 0x09; Start-Sleep -Milliseconds 300
 $focused = [System.Windows.Automation.AutomationElement]::FocusedElement.Current.Name
 Rec 'keyboard: Tab moves to next button' ($focused -eq 'Screenshot (region)') $focused
-[S]::Key(@(), 0x1B); Start-Sleep -Milliseconds 800
+Safe-Key 0x1B; Start-Sleep -Milliseconds 800
 Rec 'Esc: shelf hidden' (-not [S]::IsWindowVisible($hs))
 Rec 'Esc: focus returned to previous window' ([S]::GetForegroundWindow() -eq $fgBeforeShow)
 
@@ -122,7 +139,7 @@ Rec 'Esc: focus returned to previous window' ([S]::GetForegroundWindow() -eq $fg
 $gripCond = New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, 'Quick Shelf options')
 $grip = $shelf.FindFirst($T::Descendants, $gripCond); $g = Center $grip
 $before = Rect $hs
-[S]::Drag($g[0], $g[1], 120, 90); Start-Sleep -Milliseconds 1000
+Safe-Drag $g[0] $g[1] 120 90; Start-Sleep -Milliseconds 1000
 $after = Rect $hs
 Rec 'drag: shelf moved' (($after.L - $before.L) -gt 60 -and ($after.T - $before.T) -gt 40) "dx=$($after.L - $before.L) dy=$($after.T - $before.T)"
 $saved = Get-Content (Join-Path $root 'quick-actions.json') -Raw | ConvertFrom-Json

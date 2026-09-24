@@ -454,6 +454,46 @@ Test("App-window browser follows default Chrome profile, else Edge", () =>
     Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Edge, "ChromeHTML", chrome, null) is null, "explicit choice is never substituted");
     Check(QuickWebApps.ChooseAppBrowser(WebBrowserChoice.Auto, null, null, null) is null);
 });
+// ---- V2.1 Quick Ring ----
+Test("Quick Ring slots start at the top and go clockwise", () =>
+{
+    var four = Enumerable.Range(0, 4).Select(i => QuickRingModel.SlotOffset(i, 4, 100)).ToList();
+    Check(four[0] == (0, -100) && four[1] == (100, 0) && four[2] == (0, 100) && four[3] == (-100, 0), string.Join(" ", four));
+    var eight = Enumerable.Range(0, 8).Select(i => QuickRingModel.SlotOffset(i, 8, 112)).ToList();
+    Check(eight.All(p => Math.Abs(Math.Sqrt(p.X * p.X + p.Y * p.Y) - 112) < 1e-3), "all slots on the circle");
+    Check(eight.Select(p => (Math.Round(p.X), Math.Round(p.Y))).Distinct().Count() == 8, "no overlapping slots");
+    Check(QuickRingModel.SlotOffset(0, 1, 50) == (0, -50));
+    Reject(() => { try { QuickRingModel.SlotOffset(8, 8, 1); } catch (ArgumentOutOfRangeException ex) { throw new InvalidOperationException(ex.Message); } });
+});
+Test("Quick Ring keyboard: arrows wrap, digits pick existing slots only", () =>
+{
+    Check(QuickRingModel.Move(-1, 7, 1) == 0 && QuickRingModel.Move(-1, 7, -1) == 6, "entry from the centre");
+    Check(QuickRingModel.Move(6, 7, 1) == 0 && QuickRingModel.Move(0, 7, -1) == 6, "wrap-around");
+    Check(QuickRingModel.Move(0, 0, 1) == -1, "empty ring");
+    Check(QuickRingModel.SlotForDigit(1, 7) == 0 && QuickRingModel.SlotForDigit(7, 7) == 6);
+    Check(QuickRingModel.SlotForDigit(8, 7) is null && QuickRingModel.SlotForDigit(0, 7) is null && QuickRingModel.SlotForDigit(9, 8) is null);
+});
+Test("Quick Ring uses the workspace ring, web apps and never lists itself", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var app = new WebAppEntry { Name = "Mongoku", Url = "http://localhost:3100/" }; s.WebApps.Add(app);
+    var work = Guid.NewGuid(); string web = QuickWebApps.ActionId(app.Id);
+    QuickActionLayouts.SetWorkspaceRing(s, work, [web, "capture.region", "shelf.toggle"]);
+    var probes = 0;
+    var items = QuickRingModel.Build(s, work, _ => { probes++; return null; }, _ => null);
+    Check(items.Select(x => x.Label).SequenceEqual(new[] { "Mongoku", "Screenshot (region)", "Quick Shelf" }) && probes == 3);
+    Check(QuickRingModel.Build(s, Guid.NewGuid(), _ => null, _ => null).Select(x => x.Id).SequenceEqual(QuickActionLayouts.DefaultRing), "inherits default");
+    Check(QuickActionLayouts.DefaultRing.Count <= QuickActionLayouts.MaxRing && !QuickActionLayouts.DefaultRing.Contains("app.open"), "centre is Open Power Ops");
+    Reject(() => QuickActionLayouts.SetWorkspaceRing(s, work, ["ring.show"]));
+});
+Test("Ring placement centres on the pointer and stays inside the monitor work area", () =>
+{
+    var mid = JUtility.Core.Services.WindowPlacementMath.CenterOn(960, 500, 480, 480, 0, 0, 1920, 1032);
+    Check(mid.Left == 720 && mid.Top == 260 && mid.Width == 480);
+    var corner = JUtility.Core.Services.WindowPlacementMath.CenterOn(3, 4, 480, 480, 0, 0, 1920, 1032);
+    Check(corner.Left == 0 && corner.Top == 0, "top-left corner clamps");
+    var negative = JUtility.Core.Services.WindowPlacementMath.CenterOn(-1915, 1070, 480, 480, -1920, 0, 0, 1080);
+    Check(negative.Left == -1920 && negative.Top == 600, "left monitor with negative coordinates, bottom edge");
+});
 int failures = 0;
 foreach (var test in tests)
 {

@@ -24,7 +24,7 @@ internal sealed class QuickShelfWindow : Window
     private readonly StackPanel _items = new();
     private readonly Button _grip;
     private readonly DispatcherTimer _collapseTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
-    private readonly List<(QuickShelfItem Item, Button Button)> _buttons = [];
+    private readonly List<(QuickSurfaceItem Item, Button Button)> _buttons = [];
     private bool _autoHide;
     private bool _keyboardMode;
     private IntPtr _previousForeground;
@@ -104,7 +104,7 @@ internal sealed class QuickShelfWindow : Window
 
     public bool IsCollapsed => _items.Visibility != Visibility.Visible;
 
-    public void Render(IReadOnlyList<QuickShelfItem> items, ShelfOrientation orientation, bool topmost, bool autoHide)
+    public void Render(IReadOnlyList<QuickSurfaceItem> items, ShelfOrientation orientation, bool topmost, bool autoHide)
     {
         Orientation direction = orientation == ShelfOrientation.Vertical ? Orientation.Vertical : Orientation.Horizontal;
         _layout.Orientation = direction;
@@ -133,7 +133,7 @@ internal sealed class QuickShelfWindow : Window
 
         _items.Children.Clear();
         _buttons.Clear();
-        foreach (QuickShelfItem item in items)
+        foreach (QuickSurfaceItem item in items)
         {
             var button = new Button
             {
@@ -195,7 +195,7 @@ internal sealed class QuickShelfWindow : Window
 
     public void EnsureOnScreen() => WindowPlacementService.EnsureVisible(this);
 
-    private static void Apply(Button button, QuickShelfItem item)
+    private static void Apply(Button button, QuickSurfaceItem item)
     {
         button.ToolTip = item.ToolTip;
         button.Opacity = item.IsAvailable ? 1.0 : 0.45;

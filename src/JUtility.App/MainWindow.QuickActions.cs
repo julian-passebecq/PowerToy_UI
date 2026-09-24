@@ -67,8 +67,7 @@ public partial class MainWindow
         Register(QuickActionCatalog.TabNext, () => CycleSessionTab(1), TabCycleUnavailable);
         Register(QuickActionCatalog.TabPrevious, () => CycleSessionTab(-1), TabCycleUnavailable);
         Register(QuickActionCatalog.ShelfToggle, ToggleQuickShelf, ShelfUnavailable);
-        // ring.show stays unregistered until the Quick Ring exists; the dispatcher reports it
-        // truthfully as "Not available in this build."
+        Register(QuickActionCatalog.RingShow, ToggleQuickRing, RingUnavailable);
 
         // Leave the WM_HOTKEY callback before running: actions may open windows or message boxes.
         _hotkeys.Pressed += (_, hotkey) => Dispatcher.BeginInvoke(
@@ -311,6 +310,9 @@ public partial class MainWindow
         var shelf = new MenuItem { Header = "Customize Quick Shelf..." };
         shelf.Click += (_, _) => CustomizeQuickShelf();
         _actionsMenu.Items.Add(shelf);
+        var ring = new MenuItem { Header = "Customize Quick Ring..." };
+        ring.Click += (_, _) => CustomizeQuickRing();
+        _actionsMenu.Items.Add(ring);
         var settings = new MenuItem { Header = "Global shortcuts..." };
         settings.Click += (_, _) => EditGlobalShortcuts();
         _actionsMenu.Items.Add(settings);
