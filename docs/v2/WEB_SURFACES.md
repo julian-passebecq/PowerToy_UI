@@ -69,4 +69,4 @@ Measured on the user's laptop:
 
 Keep the feature for local tools. Do not keep many pages open.
 
-Real Mongoku embedding is not yet verified: during the test the local dev server's HTML route stopped responding while `/api/health` stayed up. See `DELIVERY.md`.
+Real Mongoku embedding was **verified on 2026-09-25**. The local `datapass/control-plane-v1` dev server was in read-only mode, and its page loaded as "Mongoku · Datapass Mongo Control". With Mongoku open the total working set was 702 MB, and it returned to 229 MB after "Close web view". An earlier attempt had failed only because the dev server's HTML route was temporarily not responding. Power Ops never needs a MongoDB user: it loads Mongoku's web UI, and a future report card would use Mongoku's HTTP API.

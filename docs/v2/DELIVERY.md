@@ -360,7 +360,14 @@ Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `c4caf56`, 
   - A first plain GET returned the home page (HTTP 200, 372 KB, "Datapass Mongo Control").
   - Minutes later its HTML route stopped answering, with requests timing out after 15 s and 60 s, while `/api/health` still answered in 73 ms. The embedded view therefore stayed on `about:blank` waiting, which is correct behaviour; the status text now says it is waiting.
   - Power Ops sent no further requests. That session was actively editing Mongoku, and it cannot be ruled out that the few test page loads contributed.
-  - **Real Mongoku embedded: NOT VERIFIED**; re-run `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` when its page responds.
+  - Re-run requested; see the follow-up below. (Original instruction: re-run `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` when its page responds.)
+- **Follow-up 2026-09-25 01:10, real Mongoku: PASS.** After the user updated Mongoku's `.env`, the server came back with `mode: mongo-read-only` and `writesEnabled: false` (home page HTTP 200, 464 KB in 597 ms). `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` at `1a08740` (same app code as `c4caf56`) passed **10/10**:
+  - lazy before use;
+  - the page loaded inside a Power Ops Web tab with title **Mongoku · Datapass Mongo Control**;
+  - Power Ops in front; tab persisted; profile in the data folder;
+  - Close web view ended all WebView2 processes; clean exit.
+
+  Memory: 236.6 MB never opened, then **702.1 MB** with Mongoku open (6 WebView2 processes, 465 MB; the real app is heavier than the stand-in), then 229.3 MB after closing. Mongoku still reported `writesEnabled: false` after the test. Nothing inside Mongoku was clicked, and no MongoDB user or credential is involved: Power Ops only loads Mongoku's web UI.
 - On the same revision, `interaction`, `quick-actions-hotkeys`, `quick-shelf`, `web-apps` and `quick-ring`: all **PASS**.
 - NOT RUN:
   - a pop-up opening the default browser (it would open a tab in the user's browser);
