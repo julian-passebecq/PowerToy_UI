@@ -243,6 +243,7 @@ public sealed class WorkspaceStore
         || name.Equals(nameof(WorkspaceState.RepositoryLists), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Portals), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Tools), StringComparison.OrdinalIgnoreCase)
+        || name.Equals(nameof(WorkspaceState.ExplorerFolders), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.Resources), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.ClipboardSnippets), StringComparison.OrdinalIgnoreCase)
         || name.Equals(nameof(WorkspaceState.ClipboardMedia), StringComparison.OrdinalIgnoreCase)
@@ -336,6 +337,7 @@ public sealed class WorkspaceStore
         state.RepositoryLists = (state.RepositoryLists ?? []).Where(item => item is not null).ToList();
         state.Portals = (state.Portals ?? []).Where(item => item is not null).ToList();
         state.Tools = (state.Tools ?? []).Where(item => item is not null).ToList();
+        state.ExplorerFolders = (state.ExplorerFolders ?? []).Where(item => item is not null).ToList();
         state.Resources = (state.Resources ?? []).Where(item => item is not null).ToList();
         state.ClipboardSnippets = (state.ClipboardSnippets ?? []).Where(item => item is not null).ToList();
         state.ClipboardMedia = (state.ClipboardMedia ?? []).Where(item => item is not null).ToList();
@@ -351,6 +353,7 @@ public sealed class WorkspaceStore
         ValidateUniqueIds(state.RepositoryLists, item => item.Id, "RepositoryLists");
         ValidateUniqueIds(state.Portals, item => item.Id, "Portals");
         ValidateUniqueIds(state.Tools, item => item.Id, "Tools");
+        ValidateUniqueIds(state.ExplorerFolders, item => item.Id, "ExplorerFolders");
         ValidateUniqueIds(state.Resources, item => item.Id, "Resources");
         ValidateUniqueIds(state.ClipboardSnippets, item => item.Id, "ClipboardSnippets");
         ValidateUniqueIds(state.ClipboardMedia, item => item.Id, "ClipboardMedia");
@@ -433,6 +436,12 @@ public sealed class WorkspaceStore
             project.ChatGptUrl = NormalizeOptionalSingleLine(project.ChatGptUrl);
             project.ExtraLabel = NormalizeText(project.ExtraLabel, "Extra");
             project.ExtraUrl = NormalizeOptionalSingleLine(project.ExtraUrl);
+        }
+
+        foreach (ExplorerFolderEntry folder in state.ExplorerFolders)
+        {
+            folder.Name = NormalizeText(folder.Name, "Folder");
+            folder.Path = NormalizeOptionalSingleLine(folder.Path);
         }
 
         foreach (RepositoryListEntry list in state.RepositoryLists)

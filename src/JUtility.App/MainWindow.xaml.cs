@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -543,10 +544,24 @@ public partial class MainWindow : Window
     private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        bool editingText = IsTextEditingControl(System.Windows.Input.Keyboard.FocusedElement);
         bool searchAvailable =
             PowerOpsShell.IsVisible
             && ShellSearchBox.IsVisible
             && ShellSearchBox.IsEnabled;
+
+        if (e.Key == System.Windows.Input.Key.E
+            && ShellKeyboardPolicy.ShouldOpenExplorer(
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0,
+                editingText: editingText))
+        {
+            e.Handled = true;
+            OpenPinnedExplorerFolder();
+            return;
+        }
 
         if (e.Key == System.Windows.Input.Key.K
             && ShellKeyboardPolicy.ShouldFocusSearch(
@@ -554,7 +569,8 @@ public partial class MainWindow : Window
                 shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
                 alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
                 windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0,
-                searchAvailable))
+                searchAvailable: searchAvailable,
+                editingText: editingText && !ShellSearchBox.IsKeyboardFocusWithin))
         {
             e.Handled = true;
             ShellSearchBox.Focus();
@@ -570,6 +586,99 @@ public partial class MainWindow : Window
         {
             e.Handled = true;
             ShellSearchBox.Clear();
+        }
+    }
+
+    private static bool IsTextEditingControl(System.Windows.IInputElement? focusedElement) =>
+        focusedElement is TextBoxBase or PasswordBox
+        || focusedElement is ComboBox { IsEditable: true };
+
+    private void OpenPinnedExplorerFolder()
+    {
+        ExplorerFolderEntry? folder = _viewModel.ExplorerFolders.FirstOrDefault(item => item.IsPinned);
+        if (folder is null)
+        {
+            OpenExplorerFolder(null);
+            return;
+        }
+
+        OpenExplorerFolder(folder);
+    }
+
+    private void OpenExplorerFolder(ExplorerFolderEntry? folder)
+    {
+        string? path = folder?.Path;
+        if (!string.IsNullOrWhiteSpace(path) && !Directory.Exists(path))
+        {
+            _viewModel.StatusText = $"Folder not found: {path}";
+            return;
+        }
+
+        try
+        {
+            ProcessStartInfo startInfo = new("explorer.exe") { UseShellExecute = true };
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                startInfo.ArgumentList.Add(path);
+            }
+
+            Process.Start(startInfo);
+            _viewModel.StatusText = folder is null ? "Opened File Explorer" : $"Opened {folder.Name} in File Explorer";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Could not open File Explorer";
+            ShowOwnedMessage(ex.Message, "File Explorer", MessageBoxImage.Warning);
+        }
+    }
+
+    private void AddExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFolderDialog dialog = new() { Title = "Choose a folder to pin in Power Ops" };
+        bool previous = _suppressAutoHide;
+        _suppressAutoHide = true;
+        try
+        {
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            _viewModel.AddExplorerFolder(string.Empty, dialog.FolderName);
+            SafeSave();
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Add Explorer folder", MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _suppressAutoHide = previous;
+        }
+    }
+
+    private void ExplorerFolderPin_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loaded)
+        {
+            SafeSave();
+        }
+    }
+
+    private void OpenExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ExplorerFolderEntry folder)
+        {
+            OpenExplorerFolder(folder);
+        }
+    }
+
+    private void DeleteExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ExplorerFolderEntry folder)
+        {
+            _viewModel.RemoveExplorerFolder(folder);
+            SafeSave();
         }
     }
 
@@ -3626,6 +3735,7 @@ public partial class MainWindow : Window
                 + $"Projects: {candidate.Projects.Count}\n"
                 + $"Saved repository lists: {candidate.RepositoryLists.Count}\n"
                 + $"Portals: {candidate.Portals.Count}\n"
+                + $"File Explorer folders: {candidate.ExplorerFolders.Count}\n"
                 + $"Resources: {candidate.Resources.Count}\n"
                 + $"Captures: {candidate.Notes.Count}\n"
                 + $"Clipboard snippets: {candidate.ClipboardSnippets.Count}\n"

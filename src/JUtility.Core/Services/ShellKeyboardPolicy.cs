@@ -7,12 +7,26 @@ public static class ShellKeyboardPolicy
         bool shift,
         bool alt,
         bool windows,
-        bool searchAvailable) =>
+        bool searchAvailable,
+        bool editingText) =>
         searchAvailable
+        && !editingText
         && control
         && !shift
         && !alt
         && !windows;
+
+    public static bool ShouldOpenExplorer(
+        bool control,
+        bool shift,
+        bool alt,
+        bool windows,
+        bool editingText) =>
+        control
+        && shift
+        && !alt
+        && !windows
+        && !editingText;
 
     public static bool ShouldClearSearch(
         bool escapePressed,
