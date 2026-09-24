@@ -1368,6 +1368,40 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                   <StackPanel Margin="18" MaxWidth="760" HorizontalAlignment="Left">
                     <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock Text="Keyboard shortcuts" FontSize="16" FontWeight="SemiBold" Margin="0,16,0,3"/>
+                    <StackPanel Margin="0,3,0,8">
+                      <TextBlock Text="Ctrl+Shift+E — open the first pinned Explorer folder; opens File Explorer Home when none is pinned."/>
+                      <TextBlock Text="Ctrl+K — focus current-module search when available."/>
+                      <TextBlock Text="Escape — clear a focused, non-empty module search."/>
+                      <TextBlock Text="Enter / Ctrl+C — perform the focused list’s advertised action (open, copy, or edit)."/>
+                      <TextBlock Text="Text fields keep their normal editing keys. Power Ops has no user-managed tabs yet; if tabs are added, they will use standard browser shortcuts." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <Separator Margin="0,4,0,12"/>
+                    <TextBlock Text="File Explorer folders" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Pin folders for quick opening in Windows File Explorer. Ctrl+Shift+E opens the first pinned folder." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,6"/>
+                    <Button Content="+ Pin a folder…" Width="150" HorizontalAlignment="Left" Click="AddExplorerFolder_Click" ToolTip="Choose and pin a folder for File Explorer"/>
+                    <ItemsControl ItemsSource="{Binding ExplorerFolders}" Margin="0,6,0,0" AutomationProperties.Name="Pinned File Explorer folders">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="7" Margin="0,2">
+                            <DockPanel>
+                              <WrapPanel DockPanel.Dock="Right">
+                                <CheckBox Content="Pinned" IsChecked="{Binding IsPinned, Mode=TwoWay}" Checked="ExplorerFolderPin_Changed" Unchecked="ExplorerFolderPin_Changed" VerticalAlignment="Center" Margin="4"/>
+                                <Button Content="Open" Tag="{Binding}" Click="OpenExplorerFolder_Click" ToolTip="Open this folder in Windows File Explorer (Ctrl+Shift+E opens the first pinned folder)"/>
+                                <Button Content="Remove" Tag="{Binding}" Click="DeleteExplorerFolder_Click"/>
+                              </WrapPanel>
+                              <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Path}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                              </StackPanel>
+                            </DockPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Separator Margin="0,16,0,12"/>
                     <TextBlock Text="Window behavior" FontSize="16" FontWeight="SemiBold" Margin="0,16,0,3"/>
                     <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8"/>
                     <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed" AutomationProperties.Name="Window behavior"/>

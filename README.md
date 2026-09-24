@@ -109,6 +109,8 @@ Window behavior can be Normal, Always on top, or Summon / hide. Summon bindings 
 
 The full shell supports `Ctrl+K` to focus the current-module search when that search surface is visible. `Escape` clears a focused non-empty shell search. Modified chords such as `Ctrl+Shift+K` are not intercepted.
 
+Settings lets you pin folders for Windows File Explorer. `Ctrl+Shift+E` opens the first pinned folder, or File Explorer Home when none is pinned. These shell shortcuts leave text-editing controls alone. Power Ops does not currently expose user-managed tabs; if that feature is added, it should use the standard browser tab shortcuts (`Ctrl+T`, `Ctrl+W`, `Ctrl+Shift+T`, `Ctrl+Tab`, `Ctrl+Shift+Tab`, and `Ctrl+1`…`Ctrl+9`).
+
 Focused list behavior is intentionally consistent:
 
 - Portal Launcher: `Enter` opens the selected portal; `Ctrl+C` copies its main URL.
