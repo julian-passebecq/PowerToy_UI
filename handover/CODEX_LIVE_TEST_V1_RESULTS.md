@@ -20,11 +20,11 @@ Tester/model: Codex / GPT-6 Luna Medium (requested policy; no High escalation)
 
 ## Live matrix
 
-The CUA computer-control provider returned no native apps or windows (`apps: []`) throughout the pass, including while the WPF process was running. Therefore UI interactions were not executable. Every UI-only scenario is marked **BLOCKED**, not passed based on source inspection or smoke tests.
+The CUA computer-control provider returned no native apps or windows (`apps: []`) throughout the pass, including while the WPF process was running. Therefore UI interactions were not executable. Unperformed UI checks remain **BLOCKED**; manually observed checks are updated in the matrix as they are reported.
 
 | Area | Result | Evidence / observation | Fix commit |
 | --- | --- | --- | --- |
-| Startup / shell | BLOCKED | `scripts/run.ps1` launched a WPF process and its isolated workspace was initialized, but the Dashboard could not be visually inspected or interacted with. | — |
+| Startup / shell | PASS (partial) | User screenshots confirm Repository Hub is displayed with two repository rows and the shell remains responsive. The Compact layout shows a Projects filter pane alongside the module content. Other module navigation and startup/reopen checks remain unverified. | — |
 | Repository Hub | BLOCKED | No UI access to add/edit/select/copy/archive/restore/delete test repositories or verify optional GitHub sync. | — |
 | Portal Launcher | BLOCKED | No UI access to create/edit/filter/open/copy/delete a temporary portal. | — |
 | Tool Launcher | BLOCKED | No UI access to add/edit/open a harmless launcher or inspect command handling. | — |
@@ -44,9 +44,9 @@ The CUA computer-control provider returned no native apps or windows (`apps: []`
 
 ### Result counts
 
-- PASS: 1
+- PASS: 2
 - FAIL: 0
-- BLOCKED: 16
+- BLOCKED: 15
 - N/A: 0 live matrix rows (the separate ARM64 package check is N/A on x64)
 
 ## Defects found
@@ -56,7 +56,7 @@ None confirmed. The live UI could not be inspected, so this pass does not establ
 ## Blocked tests
 
 - Desktop control reported `apps: []` and exposed only the Codex in-app browser, even while both WPF processes were running. `cua.getApp` requires an enumerated window ID; none was available. No alternate UI-control method was used.
-- Consequently all hands-on app workflows, the real Windows image clipboard round-trip, video import, focus/summon checks, monitor moves, and the full performance sanity check remain unexecuted.
+- Manual-assisted observations have begun: Repository Hub navigation and Compact layout are visually confirmed. Other hands-on app workflows, the real Windows image clipboard round-trip, video import, focus/summon checks, monitor moves, and the full performance sanity check remain unexecuted.
 - The host reports three displays; mixed-DPI status could not be established from the available UI surface.
 
 ## Final status
