@@ -503,6 +503,23 @@ Tested revision `095fcdd`, same app code as `21ce53e`. Mongoku was restarted by 
 - `tests/native/mx-acceptance-setup.ps1` + `tests/native/mx-observer.ps1`: a one-command isolated test instance (Hybrid, the four shortcuts, Mongoku slot 8, three tabs) with a hidden observer log.
   - The setup was verified end to end at 02:29: tabs `home | capture | clipboard`, four shortcuts owned by the instance, the observer logging, and everything stopping when the test window closes.
 - A first attempt was started at 02:06 and postponed by the user before any result was recorded; there are no MX results yet.
+## Mongoku SOURCE_INVENTORY report support (2026-09-25, commit `aa438a8`)
+
+Prompted by a notice from the Mongoku session (PR #7): `GET /api/datapass/reports/SOURCE_INVENTORY` checks the 10 Mongo sources. It is read-only and metadata only; the live response contains no URI, user or host.
+
+- Report cards understand the new section states:
+  - `EMPTY` is healthy: reachable, nothing to list;
+  - `REGISTERED_UNBOUND` and `SOURCE_ERROR` are unavailable, each explained.
+- Sections without a label use their `sourceId`. When sections carry `trace.resolved`, the card shows **"Sources resolved: n/m"**; FOIL status now shows 2/2.
+- A dedicated "federation health" widget was suggested by the Mongoku session. It is **not built**: a SOURCE_INVENTORY report card already gives the resolved count and the per-source states. That is a user decision.
+- Accessibility: each report card is now a UI Automation **group** (a plain Border has no automation peer), so its name and status reach screen readers.
+- Evidence:
+  - `.\scripts\build.ps1`: **PASS**, 0 warnings, SmokeTests 68/68, WorkspaceTests **65/65** (1 new test for the inventory states).
+  - `report-cards.ps1`: **PASS** against the live read-only Mongoku, including a SOURCE_INVENTORY card showing "Sources resolved: 10/10" and "All 10 sections complete", matching the API.
+  - `web-embedded -RealUrl`, `report-auth` (on re-run), `interaction`, `quick-actions-hotkeys` and `web-apps`: **PASS**.
+  - `quick-shelf`, `quick-ring` and `web-embedded` (stand-in) failed only on foreground and focus checks during concurrent desktop use. In one run the safety guard **refused to send Esc to a non-Power Ops window**.
+  - Their code is unchanged since `52e3364`/`095fcdd`: this commit only touches report-card files and tests. All of them passed on the first attempt at 02:25. They were not re-run further, to avoid taking over the user's desktop.
+  - Mongoku health after the runs: `mongo-read-only`, `writesEnabled: false`. No `PowerOps/*` credentials remain.
 ### Remaining V2.1 work (in order)
 
 1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
