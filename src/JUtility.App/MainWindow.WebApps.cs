@@ -18,12 +18,13 @@ public partial class MainWindow
     /// <summary>Re-registers one dispatcher action per configured web app. Call after every settings change.</summary>
     private void RegisterWebApps()
     {
-        IEnumerable<WebAppEntry> apps = _quickActionSettings?.WebApps ?? [];
+        IEnumerable<WebAppEntry> apps = QuickWebApps.All(_quickActionSettings);
         _quickActions.ReplaceDynamic(QuickWebApps.Prefix, apps.Select(app =>
         {
             WebAppEntry captured = app;
             return (QuickWebApps.Definition(captured), new QuickActionHandler(() => OpenWebApp(captured), () => WebAppUnavailable(captured)));
         }).ToList());
+        RegisterClaudeControl();
         RefreshActionsMenu();
         SyncEmbeddedWeb(); // a web app may have been removed, re-addressed or switched out of Embedded
     }

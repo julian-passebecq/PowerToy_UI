@@ -72,3 +72,14 @@ Keep the feature for local tools. Do not keep many pages open.
 Real Mongoku embedding was **verified on 2026-09-25**. The local `datapass/control-plane-v1` dev server was in read-only mode, and its page loaded as "Mongoku · Datapass Mongo Control". With Mongoku open the total working set was 702 MB, and it returned to 229 MB after "Close web view". An earlier attempt had failed only because the dev server's HTML route was temporarily not responding. Power Ops never needs a MongoDB user: it loads Mongoku's web UI, and a future report card would use Mongoku's HTTP API.
 
 Sign-in (slice 9): a Mongoku protected with `MONGOKU_AUTH_BASIC` works for report cards and the embedded tab. The credential lives in Windows Credential Manager per origin, and is sent only over https or to localhost. Mongoku OIDC is not used by cards; open the report in Mongoku, where the embedded tab can sign in unless the IdP is Google.
+
+## Claude Control (2026-09-25)
+
+Optional link to the user's local Claude Control server (`claude-control` repo, `server/server.py`). It stays off until `quick-actions.json` has a `ClaudeControl` block: `{"Url": "http://127.0.0.1:<port>/home.html", "StartCommand": "<full path>\start-control.cmd"}`. It can also be set under **Actions > Claude Control...**. The address and port live only in that settings file, never in code, and only loopback addresses are accepted.
+
+- **Claude Control tab**: a synthesized embedded web app with a fixed id (`web:c1a0de00c0de4c0e9000000000007430`). It reuses the Web module, so the WebView2 rules above apply. The page is same-origin on localhost, so no claude.ai sign-in is needed. Writes, such as "Talk to Claude", happen inside the page with its own token.
+- **Start Claude Control**: a `control:start` action that runs the configured command.
+- **Health dot** in the status bar: `GET /api/health` every 30 s, only while the Power Ops window is visible, plus re-checks 2, 5 and 10 s after Start. Click it to open the tab, or to start the server when it is offline.
+- **Launchpad "Claude usage" card**: `GET /api/status` on each render or Refresh. That covers plan %, sessions, to-do, open PRs, checks to act, urgent items and the latest audit. When the server does not answer within 3 s, the card falls back to `usage.json`.
+
+Power Ops sends GET requests only, with no body, cookies, credentials or redirects. Native check: `tests/native/claude-control.ps1` (isolated `--data-dir`, stand-in server, throwaway start script).

@@ -231,6 +231,7 @@ public partial class MainWindow
         }
 
         RegisterWebApps();
+        RefreshLaunchpad(); // it first rendered before these settings existed (web app buttons, Claude Control)
         IReadOnlyList<string> failures = ApplyGlobalHotkeys();
         ShowQuickShelfAtStartup();
         if (failures.Count > 0)
@@ -316,6 +317,9 @@ public partial class MainWindow
         var reportCards = new MenuItem { Header = "Mongoku report cards..." };
         reportCards.Click += (_, _) => ManageReportCards();
         _actionsMenu.Items.Add(reportCards);
+        var control = new MenuItem { Header = "Claude Control..." };
+        control.Click += (_, _) => EditClaudeControl();
+        _actionsMenu.Items.Add(control);
         var webApps = new MenuItem { Header = "Web apps..." };
         webApps.Click += (_, _) => ManageWebApps();
         _actionsMenu.Items.Add(webApps);
