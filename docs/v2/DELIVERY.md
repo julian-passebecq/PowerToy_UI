@@ -552,6 +552,27 @@ These reports were announced by the Mongoku session: FOIL_AI_REASONING_RECENT, F
   - Mongoku health after the runs: `mongo-read-only`, `writesEnabled: false`.
 - Only report-card files changed, so the other native scripts are unaffected. They were last all green at 02:25 and on the 03:45 recheck.
 - The test harness also retries UI Automation walks, because the report panel is rebuilt on each refresh.
+## PR #4 qualification (2026-09-25, requested by the user via the Mongoku session)
+
+Qualified revision: `33a6d89`. It adds only a comment and a test user-name rename on top of `a6503d5`. PR #4 is `codex/power-ops-v2-workspaces` → `codex/to-be-tested-v1`: draft, 32+ commits, mergeable CLEAN. **Not merged: the merge decision is the user's.**
+
+Mongoku under test: `master` `8a873bf`/`187473f`, running on `http://localhost:3100` with read-only database users only.
+- Health **before**: `ok`, `mongo-read-only`, `readOnly: true`, `writesEnabled: false`. SOURCE_INVENTORY API: 10/10 resolved, all OK.
+- Health **after** all runs: unchanged, `writesEnabled: false`.
+
+| Requested check | Result |
+| --- | --- |
+| 1. Embedded Mongoku (`web-embedded.ps1 -RealUrl http://localhost:3100/`) | **PASS**: "Mongoku · Datapass Mongo Control" loaded. 226 MB before, 686.5 MB open (6 WebView2 processes), 220.6 MB after closing. |
+| 2. Report cards vs live API (`report-cards.ps1`) | **PASS**: SOURCE_INVENTORY "Sources resolved: 10/10" (API 10/10), Refresh, Open in Mongoku (embedded, `/foil/report/FOIL_STATUS_NOW`), 5/5 deep links, AI-reasoning non-authoritative banner, Databricks caveat. |
+| 2b. Stored sign-in in Windows Credential Manager (`report-auth.ps1`) | **PASS** against a local basic-auth stand-in. The real Mongoku runs without HTTP auth. |
+| 3. `displayStatus` dependencies | **None**: 0 uses of `displayStatus`/`rawStatus` in `src`. Cards read only `meta.state`, `returnedRows`, `truncated`, `trace.resolved` and the `authorityBoundary` marker. |
+| 4. No Mongo URI / Atlas ID / DB credential in Power Ops | **Confirmed**: no Mongo URI, Atlas host or DB account in tracked code (the only hit was a test's example HTTP user name `mongoku_readonly`, renamed to avoid confusion); 0 matches in the 9 test data folders; Power Ops calls only `/api/datapass/reports/*`, `/api/datapass/workspace` and Mongoku pages; 0 `PowerOps/*` credentials left. |
+| 5. Full suite | `.\scripts\build.ps1` **PASS** (0 warnings, SmokeTests 68/68, WorkspaceTests 66/66). Native scripts: `web-embedded` (real and stand-in), `report-cards`, `report-auth`, `web-apps`, `interaction`, `quick-actions-hotkeys` and `quick-ring` **PASS**. `quick-shelf` failed 2 synthesized-hover checks once (pointer moved during the run) and **PASS**ed on re-run; `QuickShelfWindow.cs` is unchanged since `19738ad`. Windows CI: see the commit on this branch. |
+
+**Scope notes for the merge decision:**
+- The generic display of the Mongoku PR #9 reports (description + non-authoritative banner, `76b0676`) is already on this branch. The Mongoku session considered adding those reports as cards to be a follow-up after PR #4. Keep it, or ask for it to be split out.
+- PR #4 targets `codex/to-be-tested-v1` (`df3aa16`), not `main`. `main` has 2 commits (the V1 promotion) that this branch does not contain, so merging PR #4 does not update `main`.
+- **Still outstanding (user-assisted):** the MX Master / Logi Options+ manual acceptance (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), scheduled for the next session, plus the optional multi-monitor checks.
 ### Remaining V2.1 work (in order)
 
 1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
