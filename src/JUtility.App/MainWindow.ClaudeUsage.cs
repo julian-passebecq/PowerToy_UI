@@ -22,8 +22,13 @@ public partial class MainWindow
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         DockPanel.SetDock(buttons, Dock.Right);
         buttons.Children.Add(SessionButton("Refresh", RefreshLaunchpad));
-        WebAppEntry? board = _quickActionSettings?.WebApps.FirstOrDefault(x => x.Name.Contains("Effort Board", StringComparison.OrdinalIgnoreCase));
-        if (board is not null) buttons.Children.Add(SessionButton("Open Effort Board", () => RunQuickAction(QuickWebApps.ActionId(board.Id), ActionSurface.FullUi)));
+        // Companion pages are the user's own web apps (URLs live in quick-actions.json, never in this public repo).
+        // A button appears only when a web app with that name is configured.
+        foreach (string name in new[] { "Effort Board", "Claude Today" })
+        {
+            WebAppEntry? app = _quickActionSettings?.WebApps.FirstOrDefault(x => x.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+            if (app is not null) buttons.Children.Add(SessionButton("Open " + name, () => RunQuickAction(QuickWebApps.ActionId(app.Id), ActionSurface.FullUi)));
+        }
         header.Children.Add(buttons);
         header.Children.Add(new TextBlock { Text = "Claude usage", FontSize = 18, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
         body.Children.Add(header);
