@@ -482,6 +482,27 @@ Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `21ce53e`, 
 
   **Power Ops impact: none in code.** Report cards read only `meta.state` / `returnedRows` / `truncated`, never `displayStatus`/`rawStatus`. The deep link `/foil/report/{id}` is not listed as changed and will be re-checked.
 - **To do after the user confirms the restart:** re-run `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` and `tests/native/report-cards.ps1`, checking health before and after as before. Expect FOIL sections to be bound now.
+## Full re-run after Mongoku moved to read-only database users (2026-09-25 02:25)
+
+Tested revision `095fcdd`, same app code as `21ce53e`. Mongoku was restarted by its own session with dedicated read-only DB users for 5 sources. Health before and after: `ok`, `mongo-read-only`, `readOnly: true`, `writesEnabled: false`.
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests 64/64.
+- `web-embedded.ps1 -RealUrl http://localhost:3100/`: **PASS**. "Mongoku · Datapass Mongo Control" loaded embedded. Memory was 222 MB before, 688 MB open (6 WebView2 processes) and 219 MB after closing.
+- `report-cards.ps1` (live Mongoku): **PASS 16/16**.
+  - **FOIL status now: "All 2 sections complete"**: PM scorecards 27 rows, P0 attention 45 rows. The FOIL PM source is now bound (before: 2 × SOURCE_UNBOUND).
+  - Global projects: 7 sections, 1 truncated.
+  - "Open in Mongoku" lands on `/foil/report/FOIL_STATUS_NOW`.
+  - `/foil/report/FOIL_STATUS_NOW`, `/?project=foil_project` and `/projects` all return HTTP 200.
+- `report-auth`, `web-embedded` (stand-in), `interaction`, `quick-actions-hotkeys`, `quick-shelf`, `web-apps`, `quick-ring`: **all PASS on the first attempt**.
+- The Mongoku `displayStatus` changes (PRs #2-#4) have no effect: Power Ops reads only section `meta`.
+- Windows Credential Manager: 0 `PowerOps/*` entries after the runs.
+
+## MX Master / Logi Options+ manual acceptance - prepared, scheduled for the next session
+
+- `docs/v2/MX_MANUAL_ACCEPTANCE.md`: the checklist, covering Options+ setup, mouse use, the mouse-hook warning and optional items.
+- `tests/native/mx-acceptance-setup.ps1` + `tests/native/mx-observer.ps1`: a one-command isolated test instance (Hybrid, the four shortcuts, Mongoku slot 8, three tabs) with a hidden observer log.
+  - The setup was verified end to end at 02:29: tabs `home | capture | clipboard`, four shortcuts owned by the instance, the observer logging, and everything stopping when the test window closes.
+- A first attempt was started at 02:06 and postponed by the user before any result was recorded; there are no MX results yet.
 ### Remaining V2.1 work (in order)
 
-1. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
+1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
