@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "power-ring/ring.schema.json",
+  "title": "Power Ring settings (ring.json)",
+  "description": "Everything about Power Ring: hotkey, look, profiles and the circles of actions. Save the file and the ring reloads; an invalid file is reported and the previous version stays active.",
+  "type": "object",
+  "required": ["version", "profiles"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1, "description": "File format version. Always 1." },
+    "hotkey": {
+      "type": "string",
+      "default": "Ctrl+Alt+Shift+R",
+      "description": "Global shortcut that opens the ring at the pointer. Needs Ctrl, Alt or Win. Map a mouse button (for example the MX Master Sense Panel) to it in Logi Options+.",
+      "examples": ["Ctrl+Alt+Shift+R", "Ctrl+Alt+Space", "Ctrl+Alt+Shift+F8"]
+    },
+    "startProfile": { "type": "string", "description": "Id of the profile shown first. Omit for the first profile." },
+    "appearance": { "$ref": "#/definitions/appearance" },
+    "profiles": {
+      "type": "array", "minItems": 1, "maxItems": 5,
+      "description": "1 to 5 profiles (Dev, Perso, Work...). Buttons 1-5 above the ring switch profile; Tab cycles; the mouse wheel over the ring too.",
+      "items": { "$ref": "#/definitions/profile" }
+    }
+  },
+  "definitions": {
+    "color": {
+      "type": "string",
+      "pattern": "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+      "description": "\"#RRGGBB\" or \"#AARRGGBB\" (AA = opacity)."
+    },
+    "icon": {
+      "type": "string",
+      "description": "An icon name, a Segoe Fluent Icons code point such as \"E943\", or a file path ending in .png, .ico, .jpg or .exe (an .exe shows its own icon).",
+      "anyOf": [
+        { "enum": ["app", "apps", "back", "bolt", "book", "bug", "calendar", "camera", "chat", "clipboard", "cloud", "code", "copy", "database", "desktop", "dev", "document", "download", "downloads", "edit", "explorer", "favorite", "folder", "game", "globe", "heart", "home", "keyboard", "link", "lock", "mail", "map", "music", "note", "person", "phone", "photo", "pin", "play", "power", "powerops", "refresh", "screen", "screenshot", "search", "settings", "share", "shop", "snap-left", "snap-right", "star", "task-view", "terminal", "text", "tools", "video", "volume", "web", "windows", "work"] },
+        { "pattern": "^[0-9A-Fa-f]{4,5}$" },
+        { "pattern": "\\.(png|ico|jpg|jpeg|exe|PNG|ICO|JPG|JPEG|EXE)$" }
+      ]
+    },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Sizes are in Windows display units (scaled with the monitor). Colours override the theme.",
+      "properties": {
+        "theme": { "enum": ["system", "dark", "light"], "default": "system", "description": "system follows the Windows app theme." },
+        "ringSize": { "type": "number", "minimum": 200, "maximum": 800, "default": 340, "description": "Diameter of the disc." },
+        "slotSize": { "type": "number", "minimum": 28, "maximum": 160, "default": 60, "description": "Diameter of each action button. Must be less than half of ringSize." },
+        "centerSize": { "type": "number", "minimum": 28, "maximum": 200, "default": 78, "description": "Diameter of the centre button (home / back)." },
+        "slotRadius": { "type": "number", "minimum": 40, "maximum": 400, "description": "Distance from the centre to the buttons. Omit to compute it." },
+        "iconSize": { "type": "number", "minimum": 10, "maximum": 96, "default": 24 },
+        "fontSize": { "type": "number", "minimum": 8, "maximum": 32, "default": 12 },
+        "accent": { "$ref": "#/definitions/color", "description": "Hover/selection colour. Omit for the Windows accent colour. A profile's accent wins." },
+        "background": { "$ref": "#/definitions/color", "description": "Disc colour." },
+        "border": { "$ref": "#/definitions/color", "description": "Disc outline." },
+        "slot": { "$ref": "#/definitions/color", "description": "Button colour." },
+        "slotHover": { "$ref": "#/definitions/color", "description": "Button colour under the pointer. Omit to use the accent." },
+        "icon": { "$ref": "#/definitions/color", "description": "Icon colour." },
+        "text": { "$ref": "#/definitions/color", "description": "Label and number colour." },
+        "opacity": { "type": "number", "minimum": 0.3, "maximum": 1, "default": 0.94, "description": "Opacity of the disc background." },
+        "shadow": { "type": "boolean", "default": true },
+        "showNumbers": { "type": "boolean", "default": true, "description": "Small 1-8 numbers next to the buttons (keys 1-8 run them)." },
+        "showLabels": { "type": "boolean", "default": true, "description": "Name of the hovered button under the centre." },
+        "animationMs": { "type": "integer", "minimum": 0, "maximum": 1000, "default": 120, "description": "Open and circle-change animation; 0 = none." }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["id", "name", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,30}$", "description": "Short unique id, for example \"dev\"." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 30, "description": "Shown on the profile button." },
+        "icon": { "$ref": "#/definitions/icon" },
+        "accent": { "$ref": "#/definitions/color", "description": "Accent colour while this profile is shown." },
+        "items": { "$ref": "#/definitions/items" }
+      }
+    },
+    "items": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "description": "One circle: 1 to 8 buttons, numbered clockwise from the top.",
+      "items": { "$ref": "#/definitions/item" }
+    },
+    "item": {
+      "type": "object",
+      "required": ["label"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "icon": { "$ref": "#/definitions/icon", "description": "Omit to pick one from the action." },
+        "color": { "$ref": "#/definitions/color", "description": "Background of this button only." },
+        "action": {
+          "enum": ["run", "url", "folder", "keys", "text", "screenshot", "screen-to-clipboard", "powerops", "group"],
+          "description": "run: start a program (target = command or .exe, args optional). url: open an http(s) or mailto address. folder: open a folder (path, or downloads/desktop/documents/pictures/videos/music/home). keys: press a key combination in the window that was in front (target like \"Win+Tab\"). text: copy target text to the clipboard. screenshot: Windows region snip. screen-to-clipboard: whole screen under the pointer to the clipboard. powerops: show Power Ops (target = its .exe path, optional when it is running). group: a sub-circle (items), omit action and just give items."
+        },
+        "target": { "type": "string", "description": "What the action uses: program, address, folder, key combination or text. Environment variables like %USERPROFILE% work." },
+        "args": { "type": "string", "description": "run: command-line arguments." },
+        "workingDirectory": { "type": "string", "description": "run: start folder." },
+        "items": { "$ref": "#/definitions/items", "description": "Sub-circle. At most 3 levels in total (ring > circle > circle)." }
+      }
+    }
+  }
+}

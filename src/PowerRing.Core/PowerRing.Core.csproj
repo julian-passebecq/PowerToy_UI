@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Power Ring: the light radial launcher. Pure logic (config, validation, navigation, key combos), no UI and no
+       dependency on Power Ops, so it is fast to test and the ring app stays small. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Single source for the schema and the guide: written next to ring.json at startup. -->
+    <EmbeddedResource Include="../../docs/power-ring/ring.schema.json" LogicalName="ring.schema.json" />
+    <EmbeddedResource Include="../../docs/power-ring/RING_CONFIG.md" LogicalName="RING_CONFIG.md" />
+  </ItemGroup>
+</Project>

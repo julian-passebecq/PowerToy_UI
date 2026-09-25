@@ -717,3 +717,30 @@ User feedback that drove V2.4: the gestures are more useful as Windows commands 
 ### NOT RUN
 
 The physical MX Master 4 checks (Sense Panel click/moves with the new ring, C7-C11, D1-D3) are left for the user at the end of the next pass. Screen reader, mixed-DPI capture on the second monitor and the Options+ Windows-gesture mapping were not exercised.
+
+## Power Ring 1.0: the separate light ring (2026-09-25)
+
+Direction from the user after the MX session: code the ring first, as a light app of its own with a PowerToys-like look, fully set in JSON (structure, sizes, colours, icons) so it can be edited by hand or by an AI. The big Power Ops app is frozen for now and is opened from the ring.
+
+### Changed
+
+- New `src/PowerRing` (WPF tray app, `PowerRing.exe`) and `src/PowerRing.Core` (config, validation, navigation, key combos; no UI, no dependency on Power Ops). Power Ops is untouched.
+- Everything in `%APPDATA%\PowerRing\ring.json`: hotkey, `appearance` (theme, ring/slot/centre/icon/font sizes, slot radius, accent/background/border/slot/hover/icon/text colours, opacity, shadow, numbers, labels, animation), 1-5 profiles (own accent colour), circles of 1-8 items, up to 3 levels. Comments and trailing commas are accepted. `ring.schema.json` (VS Code autocompletion) and `RING_CONFIG.md` (guide to hand to an AI) are written next to it; their single source is `docs/power-ring/`.
+- Actions: `run`, `url`, `folder` (paths or downloads/desktop/documents/pictures/videos/music/home), `keys` (sent to the window that was in front: Win+Tab, Win+D, Win+Left...), `text` (copy to clipboard), `screenshot`, `screen-to-clipboard`, `powerops`, `group`. Icons: names, Segoe Fluent codes, or .png/.ico/.jpg/.exe files (an .exe shows its own icon).
+- Ring: profile buttons 1-5 on top (Tab, Ctrl+1-5, F1-F5, mouse wheel); slots numbered clockwise (keys 1-8); sub-circle slots carry a › badge; centre = Power Ops on the first circle, Back below; Esc/Backspace/right click go back, Esc on the first circle or an outside click closes.
+- Save ring.json and it reloads (debounced FileSystemWatcher); an invalid file is reported with the line or field path and the last good ring stays active.
+- Tray icon: open, profile, edit ring.json (VS Code when available), open folder, reload, start with Windows (HKCU Run), exit. `PowerRing.exe --show | --profile N | --exit` reach the running instance (one instance per ring.json).
+- Light: software rendering (no Direct3D driver load), workstation non-concurrent GC, templates built in code (no XAML parser), no timers. Idle **37 MB private, 0 ms CPU**; after use 58 MB.
+- `scripts/install-power-ring.ps1` publishes to `%LOCALAPPDATA%\Programs\PowerRing` and starts it; build.ps1 runs the new tests.
+
+### Evidence
+
+- `tests/PowerRing.Tests`: **14/14** (defaults valid with 3 levels, comments/trailing commas, round trip, JSON line in errors, field paths in errors, all limits, every action's target rules, key combos, navigator, reload, geometry, icons, schema and guide in sync with the code, store never overwrites the user's file).
+- `tests/native/power-ring.ps1` (isolated ring.json, hotkey Ctrl+Alt+Shift+F9): **PASS 23/23**: helper files written; hidden until asked; idle 37.3 MB private, 0 ms CPU in 5 s; hotkey shows the focused ring centred on the pointer; order of profile buttons and slots; levels 2 and 3 by digits; Esc and Backspace back; Tab and Ctrl+1 switch profile (all buttons change); url action opens the page; text action fills the clipboard; a saved change reloads; a broken file shows a notice and keeps the last good ring; a second start with --profile 2 --show drives the running ring; 57.7 MB after use; --exit closes it and releases the hotkey.
+- Installed for the user with `install-power-ring.ps1` (running from `%LOCALAPPDATA%\Programs\PowerRing`).
+
+### NOT RUN / known limits
+
+- The physical MX Master 4 Sense Panel with Power Ring, the look on the user's screens, the tray menu and "Start with Windows" are for the user to try.
+- The default hotkey is Ctrl+Alt+Shift+R, the same as Power Ops' Quick Ring in Hybrid mode: when Power Ops owns it, Power Ring shows a notice; turn Power Ops' ring shortcut off (Actions > Global shortcuts) or change `hotkey`.
+- No graphical editor yet (by design: JSON first). Screen reader pass not done.
