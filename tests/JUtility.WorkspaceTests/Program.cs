@@ -740,6 +740,21 @@ Test("Source inventory report: new states and per-source resolution are understo
     Check(s.Sections.Count(x => x.Resolved == true) == 3 && s.Sections.Count(x => x.Resolved is not null) == 4 && s.Sections[4].Resolved is null);
     Check(s.Overall == SectionHealth.Unavailable);
 });
+Test("Non-authoritative reports are flagged from Mongoku's row markers; descriptions carry caveats", () =>
+{
+    const string ai = """
+    {"reportId":"FOIL_AI_REASONING_RECENT","title":"FOIL AI Reasoning — recent (non-authoritative)","description":"Non-authoritative AI reasoning: hypotheses. Never FOIL Core Truth.","readOnly":true,
+     "sections":[{"id":"reasoning","label":"Recent reasoning records","rows":[{"title":"h1","summary":"private hypothesis text","authorityBoundary":"NON_AUTHORITATIVE_AI_REASONING","promotionState":"candidate"},{"title":"h2","authorityBoundary":"NON_AUTHORITATIVE_AI_REASONING"}],"meta":{"state":"OK","returnedRows":2}},
+                 {"id":"boundary","label":"Authority boundary","rows":[{"title":"rule"}],"meta":{"state":"OK","returnedRows":1}}]}
+    """;
+    var s = ReportCards.Parse(ai, DateTimeOffset.Now);
+    Check(s.NonAuthoritative && s.AuthorityBoundaries!.SequenceEqual(new[] { "NON_AUTHORITATIVE_AI_REASONING" }), "boundary marker read once");
+    Check(s.Description!.Contains("Never FOIL Core Truth"), "Mongoku's caveat kept for display");
+    Check(!JsonSerializer.Serialize(s).Contains("private hypothesis text"), "only the marker is kept, never row text");
+    Check(!ReportCards.Parse(FoilStatusSample, DateTimeOffset.Now).NonAuthoritative, "ordinary reports are not flagged");
+    var authoritative = ReportCards.Parse("""{"sections":[{"rows":[{"authorityBoundary":"AUTHORITATIVE_PM"}],"meta":{"state":"OK"}}]}""", DateTimeOffset.Now);
+    Check(!authoritative.NonAuthoritative && authoritative.AuthorityBoundaries!.Count == 1);
+});
 int failures = 0;
 foreach (var test in tests)
 {

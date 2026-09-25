@@ -22,7 +22,9 @@ $mongokuApp = [guid]::NewGuid()
     @{ Id = [guid]::NewGuid(); Title = 'Portfolio'; SourceUrl = "$base/"; ReportId = 'GLOBAL_PROJECTS' },
     @{ Id = [guid]::NewGuid(); Title = 'Unknown report'; SourceUrl = "$base/"; ReportId = 'NOPE_UNKNOWN_REPORT' },
     @{ Id = [guid]::NewGuid(); Title = 'Stopped Mongoku'; SourceUrl = 'http://localhost:1/'; ReportId = 'FOIL_NEXT' },
-    @{ Id = [guid]::NewGuid(); Title = 'Source inventory'; SourceUrl = "$base/"; ReportId = 'SOURCE_INVENTORY' }) } |
+    @{ Id = [guid]::NewGuid(); Title = 'Source inventory'; SourceUrl = "$base/"; ReportId = 'SOURCE_INVENTORY' },
+    @{ Id = [guid]::NewGuid(); Title = 'My AI notes'; SourceUrl = "$base/"; ReportId = 'FOIL_AI_REASONING_RECENT' },
+    @{ Id = [guid]::NewGuid(); Title = 'Lab'; SourceUrl = "$base/"; ReportId = 'FOIL_DATABRICKS_STATUS' }) } |
   ConvertTo-Json -Depth 4 | Set-Content (Join-Path $root 'report-cards.json') -Encoding utf8
 @{ Format = 'powerops-quick-actions'; SchemaVersion = 1; Mode = 'Off'; GlobalShortcutsEnabled = $false; GlobalShortcuts = @()
    Ring = @('capture.region'); Shelf = @('app.open'); ShelfOrientation = 'Horizontal'; ShelfAlwaysOnTop = $true; ShelfAutoHide = $false; WorkspaceOverrides = @()
@@ -30,7 +32,14 @@ $mongokuApp = [guid]::NewGuid()
   ConvertTo-Json -Depth 4 | Set-Content (Join-Path $root 'quick-actions.json') -Encoding utf8
 $cardsBefore = Get-Content (Join-Path $root 'report-cards.json') -Raw
 
-function Texts($p) { @($A::FromHandle($p.MainWindowHandle).FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text))) | ForEach-Object { $_.Current.Name }) }
+function Texts($p) {
+  # The report panel is rebuilt on every refresh; a UI Automation walk can hit an element that just went away.
+  for ($attempt = 0; $attempt -lt 5; $attempt++) {
+    try { return @($A::FromHandle($p.MainWindowHandle).FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text))) | ForEach-Object { $_.Current.Name }) }
+    catch { Start-Sleep -Milliseconds 200 }
+  }
+  return @()
+}
 function Invoke-Named($p, [string]$name) {
   $el = $A::FromHandle($p.MainWindowHandle).FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, $name)))
   if (-not $el) { throw "UI element not found: $name" }
@@ -45,7 +54,7 @@ try {
   Start-Sleep -Seconds 4
   $initial = Texts $p
   Rec 'launchpad: report section shown' ($initial -contains 'Mongoku reports')
-  Rec 'on demand: five cards, all "Not loaded yet"' (@($initial | Where-Object { $_ -eq 'Not loaded yet. Press Refresh.' }).Count -eq 5)
+  Rec 'on demand: seven cards, all "Not loaded yet"' (@($initial | Where-Object { $_ -eq 'Not loaded yet. Press Refresh.' }).Count -eq 7)
   Rec 'on demand: no connection to Mongoku before Refresh' ((MongokuConnections $p) -eq 0)
 
   # FOIL status now vs API ground truth
@@ -90,6 +99,16 @@ try {
   $bad = @($inv.sections | Where-Object { $_.meta.state -notin 'OK', 'EMPTY' }).Count
   $all = CardTexts
   Rec 'source inventory: overall state matches the API' ($(if ($bad -eq 0) { @($all | Where-Object { $_ -like "All $(@($inv.sections).Count) sections complete" }).Count -ge 1 } else { @($all | Where-Object { $_ -like "$bad unavailable*" }).Count -ge 1 })) "$bad section(s) not OK/EMPTY"
+
+  # Non-authoritative AI reasoning keeps its warning even under a custom title; lab caveats come from Mongoku's description.
+  function CardTextsNamed([string]$name) { try { $c = $A::FromHandle($p.MainWindowHandle).FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, "$name report card"))); if ($c) { @($c.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text))) | ForEach-Object { $_.Current.Name }) } } catch { @() } }
+  Invoke-Named $p 'Refresh My AI notes'
+  $badge = $null; for ($i = 0; $i -lt 80 -and -not $badge; $i++) { $badge = CardTextsNamed 'My AI notes' | Where-Object { $_ -like 'Non-authoritative content (NON_AUTHORITATIVE_AI_REASONING)*' } | Select-Object -First 1; if (-not $badge) { Start-Sleep -Milliseconds 250 } }
+  Rec 'AI reasoning: non-authoritative banner despite custom title' ([bool]$badge) $badge
+  Invoke-Named $p 'Refresh Lab'
+  $labDesc = $null; for ($i = 0; $i -lt 80 -and -not $labDesc; $i++) { $labDesc = CardTextsNamed 'Lab' | Where-Object { $_ -like '*nothing here is measured evidence*' } | Select-Object -First 1; if (-not $labDesc) { Start-Sleep -Milliseconds 250 } }
+  Rec 'Databricks: Mongoku caveat shown on the card' ([bool]$labDesc)
+  Rec 'Databricks: no non-authoritative banner (not declared)' (-not (CardTextsNamed 'Lab' | Where-Object { $_ -like 'Non-authoritative content*' }))
 
   # Deep links: every card's "Open in Mongoku" target must exist in this Mongoku (checked with read-only GETs)
   $cards = (Get-Content (Join-Path $root 'report-cards.json') -Raw | ConvertFrom-Json).Cards | Where-Object { $_.SourceUrl -like "$base*" -and $_.ReportId -ne 'NOPE_UNKNOWN_REPORT' }

@@ -44,6 +44,10 @@ public sealed record ReportSectionSummary(string Label, string? Authority, strin
     public string Explanation => ReportCards.Explain(State);
 }
 
+/// <param name="AuthorityBoundaries">
+/// Distinct row-level <c>authorityBoundary</c> markers declared by Mongoku (e.g. NON_AUTHORITATIVE_AI_REASONING).
+/// Only these markers are read from rows; row contents are never kept.
+/// </param>
 public sealed record ReportSummary(
     string ReportId,
     string Title,
@@ -51,8 +55,12 @@ public sealed record ReportSummary(
     DateTimeOffset? GeneratedAt,
     bool? ReadOnly,
     IReadOnlyList<ReportSectionSummary> Sections,
-    DateTimeOffset FetchedAt)
+    DateTimeOffset FetchedAt,
+    IReadOnlyList<string>? AuthorityBoundaries = null)
 {
+    /// <summary>Mongoku declared at least one row non-authoritative: the card must say so, whatever its title.</summary>
+    public bool NonAuthoritative => AuthorityBoundaries?.Any(x => x.StartsWith("NON_AUTHORITATIVE", StringComparison.OrdinalIgnoreCase)) == true;
+
     /// <summary>Worst section wins; a report with no sections is Unknown, never "OK".</summary>
     public SectionHealth Overall => Sections.Count == 0 ? SectionHealth.Unknown : Sections.Max(x => x.Health);
 }
@@ -138,11 +146,20 @@ public static partial class ReportCards
         if (root.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Mongoku returned an unexpected report format.");
         string reportId = Text(root, "reportId") ?? "";
         var sections = new List<ReportSectionSummary>();
+        var boundaries = new SortedSet<string>(StringComparer.Ordinal);
         if (root.TryGetProperty("sections", out JsonElement list) && list.ValueKind == JsonValueKind.Array)
         {
             foreach (JsonElement section in list.EnumerateArray().Take(MaxSections))
             {
                 if (section.ValueKind != JsonValueKind.Object) continue;
+                if (section.TryGetProperty("rows", out JsonElement sectionRows) && sectionRows.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement row in sectionRows.EnumerateArray())
+                    {
+                        if (Text(row, "authorityBoundary") is string boundary && boundary.Length <= 80 && boundaries.Count < 8) boundaries.Add(boundary);
+                    }
+                }
+
                 JsonElement meta = section.TryGetProperty("meta", out JsonElement m) && m.ValueKind == JsonValueKind.Object ? m : default;
                 int? rows = meta.ValueKind == JsonValueKind.Object && meta.TryGetProperty("returnedRows", out JsonElement r) && r.TryGetInt32(out int n) ? n : null;
                 bool truncated = meta.ValueKind == JsonValueKind.Object && meta.TryGetProperty("truncated", out JsonElement t) && t.ValueKind == JsonValueKind.True;
@@ -158,7 +175,7 @@ public static partial class ReportCards
 
         DateTimeOffset? generated = Text(root, "generatedAt") is string g && DateTimeOffset.TryParse(g, out DateTimeOffset parsed) ? parsed : null;
         bool? readOnly = root.TryGetProperty("readOnly", out JsonElement ro) && ro.ValueKind is JsonValueKind.True or JsonValueKind.False ? ro.GetBoolean() : null;
-        return new ReportSummary(reportId, Text(root, "title") ?? reportId, Text(root, "description"), generated, readOnly, sections.AsReadOnly(), fetchedAt);
+        return new ReportSummary(reportId, Text(root, "title") ?? reportId, Text(root, "description"), generated, readOnly, sections.AsReadOnly(), fetchedAt, boundaries.ToList().AsReadOnly());
     }
 
     /// <summary>One on-demand GET. Never throws for network/HTTP problems: the card shows the returned message.</summary>

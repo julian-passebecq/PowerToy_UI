@@ -117,6 +117,39 @@ public partial class MainWindow
         string title = card.Title.Length > 0 ? card.Title : summary?.Title ?? card.ReportId;
         body.Children.Add(new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         body.Children.Add(new TextBlock { Text = $"{card.ReportId} · {new Uri(card.SourceUrl).Authority}", Foreground = Brushes.DimGray, FontSize = 11 });
+        if (summary?.NonAuthoritative == true)
+        {
+            // Declared by Mongoku on the rows; shown even when the user gave the card another title.
+            body.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xF4, 0xCE)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE8, 0xC4, 0x5A)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 3, 6, 3),
+                Margin = new Thickness(0, 6, 0, 0),
+                Child = new TextBlock
+                {
+                    Text = $"Non-authoritative content ({string.Join(", ", summary.AuthorityBoundaries!.Where(x => x.StartsWith("NON_AUTHORITATIVE", StringComparison.OrdinalIgnoreCase)))}), as declared by Mongoku: not a source of truth.",
+                    TextWrapping = TextWrapping.Wrap,
+                    FontWeight = FontWeights.SemiBold,
+                },
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(summary?.Description))
+        {
+            // Mongoku's own wording carries each report's caveats (e.g. "not measured evidence", "no live deployment").
+            string description = summary.Description.Trim();
+            body.Children.Add(new TextBlock
+            {
+                Text = description.Length > 260 ? description[..257] + "..." : description,
+                ToolTip = description,
+                Foreground = Brushes.DimGray,
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 4, 0, 0),
+            });
+        }
 
         (string status, Brush color) = loading ? ("Refreshing...", Brushes.DimGray)
             : result is null ? ("Not loaded yet. Press Refresh.", Brushes.DimGray)
