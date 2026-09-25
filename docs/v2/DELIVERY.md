@@ -539,6 +539,19 @@ Prompted by a notice from the Mongoku session (PR #7): `GET /api/datapass/report
   - `report-cards.ps1`: **PASS 19/19**, including SOURCE_INVENTORY "Sources resolved: 10/10" and deep links 3/3.
   - `web-embedded.ps1 -RealUrl http://localhost:3100/`: **PASS**, with 222.6 MB before, 688.9 MB open and 219.4 MB after closing.
   - Mongoku was still `writesEnabled: false` after the runs.
+## Mongoku PR #9: five FOIL authority reports (commit `76b0676`)
+
+These reports were announced by the Mongoku session: FOIL_AI_REASONING_RECENT, FOIL_IT_DEV_STATUS, FOIL_FRONT_STATUS, FOIL_DATABRICKS_STATUS and FOIL_FABRIC_STATUS. They have the same contract as the other reports and appear in the card editor's report list automatically.
+
+- Cards now show **Mongoku's own report description**. It carries each report's caveats, for example "nothing here is measured evidence" (Databricks lab) and "no live Fabric deployment is claimed". Power Ops adds no FOIL business logic.
+- When Mongoku marks rows with an `authorityBoundary` starting with `NON_AUTHORITATIVE` (FOIL AI reasoning), the card shows a **"Non-authoritative content (…), as declared by Mongoku: not a source of truth"** banner. The banner also appears under a custom card title. Only that marker is read from rows; row contents are never kept (unit-tested).
+- Evidence:
+  - `.\scripts\build.ps1`: **PASS**, 0 warnings, WorkspaceTests **66/66**.
+  - `report-cards.ps1` against the live read-only Mongoku: **PASS 22/22**. It covers the AI reasoning card titled "My AI notes" (banner shown), the Databricks card (caveat shown, no banner) and 5/5 deep links.
+  - Contract sweep over **all 24 reports**: all HTTP 200 and `readOnly: true`, no unknown section state, no secret-like content, **24/24 `/foil/report/{id}` or `/projects` pages exist**, largest 156 KB, slowest 3.0 s. Only FOIL_AI_REASONING_RECENT carries a non-authoritative marker.
+  - Mongoku health after the runs: `mongo-read-only`, `writesEnabled: false`.
+- Only report-card files changed, so the other native scripts are unaffected. They were last all green at 02:25 and on the 03:45 recheck.
+- The test harness also retries UI Automation walks, because the report panel is rebuilt on each refresh.
 ### Remaining V2.1 work (in order)
 
 1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
