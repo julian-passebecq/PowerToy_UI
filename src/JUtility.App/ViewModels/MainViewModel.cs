@@ -878,6 +878,14 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Note added";
     }
 
+    /// <summary>Adds a fully built capture (quick capture) without changing the current selection.</summary>
+    public void AddCapture(StickyNoteEntry note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        Notes.Add(note);
+        StatusText = "Captured: " + note.Title;
+    }
+
     public void RemoveNote(StickyNoteEntry note)
     {
         Notes.Remove(note);

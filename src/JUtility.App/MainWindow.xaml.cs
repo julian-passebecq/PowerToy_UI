@@ -755,6 +755,7 @@ public partial class MainWindow : Window
             "Clipboard" => "One-click reusable text",
             "Prompt Builder" => "Compose reusable instruction modules",
             "Settings" => "Window and local storage behavior",
+            CredentialsHeader => "Copyable service IDs; secrets stay in Windows Credential Manager; .env key names only",
             _ => string.Empty,
         };
 
@@ -768,10 +769,11 @@ public partial class MainWindow : Window
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
             "Prompt Builder" => "+ Module",
+            CredentialsHeader => "+ ID",
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or CredentialsHeader;
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -926,6 +928,12 @@ public partial class MainWindow : Window
                 Add("all", "General", 1);
                 break;
 
+            case CredentialsHeader:
+                SecondaryTitle.Text = "Credentials & IDs";
+                SecondaryHint.Text = "Same records, different views";
+                AddCredentialNavigation(Add);
+                break;
+
             default:
                 SecondaryTitle.Text = "Overview";
                 SecondaryHint.Text = "Use the modules on the left";
@@ -1059,6 +1067,7 @@ public partial class MainWindow : Window
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); _mediaView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
+            case CredentialsHeader: RefreshCredentials(); break;
         }
     }
 
@@ -1348,6 +1357,9 @@ public partial class MainWindow : Window
                 _viewModel.AddPromptModule();
                 ApplyCurrentPromptCategory(_viewModel.PromptModules.Last());
                 break;
+            case CredentialsHeader:
+                AddCredentialRecord(JUtility.Core.Credentials.CredentialKind.Id);
+                return; // Separate credentials file; business workspace unchanged.
             default:
                 PrepareCaptureAddContext();
                 _viewModel.AddNote();

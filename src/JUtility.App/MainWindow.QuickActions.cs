@@ -38,13 +38,8 @@ public partial class MainWindow
         Register(QuickActionCatalog.AppToggle, ToggleFromQuickAction);
         Register(QuickActionCatalog.AppOpen, BringToFront);
         Register(QuickActionCatalog.CaptureRegion, () => Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true }));
-        Register(QuickActionCatalog.CaptureQuick, () =>
-        {
-            BringToFront();
-            ShowModule("capture");
-            AddCaptureNote();
-            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => CaptureTitleBox.Focus()));
-        });
+        // "+ -> type/paste -> Save" in a small window; the full Capture editor stays one click away in Power Ops.
+        Register(QuickActionCatalog.CaptureQuick, ShowQuickCapture);
         Register(QuickActionCatalog.ClipboardOpen, () => { BringToFront(); ShowModule("clipboard"); });
         Register(
             QuickActionCatalog.FolderDownloads,

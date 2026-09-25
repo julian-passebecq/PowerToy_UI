@@ -5,6 +5,8 @@ using System.Net;
 using JUtility.Core.Models;
 using JUtility.Core.Reports;
 using JUtility.Core.Workspaces;
+using JUtility.Core.Capture;
+using JUtility.Core.Credentials;
 
 var tests = new List<(string Name, Action Test)>();
 void Test(string name, Action test) => tests.Add((name, test));
@@ -755,6 +757,211 @@ Test("Non-authoritative reports are flagged from Mongoku's row markers; descript
     var authoritative = ReportCards.Parse("""{"sections":[{"rows":[{"authorityBoundary":"AUTHORITATIVE_PM"}],"meta":{"state":"OK"}}]}""", DateTimeOffset.Now);
     Check(!authoritative.NonAuthoritative && authoritative.AuthorityBoundaries!.Count == 1);
 });
+// ---- Credentials & IDs, .env registry, quick capture and AtlasNote handoff (synthetic secrets only) ----
+const string SyntheticSecret = "SYNTH-S3CRET-ZqX7wV9kL2mN4pR8tY1uI3oP5aS6dF";
+CredentialCatalog SampleCatalog(out CredentialRecord secret, out CredentialRecord id)
+{
+    var catalog = new CredentialCatalog();
+    CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "Cloudflare"), "Foil");
+    id = catalog.Records.Single(x => x.Label == "Account ID"); id.Value = "0123456789abcdef0123456789abcdef";
+    secret = catalog.Records.Single(x => x.Label == "API token");
+    return catalog;
+}
+Test("Cloudflare/Mongo templates give labelled copyable rows and secrets without stored values", () =>
+{
+    var catalog = new CredentialCatalog();
+    var cloudflare = CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "Cloudflare"), "Foil");
+    Check(cloudflare.Select(x => x.Label).Take(4).SequenceEqual(["Account ID", "Zone ID", "Access Application ID", "Service Token Client ID"]));
+    var mongo = CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "MongoDB Atlas"), "Foil");
+    Check(mongo.Any(x => x.Label == "Project ID" && x.Kind == CredentialKind.Id));
+    Check(mongo.Any(x => x.Kind == CredentialKind.Password) && catalog.Records.Where(x => CredentialRules.IsSecret(x.Kind)).All(x => x.Value == ""));
+    Check(CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "Cloudflare"), "foil").Count == 0, "Template is idempotent per service+project");
+    Check(CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "Cloudflare"), "Datapass").Count == cloudflare.Count);
+    CredentialRules.Validate(catalog);
+});
+Test("Project, service and type views are projections of the same records", () =>
+{
+    var catalog = SampleCatalog(out _, out var id);
+    CredentialTemplates.Apply(catalog, CredentialTemplates.All.Single(x => x.Service == "MongoDB Atlas"), "");
+    foreach (var view in Enum.GetValues<CredentialView>())
+    {
+        var groups = CredentialRules.Group(catalog.Records, view);
+        var all = groups.SelectMany(g => g.Records).ToList();
+        Check(all.Count == catalog.Records.Count && all.Distinct().Count() == all.Count && all.All(r => catalog.Records.Any(x => ReferenceEquals(x, r))), $"{view} duplicates or copies records");
+    }
+    Check(CredentialRules.Group(catalog.Records, CredentialView.Project).Last().Name == CredentialRules.NoProject);
+    Check(CredentialRules.Group(catalog.Records, CredentialView.Type).Any(g => g.Name == "Token"));
+    Check(CredentialRules.Group(catalog.Records, CredentialView.Service, "0123456789abcdef").Single().Records.Single() == id, "Search finds a non-secret value");
+});
+Test("Secret kinds refuse a value in metadata and cannot be shareable", () =>
+{
+    var catalog = SampleCatalog(out var secret, out _);
+    secret.Value = SyntheticSecret; Reject(() => CredentialRules.Validate(catalog));
+    secret.Value = ""; secret.IsShareable = true; Reject(() => CredentialRules.Validate(catalog));
+    secret.IsShareable = false; CredentialRules.Validate(catalog);
+    var url = new CredentialRecord { Label = "Portal", Kind = CredentialKind.Url, Value = "javascript:alert(1)" };
+    catalog.Records.Add(url); Reject(() => CredentialRules.Validate(catalog));
+});
+Test("Secret values reach only the vault: metadata file, backup and export stay clean", () => Temporary(directory =>
+{
+    var vault = new MemoryVault();
+    var catalog = SampleCatalog(out var secret, out var id);
+    vault.WriteSecret(CredentialRules.VaultTarget(catalog, secret.Id), SyntheticSecret, "", "test");
+    var store = new CredentialCatalogStore(directory);
+    store.Save(catalog); store.Save(catalog);
+    foreach (string file in Directory.GetFiles(directory)) Check(!File.ReadAllText(file).Contains(SyntheticSecret), "Secret leaked into " + Path.GetFileName(file));
+    Check(store.Load().Records.Count == catalog.Records.Count);
+    string export = PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), ModuleCatalog.All.Select(x => x.Id), includeLocalDetails: true, includeShell: true, credentials: catalog);
+    Check(!export.Contains(SyntheticSecret), "Secret leaked into export");
+    Check(!export.Contains(id.Value), "Private ID value exported");
+    Check(export.Contains(CredentialRules.CredentialRef(secret.Id)), "Secret exported as opaque reference");
+    id.IsShareable = true;
+    Check(PortableExport.Create(new WorkspaceState(), WorkspaceSessions.Defaults(), ["credentials"], credentials: catalog).Contains(id.Value), "Shareable ID exported");
+    Check(vault.ReadSecret(CredentialRules.VaultTarget(catalog, secret.Id)) == SyntheticSecret);
+}));
+Test("Moving a mistyped secret out of metadata also rotates it out of the backup", () => Temporary(directory =>
+{
+    var store = new CredentialCatalogStore(directory);
+    var catalog = SampleCatalog(out _, out var id);
+    id.Value = SyntheticSecret; store.Save(catalog); store.Save(catalog);
+    id.Value = ""; id.Kind = CredentialKind.Token; store.SaveAndRotateBackup(catalog);
+    foreach (string file in Directory.GetFiles(directory)) Check(!File.ReadAllText(file).Contains(SyntheticSecret), "Stale copy in " + Path.GetFileName(file));
+}));
+Test("Vault targets are opaque and isolated per data folder; orphans are scoped", () =>
+{
+    var a = SampleCatalog(out var secretA, out _); var b = SampleCatalog(out var secretB, out _);
+    string targetA = CredentialRules.VaultTarget(a, secretA.Id);
+    Check(!targetA.Contains("Cloudflare") && !targetA.Contains("API") && targetA.StartsWith(CredentialRules.VaultPrefix));
+    Check(!CredentialRules.ScopePrefix(a).Equals(CredentialRules.ScopePrefix(b)));
+    var vault = new MemoryVault();
+    vault.WriteSecret(targetA, SyntheticSecret, "", ""); vault.WriteSecret(CredentialRules.VaultTarget(b, secretB.Id), SyntheticSecret, "", "");
+    string orphan = CredentialRules.ScopePrefix(a) + Guid.NewGuid().ToString("N"); vault.WriteSecret(orphan, SyntheticSecret, "", "");
+    Check(CredentialRules.OrphanTargets(a, vault.Targets(CredentialRules.VaultPrefix)).SequenceEqual([orphan]), "Other data folder's secrets are never orphans here");
+    var envFile = new EnvFileEntry { Path = @"C:\fixture\.env", Keys = [new EnvKeyEntry { Name = "CLOUDFLARE_API_TOKEN", CredentialRef = secretA.Id }] };
+    a.EnvFiles.Add(envFile);
+    Check(CredentialRules.RemoveRecord(a, secretA.Id) && envFile.Keys[0].CredentialRef is null, "Deleting a record clears its .env links");
+    CredentialRules.Validate(a);
+    Check(CredentialRules.OrphanTargets(a, vault.Targets(CredentialRules.VaultPrefix)).Contains(targetA), "A deleted record's kept secret is reported as orphaned");
+});
+Test("Corrupt, future or dangling credential metadata fails closed and is never overwritten", () => Temporary(directory =>
+{
+    var store = new CredentialCatalogStore(directory);
+    Check(store.Load().Records.Count == 0 && !File.Exists(store.FilePath), "Missing file = empty catalog, nothing written");
+    File.WriteAllText(store.FilePath, "{ not json");
+    Reject(() => store.Load()); Reject(() => store.Save(new CredentialCatalog()));
+    Check(File.ReadAllText(store.FilePath) == "{ not json", "Corrupt bytes preserved");
+    File.WriteAllText(store.FilePath, "{\"Format\":\"powerops-credentials\",\"SchemaVersion\":2,\"VaultScope\":\"" + Guid.NewGuid() + "\"}");
+    Reject(() => store.Load());
+    var catalog = new CredentialCatalog();
+    catalog.EnvFiles.Add(new EnvFileEntry { Path = @"C:\fixture\.env", Keys = [new EnvKeyEntry { Name = "X", CredentialRef = Guid.NewGuid() }] });
+    Reject(() => CredentialRules.Validate(catalog));
+    catalog.EnvFiles[0] = new EnvFileEntry { Path = "relative\\.env" }; Reject(() => CredentialRules.Validate(catalog));
+    catalog.EnvFiles[0] = new EnvFileEntry { Path = @"C:\fixture\.env", Keys = [new EnvKeyEntry { Name = "BAD NAME" }] }; Reject(() => CredentialRules.Validate(catalog));
+}));
+Test(".env inspection returns key names and present/empty state only, never values", () =>
+{
+    string content = string.Join("\n",
+        "# comment with " + SyntheticSecret,
+        "CLOUDFLARE_API_TOKEN=" + SyntheticSecret,
+        "export MONGODB_URI=\"mongodb+srv://user:" + SyntheticSecret + "@cluster0.example.net/db\"",
+        "EMPTY_ONE=",
+        "QUOTED_EMPTY=''",
+        "INLINE=  # just a comment",
+        "PRIVATE_KEY=\"-----BEGIN KEY-----",
+        SyntheticSecret,
+        "NOT_A_KEY=still inside the quoted value",
+        "-----END KEY-----\"",
+        "garbage line " + SyntheticSecret,
+        "CLOUDFLARE_API_TOKEN=second");
+    var inspection = EnvRegistry.Parse(new StringReader(content));
+    Check(inspection.Keys.Select(k => k.Name).SequenceEqual(["CLOUDFLARE_API_TOKEN", "MONGODB_URI", "EMPTY_ONE", "QUOTED_EMPTY", "INLINE", "PRIVATE_KEY"]), string.Join(",", inspection.Keys.Select(k => k.Name)));
+    Check(inspection.Keys.Where(k => k.Name is "EMPTY_ONE" or "QUOTED_EMPTY" or "INLINE").All(k => !k.HasValue));
+    Check(inspection.Keys.Where(k => k.Name is "CLOUDFLARE_API_TOKEN" or "MONGODB_URI" or "PRIVATE_KEY").All(k => k.HasValue));
+    string everything = JsonSerializer.Serialize(inspection);
+    Check(!everything.Contains("SYNTH") && !everything.Contains("mongodb+srv") && !everything.Contains("second"), "Inspection result holds a value");
+    Check(inspection.Warnings.Count == 2 && inspection.Warnings.All(w => !w.Contains("SYNTH") && !w.Contains("garbage")));
+});
+Test(".env registry keeps expected and linked keys as Missing, drops vanished observations, never persists values", () => Temporary(directory =>
+{
+    string envPath = Path.Combine(directory, ".env.preview");
+    File.WriteAllText(envPath, "FOO_API_TOKEN=" + SyntheticSecret + "\nOLD_KEY=x\nBLANK=\n");
+    var catalog = SampleCatalog(out var secret, out _);
+    var entry = new EnvFileEntry { Path = envPath, Environment = EnvRegistry.SuggestEnvironment(envPath), Project = "Foil" };
+    catalog.EnvFiles.Add(entry);
+    EnvRegistry.Apply(entry, EnvRegistry.Inspect(envPath), DateTimeOffset.UtcNow);
+    Check(entry.Environment == "preview" && entry.Keys.Single(k => k.Name == "FOO_API_TOKEN").State == EnvKeyState.Present && entry.Keys.Single(k => k.Name == "BLANK").State == EnvKeyState.Empty);
+    entry.Keys.Single(k => k.Name == "FOO_API_TOKEN").CredentialRef = secret.Id;
+    entry.Keys.Add(new EnvKeyEntry { Name = "EXPECTED_ONLY", Expected = true });
+    File.WriteAllText(envPath, "BLANK=now-set\n");
+    EnvRegistry.Apply(entry, EnvRegistry.Inspect(envPath), DateTimeOffset.UtcNow);
+    Check(entry.Keys.Single(k => k.Name == "FOO_API_TOKEN").State == EnvKeyState.Missing);
+    Check(entry.Keys.Single(k => k.Name == "EXPECTED_ONLY").State == EnvKeyState.Missing);
+    Check(entry.Keys.All(k => k.Name != "OLD_KEY") && entry.Keys.Single(k => k.Name == "BLANK").State == EnvKeyState.Present);
+    var store = new CredentialCatalogStore(Path.Combine(directory, "data")); store.Save(catalog);
+    Check(!File.ReadAllText(store.FilePath).Contains("SYNTH") && !File.ReadAllText(store.FilePath).Contains("now-set"));
+    Check(File.ReadAllText(envPath) == "BLANK=now-set\n", "The .env file is never rewritten");
+    Check(EnvRegistry.IsEnvFileName(".env") && EnvRegistry.IsEnvFileName(".env.local") && EnvRegistry.IsEnvFileName("prod.env") && !EnvRegistry.IsEnvFileName("env.txt") && !EnvRegistry.IsEnvFileName(".envrc"));
+}));
+Test("KEY=value clipboard lines quote and escape only when needed", () =>
+{
+    Check(EnvRegistry.FormatAssignment("ZONE_ID", "0123abcd") == "ZONE_ID=0123abcd");
+    Check(EnvRegistry.FormatAssignment("A", "has space") == "A=\"has space\"");
+    Check(EnvRegistry.FormatAssignment("A", "q\"uo\\te#") == "A=\"q\\\"uo\\\\te#\"");
+    Check(EnvRegistry.FormatAssignment("A", "line1\nline2") == "A=\"line1\\nline2\"");
+    Check(EnvRegistry.FormatAssignment("A", "") == "A=\"\"");
+    Reject(() => EnvRegistry.FormatAssignment("BAD NAME", "x"));
+});
+Test("Secret heuristics warn on token shapes but not on long hex IDs", () =>
+{
+    Check(SecretHeuristics.Reason("0123456789abcdef0123456789abcdef") is null, "Cloudflare account id is not secret-shaped");
+    Check(SecretHeuristics.Reason("3fa85f64-5717-4562-b3fc-2c963f66afa6") is null);
+    Check(SecretHeuristics.Reason("ghp_" + "A1b2C3d4E5f6G7h8I9j0") is not null);
+    Check(SecretHeuristics.Reason("mongodb+srv://app:pw123@cluster0.example.net") is not null);
+    Check(SecretHeuristics.Reason("password = hunter2") is not null);
+    Check(SecretHeuristics.Reason(SyntheticSecret) is { } reason && !reason.Contains("SYNTH"));
+    Check(SecretHeuristics.Reason("Read the Cloudflare docs about Zero Trust tomorrow") is null);
+});
+Test("Quick capture: URL suggests Link, text suggests Note, project optional", () =>
+{
+    Check(QuickCaptureRules.Suggest("https://developers.cloudflare.com/workers/") == CaptureKind.Bookmark);
+    Check(QuickCaptureRules.Suggest("remember to rotate the token") == CaptureKind.QuickNote);
+    Check(QuickCaptureRules.Suggest("see https://example.com later") == CaptureKind.QuickNote);
+    var now = DateTimeOffset.UtcNow;
+    var link = QuickCaptureRules.Create(CaptureKind.Bookmark, "  https://developers.cloudflare.com/workers/ ", null, "", now);
+    Check(link.Url == "https://developers.cloudflare.com/workers/" && link.Title == "developers.cloudflare.com/workers" && link.Text == "" && link.ProjectId is null);
+    var project = Guid.NewGuid();
+    var todo = QuickCaptureRules.Create(CaptureKind.Todo, "Rotate CF token\nbefore Friday", project, "foil", now);
+    Check(todo.Title == "Rotate CF token" && todo.Text.Contains("before Friday") && todo.Status == "Open" && todo.ProjectId == project && todo.Labels == "foil");
+    var note = QuickCaptureRules.Create(CaptureKind.QuickNote, "short", null, null, now);
+    Check(note.Title == "short" && note.Text == "");
+    Check(QuickCaptureRules.Create(CaptureKind.QuickNote, new string('x', 400), null, null, now).Title.Length <= QuickCaptureRules.MaxTitle);
+    Reject(() => QuickCaptureRules.Create(CaptureKind.QuickNote, "   ", null, null, now));
+    Reject(() => QuickCaptureRules.Create(CaptureKind.Transcript, "x", null, null, now));
+});
+Test("AtlasNote handoff is non-secret, stable-id, snapshot-labelled and flags secret-shaped captures", () =>
+{
+    var project = Guid.NewGuid();
+    var clean = QuickCaptureRules.Create(CaptureKind.ReadLater, "https://example.com/article", project, "reading, foil", DateTimeOffset.UtcNow);
+    var risky = QuickCaptureRules.Create(CaptureKind.QuickNote, "token=" + SyntheticSecret, null, null, DateTimeOffset.UtcNow);
+    var warnings = AtlasNoteHandoff.Review([clean, risky]);
+    Check(warnings.Count == 1 && warnings[0].NoteId == risky.Id && !warnings[0].Reason.Contains("SYNTH"));
+    string json = AtlasNoteHandoff.Create([clean], new Dictionary<Guid, string> { [project] = "Foil" }, DateTimeOffset.UtcNow);
+    var root = JsonNode.Parse(json)!;
+    Check(root["format"]!.GetValue<string>() == "powerops.atlasnote-handoff" && root["version"]!.GetValue<int>() == 1);
+    Check(root["containsCredentialValues"]!.GetValue<bool>() == false && root["containsMediaBinaries"]!.GetValue<bool>() == false);
+    var item = root["items"]![0]!;
+    Check(item["sourceObjectId"]!.GetValue<string>() == clean.Id.ToString("D") && item["freshness"]!.GetValue<string>() == "snapshot" && item["kind"]!.GetValue<string>() == "readLater");
+    Check(item["projectName"]!.GetValue<string>() == "Foil" && item["labels"]!.AsArray().Count == 2 && item["observedAt"] is not null);
+    Check(!json.Contains("SYNTH"));
+    Reject(() => AtlasNoteHandoff.Create([], new Dictionary<Guid, string>(), DateTimeOffset.UtcNow));
+});
+Test("Credentials module is registered without breaking existing shell files", () =>
+{
+    Check(ModuleCatalog.Get("credentials").Header == "Credentials & IDs");
+    var state = WorkspaceSessions.Defaults(); WorkspaceSessions.Validate(state);
+    var old = WorkspaceSessions.NewProfile("Old", "repositories"); old.VisibleModules.Remove("credentials");
+    state.Workspaces.Add(old); WorkspaceSessions.Validate(state);
+});
 int failures = 0;
 foreach (var test in tests)
 {
@@ -784,4 +991,13 @@ sealed class UnknownLengthStream(long length) : Stream
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+}
+sealed class MemoryVault : ISecretVault
+{
+    private readonly Dictionary<string, string> _items = new(StringComparer.OrdinalIgnoreCase);
+    public bool Exists(string target) => _items.ContainsKey(target);
+    public string? ReadSecret(string target) => _items.GetValueOrDefault(target);
+    public void WriteSecret(string target, string secret, string userName, string comment) { SecretValues.Validate(secret); _items[target] = secret; }
+    public bool Delete(string target) => _items.Remove(target);
+    public IReadOnlyList<string> Targets(string prefix) => _items.Keys.Where(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
 }

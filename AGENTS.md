@@ -31,3 +31,7 @@ Model choice is the user's session setting; this file does not configure or laun
 ## V2.1 continuation
 
 The next approved direction is the shared Quick Actions layer: typed action catalog -> configurable global summon -> Quick Shelf -> Quick Ring -> per-workspace action selection -> MX Master/Logi Options+ setup guidance. Power Ops must remain usable without Logitech hardware. Do not write Logitech-specific drivers. Keep Gmail/Attention Center, cloud usage, telemetry and other external providers as later opt-in adapters until the action/provider lifecycle is stable.
+
+## V2.2 Credentials & IDs + Scratchpad (2026-09-25)
+
+Galaxy next-pass handoff for Power Ops: local Credentials & IDs (secret values only in Windows Credential Manager, opaque per-data-folder targets), .env registry (paths and key names only, never values, never edits files), quick capture `+` window reusing Capture/Clipboard, and a reviewed one-way `powerops.atlasnote-handoff/1` export. Read `docs/v2/CREDENTIALS_AND_SCRATCHPAD.md` for boundaries, evidence and the BLOCKED manual checks. Tests use synthetic secrets only; never put a real secret in a fixture, log or commit.

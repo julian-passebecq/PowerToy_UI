@@ -52,6 +52,7 @@ public partial class MainWindow
         WorkspacePanel.Items.Add(new TabItem { Header = "Environment inventory", Content = CreateInventoryPage() });
         WorkspacePanel.Items.Add(new TabItem { Header = "Feature catalog", Content = CreateFeaturePage() });
         WorkspacePanel.Items.Add(new TabItem { Header = "Web", Content = CreateWebPage() });
+        WorkspacePanel.Items.Add(new TabItem { Header = CredentialsHeader, Content = CreateCredentialsPage() });
 
         var original = (UIElement)Content;
         Content = null;
@@ -65,6 +66,7 @@ public partial class MainWindow
         toolbar.Children.Add(SessionButton("Customize", CustomizeSessionWorkspace));
         toolbar.Children.Add(SessionButton("Save view", SaveSessionBookmark));
         toolbar.Children.Add(SessionButton("Restore view", RestoreSessionBookmark));
+        toolbar.Children.Add(SessionButton("+ Quick capture", () => ShowQuickCapture()));
         toolbar.Children.Add(new TextBlock { Text = "V2 preview | on-demand only", Foreground = Brushes.DimGray, Margin = new Thickness(10, 7, 4, 4) });
         chrome.Children.Add(toolbar);
         chrome.Children.Add(new ScrollViewer { Content = _sessionTabs, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
@@ -113,6 +115,7 @@ public partial class MainWindow
         Add(file, "Export all content JSON...", () => ExportSessionContent(ModuleCatalog.All.Select(x => x.Id), includeShell: true));
         Add(file, "Export current module JSON...", () => ExportSessionContent([WorkspaceSessions.ActiveTab(CurrentWorkspace()).ModuleId]));
         Add(file, "Choose modules to export...", ChooseSessionExport);
+        Add(file, "Export captures for AtlasNote (review)...", ExportAtlasNoteHandoff);
         file.Items.Add(new Separator());
         Add(file, "Export layout JSON...", ExportSessionLayout);
         Add(file, "Import layout JSON (preview)...", ImportSessionLayout);
@@ -130,6 +133,7 @@ public partial class MainWindow
         var view = Group("_View");
         Add(view, "Show / hide quick ribbon", () => { RememberSession(); CurrentWorkspace().RibbonVisible = !CurrentWorkspace().RibbonVisible; RestoreSession(); MarkSessionDirty(); });
         Add(view, "Feature catalog", () => NavigateSession("features"));
+        Add(view, "Credentials & IDs", () => NavigateSession("credentials"));
         return menu;
     }
     private WorkspaceProfile CurrentWorkspace() => WorkspaceSessions.Active(_sessionShell!);
@@ -364,19 +368,20 @@ public partial class MainWindow
         RememberSession();
         if (!SafeSave()) return;
         var snapshot = new WorkspaceStore(_viewModel.DataDirectory).Load();
-        string json = PortableExport.Create(snapshot, _sessionShell!, ids, includeShell: includeShell);
+        EnsureCredentials(); // Secret values are never in the catalog; private IDs export without their value.
+        string json = PortableExport.Create(snapshot, _sessionShell!, ids, includeShell: includeShell, credentials: _credentials);
         ShowOwnedMessage("Review before sharing: selected text and URLs may contain private information. Local launcher commands/paths are omitted. Media bytes are not included. This review/export format is NOT a recovery backup.", "Content export", MessageBoxImage.Information);
         WriteSessionExport(json, "PowerOps-content.json");
     });
     private void ExportSessionLayout()
     { RememberSession(); WriteSessionExport(JsonSerializer.Serialize(_sessionShell, WorkspaceSessions.Json), "PowerOps-layout.json"); }
-    private void WriteSessionExport(string json, string fileName)
+    private bool WriteSessionExport(string json, string fileName)
     {
         bool previous = _suppressAutoHide; _suppressAutoHide = true;
         try
         {
             var dialog = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = fileName, DefaultExt = ".json", AddExtension = true };
-            if (dialog.ShowDialog(this) != true) return;
+            if (dialog.ShowDialog(this) != true) return false;
             string destination = Path.GetFullPath(dialog.FileName);
             string root = Path.GetFullPath(_viewModel.DataDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (destination.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Save exports outside the active data directory to protect managed files.");
@@ -384,6 +389,7 @@ public partial class MainWindow
             try { File.WriteAllText(temporary, json); File.Move(temporary, destination, true); }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
             _viewModel.StatusText = "Exported " + Path.GetFileName(destination);
+            return true;
         }
         finally { _suppressAutoHide = previous; }
     }
@@ -474,7 +480,7 @@ public partial class MainWindow
         }
         body.Children.Add(new TextBlock { Text = "Planned / NOT implemented in this preview", FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 18, 0, 8) });
         body.Children.Add(new TextBlock { Text = "Git/PR/CI activity; Codex/Claude completion adapters; full runtimes/environments/extensions inventory; AtlasNote task sync; Mongoku summaries; cloud free-tier adapters; CPU/GPU/RAM/battery sampling; screen-time; RSS/market feeds; monitor docking and mirrored companions; protected maintenance recipes. See docs/v2/ARCHITECTURE.md.", TextWrapping = TextWrapping.Wrap });
-        body.Children.Add(new TextBlock { Text = "Never include secrets in exported JSON. No automatic updates, Git pushes, cleanup/deletion, power changes or credential collection. External tools keep ownership of their data.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
+        body.Children.Add(new TextBlock { Text = "Never include secrets in exported JSON. No automatic updates, Git pushes, cleanup/deletion, power changes or credential collection: secrets are only ever typed in explicitly under Credentials & IDs and stored in Windows Credential Manager. External tools keep ownership of their data.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
         return new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }
 }

@@ -16,6 +16,7 @@ public static class ModuleCatalog
         new ModuleDefinition("portals", "Portal Launcher", "Portals", "Projects & tools", "Service home pages and project-specific links."),
         new ModuleDefinition("tools", "Tool Launcher", "Tools", "Projects & tools", "Open existing local tools; do not replace an IDE."),
         new ModuleDefinition("resources", "Resource Hub", "Resources", "Projects & tools", "Exact documents, folders, dashboards and repository links."),
+        new ModuleDefinition("credentials", "Credentials & IDs", "Credentials & IDs", "Projects & tools", "Copyable service IDs, secrets kept in Windows Credential Manager, and .env key inventory (names only)."),
         new ModuleDefinition("web", "Web apps", "Web", "Projects & tools", "Web apps marked Embedded (e.g. Mongoku) inside Power Ops; WebView2 starts on first use only."),
         new ModuleDefinition("capture", "Capture", "Capture", "Knowledge & capture", "Local inbox, tasks, notes, bookmarks and transcripts."),
         new ModuleDefinition("clipboard", "Clipboard Library", "Clipboard", "Knowledge & capture", "Reusable text, screenshots and short clips."),
