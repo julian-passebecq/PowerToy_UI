@@ -5,6 +5,9 @@
         Width="1440" Height="900" MinWidth="360" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource PanelBrush}">
+  <Window.TaskbarItemInfo>
+    <TaskbarItemInfo x:Name="ShellTaskbarInfo"/>
+  </Window.TaskbarItemInfo>
   <Window.Resources>
     <Style x:Key="PrimaryNavButtonStyle" TargetType="Button">
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
@@ -301,6 +304,14 @@
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Capture" Click="PrimaryNav_Click" Content="✎  Capture" AutomationProperties.Name="Capture"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Clipboard" Click="PrimaryNav_Click" Content="▣  Clipboard" AutomationProperties.Name="Clipboard"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Prompt Builder" Click="PrimaryNav_Click" Content="⌘  Prompt Builder" AutomationProperties.Name="Prompt Builder"/>
+                <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Sessions" Click="PrimaryNav_Click" AutomationProperties.Name="Claude sessions">
+                  <DockPanel LastChildFill="False" Width="140">
+                    <TextBlock Text="◉  Sessions" DockPanel.Dock="Left"/>
+                    <Border x:Name="SessionsNeedsYouBadge" DockPanel.Dock="Right" Background="#B25D12" CornerRadius="8" Padding="6,0" MinWidth="18" Visibility="Collapsed" ToolTip="Sessions that need you">
+                      <TextBlock x:Name="SessionsNeedsYouBadgeText" Text="0" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    </Border>
+                  </DockPanel>
+                </Button>
                 <Separator Margin="0,8"/>
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Settings" Click="PrimaryNav_Click" Content="⚙  Settings" AutomationProperties.Name="Settings"/>
               </StackPanel>
@@ -1362,6 +1373,96 @@
                     </ListBox>
                   </Grid>
                 </Grid>
+              </TabItem>
+
+              <TabItem Header="Sessions">
+                <DockPanel Margin="16">
+                  <StackPanel DockPanel.Dock="Top">
+                    <DockPanel>
+                      <StackPanel>
+                        <TextBlock Text="Claude Code sessions" FontSize="22" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="SessionsSummaryText" Text="Scanning…" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,10"/>
+                      </StackPanel>
+                      <WrapPanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <CheckBox x:Name="SessionsShowOldCheck" Content="Show archived / old (&gt;3 days)" VerticalAlignment="Center" Margin="0,0,10,0" Click="SessionsFilter_Click"/>
+                        <Button Content="Refresh" Click="SessionsRefresh_Click"/>
+                      </WrapPanel>
+                    </DockPanel>
+                    <WrapPanel x:Name="SessionsStatusChips" Margin="0,0,0,4">
+                      <TextBlock Text="Status" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
+                    </WrapPanel>
+                    <WrapPanel x:Name="SessionsTypeChips" Margin="0,0,0,10">
+                      <TextBlock Text="Type" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
+                    </WrapPanel>
+                  </StackPanel>
+                  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                      <TextBlock x:Name="SessionsEmptyText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" Margin="4,12" TextWrapping="Wrap"/>
+                      <ItemsControl x:Name="SessionGroupList" AutomationProperties.Name="Claude sessions grouped by project">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,8" Padding="4">
+                              <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Expanded="SessionGroup_Toggled" Collapsed="SessionGroup_Toggled" Tag="{Binding Name}">
+                                <Expander.Header>
+                                  <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" Margin="10,1,0,0" FontSize="11"/>
+                                    <Border Background="#B25D12" CornerRadius="8" Padding="6,0" Margin="10,1,0,0" Visibility="{Binding NeedsYouVisibility}">
+                                      <TextBlock Text="{Binding NeedsYouLabel}" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    </Border>
+                                  </StackPanel>
+                                </Expander.Header>
+                                <ItemsControl ItemsSource="{Binding Sessions}" Margin="0,4,0,0">
+                                  <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                      <Border BorderBrush="#EEF1F5" BorderThickness="0,1,0,0" Padding="6,6" Background="{Binding RowBackground}">
+                                        <Grid>
+                                          <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="3*" MinWidth="180"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="4*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                          </Grid.ColumnDefinitions>
+                                          <Grid Width="22" Height="22" VerticalAlignment="Center" ToolTip="{Binding StatusTooltip}">
+                                            <Ellipse Fill="{Binding StatusBrush}" Opacity="{Binding SymbolBackgroundOpacity}"/>
+                                            <TextBlock Text="{Binding Symbol}" Foreground="{Binding SymbolForeground}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Ellipse x:Name="WorkingDot" Width="10" Height="10" Fill="#0F6E7A" Visibility="{Binding WorkingVisibility}">
+                                              <Ellipse.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                  <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                      <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.2" Duration="0:0:0.8"/>
+                                                    </Storyboard>
+                                                  </BeginStoryboard>
+                                                </EventTrigger>
+                                              </Ellipse.Triggers>
+                                            </Ellipse>
+                                          </Grid>
+                                          <StackPanel Grid.Column="1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}"/>
+                                            <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                          </StackPanel>
+                                          <TextBlock Grid.Column="2" Text="{Binding Ago}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" ToolTip="{Binding LastActivityText}"/>
+                                          <TextBlock Grid.Column="3" Text="{Binding LastLine}" Foreground="#3A4455" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0">
+                                            <TextBlock.ToolTip>
+                                              <ToolTip MaxWidth="640"><TextBlock Text="{Binding FullText}" TextWrapping="Wrap"/></ToolTip>
+                                            </TextBlock.ToolTip>
+                                          </TextBlock>
+                                          <Button Grid.Column="4" Content="Go" Tag="{Binding}" Click="SessionGo_Click" MinWidth="48" VerticalAlignment="Center" ToolTip="{Binding GoTooltip}" AutomationProperties.Name="Open session in Claude"/>
+                                        </Grid>
+                                      </Border>
+                                    </DataTemplate>
+                                  </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                              </Expander>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </ScrollViewer>
+                </DockPanel>
               </TabItem>
 
               <TabItem Header="Settings">
