@@ -7,7 +7,8 @@ using JUtility.Core.Actions;
 namespace JUtility.Core.Reports;
 
 // V2.1 Mongoku report cards: on-demand, read-only summaries of Mongoku saved reports
-// (GET {source}/api/datapass/reports/{reportId}). Power Ops never connects to MongoDB, stores no credential,
+// (GET {source}/api/datapass/reports/{reportId}). Power Ops never connects to MongoDB and never holds a Mongo URI,
+// Atlas id or database credential (an optional Mongoku HTTP sign-in lives only in Windows Credential Manager),
 // shows section states and row counts only (never row contents) and keeps results in memory only.
 
 public sealed class ReportCard

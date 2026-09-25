@@ -687,7 +687,7 @@ Test("Mongoku sign-in: one entry per origin, sent only over https or to this com
     Check(ReportAuth.RefusalToSend(new Uri("http://192.168.1.20:3100/"))!.Contains("plain http"), "no passwords over LAN http");
     foreach (var bad in new[] { new BasicCredential("", "p"), new BasicCredential("a:b", "p"), new BasicCredential("user", ""), new BasicCredential("user", "p\u0001"), new BasicCredential(new string('u', 129), "p") })
         Reject(() => ReportAuth.Validate(bad));
-    ReportAuth.Validate(new BasicCredential("mongoku_readonly", "pässwörd with spaces"));
+    ReportAuth.Validate(new BasicCredential("report-reader", "pässwörd with spaces")); // a Mongoku HTTP sign-in, never a database user
     var secret = new BasicCredential("u", "TopSecret-123");
     Check(!secret.ToString().Contains("TopSecret") && !$"{secret}".Contains("TopSecret"), "password never printed");
     Check(ReportAuth.Header(new BasicCredential("user", "pässword")).Parameter == Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("user:pässword")));
