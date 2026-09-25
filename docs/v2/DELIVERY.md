@@ -466,6 +466,22 @@ Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `21ce53e`, 
   - the recommended follow-up is a `mongoku_readonly` user with `read` on `dataprojects_control`.
 
   Power Ops needs neither: it uses Mongoku's HTTP API and web UI only.
+## Correction notice from the Mongoku session (2026-09-25, received by Power Ops)
+
+- **Earlier live-Mongoku evidence ran against an admin-connected Mongoku.** This covers the slice 7 follow-up (embedded Mongoku PASS) and the slice 8 report cards (16/16). Mongoku loaded its connections from its local `.mongoku.db` cache and ignored `MONGOKU_DEFAULT_HOST`; that cache held the admin account.
+  - Writes were blocked only by Mongoku's code (`mongo-read-only`, `writesEnabled: false`), not by the database user.
+  - The Power Ops observations themselves stand: only read-only GET pages and report APIs were used, and nothing in Mongoku was clicked.
+  - The "Mongoku still read-only afterwards" checks must be read as *application-level* read-only.
+- **Mongoku is stopped** until the user approves its restart in the Mongoku session. Power Ops must not start it.
+  - After the restart, Mongoku uses dedicated read-only database users for 5 sources, with the same health contract.
+  - Power Ops still needs no Mongo URI, credential or Atlas ID.
+- **Mongoku PRs #2 to #4:**
+  - cold-start "not bound" fixed;
+  - `displayStatus` values in reports changed;
+  - FOIL root: prefer `/?project=foil_project`.
+
+  **Power Ops impact: none in code.** Report cards read only `meta.state` / `returnedRows` / `truncated`, never `displayStatus`/`rawStatus`. The deep link `/foil/report/{id}` is not listed as changed and will be re-checked.
+- **To do after the user confirms the restart:** re-run `tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` and `tests/native/report-cards.ps1`, checking health before and after as before. Expect FOIL sections to be bound now.
 ### Remaining V2.1 work (in order)
 
 1. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
