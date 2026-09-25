@@ -41,6 +41,38 @@ public sealed class RingConfigStore
         }
     }
 
+    /// <summary>
+    /// Writes ring.json from the tray menu (enable/disable a workspace, add a preset). The previous file is kept as
+    /// ring.json.bak first, because re-writing drops the comments of a hand-edited file.
+    /// </summary>
+    public void Save(RingConfig config)
+    {
+        RingConfigs.Validate(config);
+        if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".bak", overwrite: true);
+        string temporary = FilePath + ".tmp";
+        File.WriteAllText(temporary, RingConfigs.Serialize(config));
+        File.Move(temporary, FilePath, overwrite: true);
+    }
+
+    /// <summary>Alternative ring.json files to try (tray menu > Layouts): %APPDATA%\PowerRing\layouts\*.json.</summary>
+    public string LayoutsDirectory => Path.Combine(Directory, "layouts");
+
+    public IReadOnlyList<string> Layouts() =>
+        System.IO.Directory.Exists(LayoutsDirectory)
+            ? System.IO.Directory.GetFiles(LayoutsDirectory, "*.json").Order(StringComparer.OrdinalIgnoreCase).ToList()
+            : [];
+
+    /// <summary>Makes a layout the active ring.json (validated first; the current file is kept as ring.json.bak).</summary>
+    public void ApplyLayout(string layoutPath)
+    {
+        string text = File.ReadAllText(layoutPath).Replace("\"../ring.schema.json\"", "\"./ring.schema.json\"");
+        RingConfigs.Parse(text);
+        if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".bak", overwrite: true);
+        string temporary = FilePath + ".tmp";
+        File.WriteAllText(temporary, text);
+        File.Move(temporary, FilePath, overwrite: true);
+    }
+
     public static string Resource(string name)
     {
         using Stream stream = typeof(RingConfigStore).Assembly.GetManifestResourceStream(name)

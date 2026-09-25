@@ -116,7 +116,7 @@ internal static class ActionRunner
         timer.Start();
     }
 
-    private static void SetClipboard(Action set)
+    public static void SetClipboard(Action set)
     {
         // Clipboard managers can hold the clipboard for a moment.
         for (int attempt = 1; ; attempt++)

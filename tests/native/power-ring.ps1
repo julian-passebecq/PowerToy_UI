@@ -77,7 +77,11 @@ function Config($label) { @"
       ] },
       { "label": "Shot", "action": "screenshot" },
     ] },
-    { "id": "t2", "name": "T2", "items": [ { "label": "Only", "action": "text", "target": "only" } ] }
+    { "id": "t2", "name": "T2", "items": [ { "label": "Only", "action": "text", "target": "only" } ] },
+    { "id": "t3", "name": "T3", "kind": "board", "tables": [
+      { "title": "Copies", "kind": "clipboard", "columns": 2, "keep": 5 },
+      { "title": "Notes", "kind": "notes", "columns": 2 }
+    ] }
   ]
 }
 "@ }
@@ -119,7 +123,8 @@ Rec 'idle: no CPU' ($cpu -lt 30) "$([Math]::Round($cpu,1)) ms in 5 s"
 [void][PR]::SetCursorPos(800, 500)
 $t0 = [Diagnostics.Stopwatch]::StartNew(); Show-Ring; $first = $t0.ElapsedMilliseconds
 Rec 'hotkey: ring shows, focused' ([PR]::Pid([PR]::GetForegroundWindow()) -eq $p.Id) "$first ms incl. wait"
-Rec 'first circle: profiles, centre, slots in order' ((Buttons) -eq 'Profile 1: T1 (active)|Profile 2: T2|Test page|Sub ›|Shot|Open Power Ops') (Buttons)
+$names = (Buttons) -split '\|'
+Rec 'first circle: buttons, children behind them, centre, workspace switchers' ((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T3', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) (Buttons)
 $rect = New-Object PR+RECT; [void][PR]::GetWindowRect((RingHandle), [ref]$rect)
 Rec 'placement: horizontally centred on the pointer' ([Math]::Abs(($rect.L + $rect.R) / 2 - 800) -le 3) "window $($rect.L)..$($rect.R)"
 
@@ -135,7 +140,7 @@ Rec 'Backspace: back to the first circle' ((Name) -eq 'Power Ring - T1') (Name)
 
 # 3. Profiles: Tab, Ctrl+1.
 Safe-Key 0x09
-Rec 'Tab: next profile, all icons change' ((Name) -eq 'Power Ring - T2' -and (Buttons) -like '*Only*') (Buttons)
+Rec 'Tab: next workspace, all icons change' ((Name) -eq 'Power Ring - T2' -and (Buttons) -like '*Only*' -and (Buttons) -notlike '*Test page*') (Buttons)
 Safe-Key 0x31 @(0x11)
 Rec 'Ctrl+1: first profile' ((Name) -eq 'Power Ring - T1') (Name)
 Safe-Key 0x1B
@@ -149,6 +154,29 @@ Rec 'url action: ring hidden, page opened' ((-not (Ring-Visible)) -and $page -an
 Start-Sleep -Milliseconds 800
 Show-Ring; Safe-Key 0x32; Safe-Key 0x31; Start-Sleep -Milliseconds 400
 Rec 'text action: copied to the clipboard' ((Clip) -eq $secret)
+
+# 4b. A child shown behind its parent runs directly (UI Automation Invoke, no synthesized input).
+Set-Clipboard 'placeholder'
+Show-Ring
+$cond = New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, 'Copy text')
+$child = $A::FromHandle((RingHandle)).FindFirst($T::Descendants, $cond)
+$child.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Start-Sleep -Milliseconds 600
+Rec 'child behind its parent: runs from the first circle' ((-not (Ring-Visible)) -and (Clip) -eq $secret)
+
+# 4c. Board: the last copies (memory only) and quick notes.
+$copied = 'copied-' + [guid]::NewGuid().ToString('N').Substring(0, 6)
+Set-Clipboard $copied; Start-Sleep -Milliseconds 600
+Show-Ring; Safe-Key 0x72
+Rec 'board: F3 opens it, last copy listed' ((Name) -eq 'Power Ring - T3' -and (Buttons) -like "*Copied text: $copied*") (Buttons)
+Safe-Key 0x27
+Rec 'board: Right shows the next table' ((Buttons) -like '*Workspace: T3 (active)*' -and ($A::FromHandle((RingHandle)).FindFirst($T::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, 'New note'))) -ne $null))
+foreach ($ch in 'NOTEABC'.ToCharArray()) { Safe-Key ([byte][char]$ch) }
+Safe-Key 0x0D; Start-Sleep -Milliseconds 400
+$notesFile = Join-Path $root 'notes.json'
+Rec 'board: a typed note is saved in notes.json' ((Test-Path $notesFile) -and (Get-Content $notesFile -Raw) -match 'noteabc') ((Get-Content $notesFile -Raw -ErrorAction SilentlyContinue) -replace '\s+', ' ')
+Rec 'board: no copied text written to disk' (-not (Get-ChildItem $root -Recurse -File | Where-Object { (Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue) -match $copied }))
+Safe-Key 0x31 @(0x11)   # the ring reopens on the last workspace: go back to T1 for the next checks
+Safe-Key 0x1B; Start-Sleep -Milliseconds 300
 
 # 5. Hot reload: a saved change is applied; a broken file is reported and the last good ring stays.
 Set-Content $cfg (Config 'Renamed page') -Encoding utf8; Start-Sleep -Milliseconds 1200
