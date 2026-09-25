@@ -135,6 +135,7 @@ public partial class MainWindow : Window
         Closing += MainWindow_Closing;
         Closed += (_, _) => _summonService.Dispose();
         PreviewKeyDown += MainWindow_PreviewKeyDown;
+        InitializeSessionsMonitor();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -616,7 +617,7 @@ public partial class MainWindow : Window
     private static string NormalizeModule(string? module)
     {
         string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
-        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Sessions" or "Settings"
             ? normalized
             : "Dashboard";
     }
@@ -642,6 +643,7 @@ public partial class MainWindow : Window
             "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
             "Clipboard" => "One-click reusable text",
             "Prompt Builder" => "Compose reusable instruction modules",
+            "Sessions" => "Live Claude Code sessions on this PC",
             "Settings" => "Window and local storage behavior",
             _ => string.Empty,
         };
@@ -652,6 +654,7 @@ public partial class MainWindow : Window
             "Portals" => "+ Portal",
             "Tools" => "+ Tool",
             "System" => "Refresh",
+            "Sessions" => "Refresh",
             "Resources" => "+ Resource",
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
@@ -814,6 +817,11 @@ public partial class MainWindow : Window
                 Add("all", "General", 1);
                 break;
 
+            case "Sessions":
+                SecondaryTitle.Text = "Session status";
+                SecondaryHint.Text = "Filter Claude Code sessions";
+                AddSessionStatusNav(Add);
+                break;
             default:
                 SecondaryTitle.Text = "Overview";
                 SecondaryHint.Text = "Use the modules on the left";
@@ -947,6 +955,7 @@ public partial class MainWindow : Window
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); _mediaView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
+            case "Sessions": RenderSessions(); break;
         }
     }
 
@@ -1202,6 +1211,9 @@ public partial class MainWindow : Window
     {
         switch (_activeModule)
         {
+            case "Sessions":
+                RefreshSessionsNow();
+                return;
             case "Repository Hub":
                 _viewModel.AddProject();
                 ApplyCurrentRepositoryContext(_viewModel.Projects.Last());

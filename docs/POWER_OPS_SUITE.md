@@ -211,6 +211,16 @@ Useful content:
 - saved repository lists
 - counts by project/category
 
+### Sessions (Claude Code)
+
+Read-only live view of every Claude Code session on this PC, grouped by project (collapsible) with status and project-type filter chips.
+
+- Transcripts: `%USERPROFILE%\.claude\projects\<sanitized-cwd>\<uuid>.jsonl`; only the last ~96 KB of each file is parsed, and results are cached by size + mtime.
+- Titles, branch, PRs (with state), archived flag and the `claude://claude.ai/epitaxy/local_<id>` link come from the desktop app's `claude-code-sessions\**\local_<id>.json`, matched on `cliSessionId` = transcript uuid. The packaged (MSIX) app stores these under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude`; both that and `%APPDATA%\Claude` are scanned. Without metadata, **Go** opens the Claude app and copies the title.
+- Effort ceiling comes from the tables in `%USERPROFILE%\.claude\CLAUDE.md`; project type from `Project type:` in the project's `CLAUDE.md` (default `dev`).
+- Status: **Needs you** (pending AskUserQuestion/ExitPlanMode, a tool call stalled > 5 min, or a final message ending in a question / waiting for input or a manual test), **Working** (written in the last 60 s or a tool running < 5 min), **Done** (reports done/merged, or all its PRs merged), otherwise **Idle**. Sessions archived or idle > 3 days are hidden unless toggled on.
+- Refresh: file watcher (debounced 1 s) + 10 s timer. The Needs-you count shows as a badge on the Sessions nav button and as a taskbar overlay.
+
 ## Navigation model
 
 ```text
