@@ -26,6 +26,11 @@ internal sealed class QuickRingWindow : Window
     private readonly Button _center;
     private readonly TextBlock _caption;
     private readonly List<(QuickSurfaceItem Item, Button Button)> _slots = [];
+    private readonly TextBlock _centerGlyph;
+    private IReadOnlyList<QuickSurfaceItem> _root = [];
+    private Func<string, IReadOnlyList<QuickSurfaceItem>?>? _openGroup;
+    // Label of the open sub-ring; null = the first ring.
+    private string? _group;
     private IntPtr _previousForeground;
     private bool _closingForAction;
 
@@ -71,11 +76,10 @@ internal sealed class QuickRingWindow : Window
         _canvas.Children.Add(_caption);
 
         _center = CreateButton(CenterSize, "", 26);
-        _center.ToolTip = "Open Power Ops";
-        AutomationProperties.SetName(_center, "Open Power Ops");
-        _center.Click += (_, _) => Invoke(null);
-        _center.GotKeyboardFocus += (_, _) => _caption.Text = "Open Power Ops";
-        _center.MouseEnter += (_, _) => _caption.Text = "Open Power Ops";
+        _centerGlyph = (TextBlock)_center.Content;
+        _center.Click += (_, _) => { if (_group is null) Invoke(null); else Back(); };
+        _center.GotKeyboardFocus += (_, _) => _caption.Text = CenterCaption;
+        _center.MouseEnter += (_, _) => _caption.Text = CenterCaption;
         Place(_center, 0, 0, CenterSize);
 
 
@@ -101,14 +105,18 @@ internal sealed class QuickRingWindow : Window
 
     public IReadOnlyList<string> SlotIds => _slots.Select(x => x.Item.Id).ToList();
 
-    public void ShowAtPointer(IReadOnlyList<QuickSurfaceItem> items)
+    /// <param name="openGroup">Items of a "group:" slot's sub-ring (null when the group is gone).</param>
+    /// <param name="startGroup">Open directly on this group (a shortcut or Shelf button bound to it); Back returns to the first ring.</param>
+    public void ShowAtPointer(IReadOnlyList<QuickSurfaceItem> items, Func<string, IReadOnlyList<QuickSurfaceItem>?> openGroup, QuickSurfaceItem? startGroup = null)
     {
-        Render(items);
+        _root = items;
+        _openGroup = openGroup;
+        if (startGroup is not null && openGroup(startGroup.Id) is { } groupItems) ShowLevel(groupItems, startGroup.Label);
+        else ShowLevel(items, null);
         IntPtr self = new WindowInteropHelper(this).EnsureHandle();
         IntPtr previous = GetForegroundWindow();
         _previousForeground = previous == self ? IntPtr.Zero : previous;
         WindowPlacementService.CenterOnCursor(this);
-        _caption.Text = "Power Ops";
         Show();
         Activate();
         Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => _center.Focus()));
@@ -130,6 +138,36 @@ internal sealed class QuickRingWindow : Window
         }
     }
 
+    /// <summary>Label of the open sub-ring, or null on the first ring (UI Automation reads it from the window name).</summary>
+    public string? OpenGroup => _group;
+
+    private string CenterCaption => _group is null ? "Open Power Ops" : "Back to the first ring";
+
+    private void ShowLevel(IReadOnlyList<QuickSurfaceItem> items, string? group)
+    {
+        _group = group;
+        Render(items);
+        _centerGlyph.Text = _group is null ? "" : "";
+        _center.ToolTip = CenterCaption;
+        AutomationProperties.SetName(_center, CenterCaption);
+        AutomationProperties.SetName(this, _group is null ? "Power Ops Quick Ring" : $"Power Ops Quick Ring - {_group}");
+        _caption.Text = _group?.TrimEnd(' ', '›') ?? "Power Ops";
+    }
+
+    private void OpenGroupSlot(QuickSurfaceItem item)
+    {
+        IReadOnlyList<QuickSurfaceItem>? items = _openGroup?.Invoke(item.Id);
+        if (items is null || items.Count == 0) return;
+        ShowLevel(items, item.Label);
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => FocusSlot(0)));
+    }
+
+    private void Back()
+    {
+        ShowLevel(_root, null);
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => _center.Focus()));
+    }
+
     private void Render(IReadOnlyList<QuickSurfaceItem> items)
     {
         foreach ((_, Button button) in _slots) _canvas.Children.Remove(button);
@@ -147,7 +185,16 @@ internal sealed class QuickRingWindow : Window
             button.GotKeyboardFocus += (_, _) => _caption.Text = caption;
             button.MouseEnter += (_, _) => _caption.Text = caption;
             string id = item.Id;
-            button.Click += (_, _) => Invoke(id);
+            if (QuickRingGroups.IsGroupActionId(id))
+            {
+                // Sub-ring slots look different so a second level is expected before clicking.
+                button.Background = new SolidColorBrush(Color.FromRgb(0xE8, 0xF1, 0xFB));
+                button.Click += (_, _) => OpenGroupSlot(item);
+            }
+            else
+            {
+                button.Click += (_, _) => Invoke(id);
+            }
             (double x, double y) = QuickRingModel.SlotOffset(i, items.Count, Radius);
             Place(button, x, y, SlotSize);
             _slots.Add((item, button));
@@ -176,6 +223,10 @@ internal sealed class QuickRingWindow : Window
         int current = _slots.FindIndex(x => x.Button.IsKeyboardFocused);
         switch (e.Key)
         {
+            case Key.Escape or Key.Back when _group is not null:
+                e.Handled = true;
+                Back();
+                return;
             case Key.Escape:
                 e.Handled = true;
                 Dismiss();
@@ -196,7 +247,9 @@ internal sealed class QuickRingWindow : Window
         if (QuickRingModel.SlotForDigit(digit, _slots.Count) is int slot)
         {
             e.Handled = true;
-            Invoke(_slots[slot].Item.Id);
+            QuickSurfaceItem item = _slots[slot].Item;
+            if (QuickRingGroups.IsGroupActionId(item.Id)) OpenGroupSlot(item);
+            else Invoke(item.Id);
         }
     }
 

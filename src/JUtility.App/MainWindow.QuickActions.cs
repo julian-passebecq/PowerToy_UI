@@ -39,12 +39,17 @@ public partial class MainWindow
         Register(QuickActionCatalog.AppOpen, BringToFront);
         Register(QuickActionCatalog.CaptureRegion, () => Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true }));
         // "+ -> type/paste -> Save" in a small window; the full Capture editor stays one click away in Power Ops.
+        Register(QuickActionCatalog.CaptureScreen, CaptureScreenToClipboard);
         Register(QuickActionCatalog.CaptureQuick, ShowQuickCapture);
         Register(QuickActionCatalog.ClipboardOpen, () => { BringToFront(); ShowModule("clipboard"); });
         Register(
             QuickActionCatalog.FolderDownloads,
             () => OpenExplorerPath(DownloadsFolder(), "Downloads"),
             () => Directory.Exists(DownloadsFolder()) ? null : "The Windows Downloads folder was not found.");
+        Register(
+            QuickActionCatalog.FolderDesktop,
+            () => OpenExplorerPath(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Desktop"),
+            () => Directory.Exists(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)) ? null : "The Windows Desktop folder was not found.");
         Register(
             QuickActionCatalog.FolderExplorer,
             OpenPinnedExplorerFolder,
@@ -74,6 +79,7 @@ public partial class MainWindow
 
     private QuickActionResult RunQuickAction(string actionId, ActionSurface surface)
     {
+        if (QuickToolActions.IsToolActionId(actionId)) RefreshToolActions(); // tools may have changed since the surface was shown
         QuickActionResult result = _quickActions.Invoke(actionId, surface);
         if (result.Succeeded)
         {
@@ -104,6 +110,12 @@ public partial class MainWindow
             return;
         }
 
+        HideToBackground();
+    }
+
+    /// <summary>Saves, then hides (Summon) or minimizes (other window modes). Shared by the show/hide action and Esc.</summary>
+    private void HideToBackground()
+    {
         CaptureCurrentWindowPlacement();
         if (!SafeSave(showError: true))
         {
@@ -282,7 +294,7 @@ public partial class MainWindow
         bool webSeparator = false;
         // File tray actions are grouped in a submenu; from a menu they act on the newest tray file.
         var tray = new MenuItem { Header = "File tray" };
-        foreach (QuickActionDefinition action in _quickActions.Definitions.Where(x => _quickActions.IsRegistered(x.Id)))
+        foreach (QuickActionDefinition action in _quickActions.Definitions.Where(x => _quickActions.IsRegistered(x.Id) && !QuickRingGroups.IsGroupActionId(x.Id)))
         {
             if (!webSeparator && QuickWebApps.IsWebActionId(action.Id))
             {
@@ -329,6 +341,9 @@ public partial class MainWindow
         var ring = new MenuItem { Header = "Customize Quick Ring..." };
         ring.Click += (_, _) => CustomizeQuickRing();
         _actionsMenu.Items.Add(ring);
+        var ringGroups = new MenuItem { Header = "Quick Ring sub-rings..." };
+        ringGroups.Click += (_, _) => ManageRingGroups();
+        _actionsMenu.Items.Add(ringGroups);
         var settings = new MenuItem { Header = "Global shortcuts..." };
         settings.Click += (_, _) => EditGlobalShortcuts();
         _actionsMenu.Items.Add(settings);

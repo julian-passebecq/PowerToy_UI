@@ -113,6 +113,8 @@ public static class QuickWebApps
     {
         string actionId = ActionId(webAppId);
         settings.WebApps.RemoveAll(x => x.Id == webAppId);
+        foreach (RingGroup group in settings.RingGroups) group.Items.Remove(actionId);
+        foreach (RingGroup empty in settings.RingGroups.Where(x => x.Items.Count == 0).ToList()) QuickRingGroups.Remove(settings, empty.Id);
         settings.Ring.Remove(actionId);
         if (settings.Ring.Count == 0) settings.Ring = [.. QuickActionLayouts.DefaultRing];
         settings.Shelf.Remove(actionId);

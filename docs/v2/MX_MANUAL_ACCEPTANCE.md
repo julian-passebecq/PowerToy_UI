@@ -31,7 +31,7 @@ Logi Options+ 2.7.961922 is installed on this laptop, and so is Logitech G HUB. 
 | A2 | Press one "Copy Ctrl+Alt+Shift+R" button and paste it somewhere | The clipboard contains `Ctrl+Alt+Shift+R`. |
 | B1 | Logi Options+ → MX Master → buttons | — |
 | B2 | Gesture button: click → keyboard shortcut Ctrl+Alt+Shift+R; up → …+N; down → …+V | Options+ records each shortcut. **Check:** while Power Ops owns a shortcut, Windows may deliver it to Power Ops, so Options+ may not record it and the ring opens instead. If so, record KO. The fix is to pause the test instance's shortcuts (Actions → Global shortcuts → untick → Save and apply), record them in Options+, then re-enable. |
-| B3 | Options+ → add application `JUtilityPalette.exe` (path `D:\PROJ\PowerToy_UI-v2\src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe`): Back → Ctrl+Shift+Tab, Forward → Ctrl+Tab | App-specific mapping saved. |
+| B3 | *(Not needed since V2.4: the mouse's own Back/Forward switch Power Ops tabs.)* Options+ → add application `JUtilityPalette.exe` (path `D:\PROJ\PowerToy_UI-v2\src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe`): Back → Ctrl+Shift+Tab, Forward → Ctrl+Tab | App-specific mapping saved. |
 | B4 | Write down the **exact Options+ menu names** used in B2/B3 | Compare with the in-app guide wording and report any difference. |
 
 ## 2. Using the mouse
@@ -44,7 +44,7 @@ Start each step with Chrome (or another app) in front unless stated otherwise.
 | C2 | Press **1** | The ring closes and the Windows snip overlay opens (Esc cancels it). |
 | C3 | Gesture click, then **Esc** | The ring closes and Chrome is back in front. |
 | C4 | Gesture click, then click outside the ring | The ring closes and nothing runs. |
-| C5 | Gesture **up** | Power Ops comes forward on Capture with a new item and the title box focused (`captures saved` +1 after typing). |
+| C5 | Gesture **up** | The Quick capture window opens (V2.2); type a title, Ctrl+Enter saves (`captures saved` +1). |
 | C6 | Gesture **down** | Power Ops shows the Clipboard library. |
 | C7 | With Power Ops in front: **Back**, **Forward** | The previous/next Power Ops tab (`active tab` changes, wraps 1↔3). |
 | C8 | In Chrome: Back / Forward | Normal browser history (the app-specific mapping does not leak). |
@@ -71,12 +71,15 @@ Start each step with Chrome (or another app) in front unless stated otherwise.
 
 | # | OK/KO | Notes |
 | --- | --- | --- |
-| A1 | | |
-| A2 | | |
-| B2 | | |
-| B3 | | |
-| B4 | | |
-| C1–C11 | | |
-| D1–D3 | | |
+| A1 | OK | |
+| A2 | OK | |
+| B2 | OK | MX Master 4: mapped on the Sense Panel; no recording conflict. |
+| B3 | KO → fixed | Options+ "Add application" did not list the exe; V2.4 makes Back/Forward native, so B3 is no longer needed. |
+| B4 | Noted | Options+ says Buttons / Gestures / CLICK / HOLD + MOVE UP… / Show Actions Ring / + ADD APPLICATION. |
+| C1–C6 | OK | C1 also on the second monitor. C5 opens the Quick capture window (V2.2). |
+| C7–C11 | Not run | |
+| D1–D3 | Not run | |
+
+Partial run on 2026-09-25 at `0d717a7` (observer logs in `%TEMP%\powerops-mx-acceptance-20260925-1855`); details in `DELIVERY.md`, "MX Master / Logi Options+ manual acceptance - partial run". Still to do with the V2.4 ring: C7–C11 and D1–D3.
 
 Attach the `observer.log` path, and record the tested revision (`git rev-parse HEAD`).

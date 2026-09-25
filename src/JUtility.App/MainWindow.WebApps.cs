@@ -25,6 +25,8 @@ public partial class MainWindow
             return (QuickWebApps.Definition(captured), new QuickActionHandler(() => OpenWebApp(captured), () => WebAppUnavailable(captured)));
         }).ToList());
         RegisterClaudeControl();
+        RegisterRingGroups();
+        RefreshToolActions();
         RefreshActionsMenu();
         SyncEmbeddedWeb(); // a web app may have been removed, re-addressed or switched out of Embedded
     }

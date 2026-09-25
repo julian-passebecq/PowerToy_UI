@@ -671,3 +671,49 @@ WhatsApp Desktop, Messenger and mail clients have no personal API, but they all 
 ### Not in this slice
 
 Email/OTP codes (planned slice 2: read-only Gmail IMAP IDLE with an app password in Windows Credential Manager, codes in memory only, expiring after about 2 minutes, excluded from clipboard history). Embedding Gmail or WhatsApp in WebView2 was rejected (+400-700 MB while open, and it conflicts with the Web tab hardening).
+
+
+## MX Master / Logi Options+ manual acceptance - partial run (2026-09-25 18:55-22:10)
+
+Observer: the user (physical steps) plus `tests/native/mx-observer.ps1` (logs `observer.log`, `observer2.log`, `observer3.log` in `%TEMP%\powerops-mx-acceptance-20260925-1855`). Tested revision: **`0d717a7`** (branch head at the time, PR #12 included; build.ps1 PASS 68 smoke + 91/91). Hardware: **MX Master 4** (not the MX Master 3S the guide was written for), Logi Options+ 2.7.961922.
+
+| # | Result | Evidence / notes |
+| --- | --- | --- |
+| A1 | OK | Hybrid selected, four shortcuts (active), MX guide expanded. |
+| A2 | OK | Clipboard contained `Ctrl+Alt+Shift+R`. |
+| B1-B2 | OK (with a different button) | The user mapped the ring to the MX Master 4 **Sense Panel** (the thumb haptic area Options+ labels "Show Actions Ring") via Gestures > Custom, instead of the small gesture button, which stays free for VS Code. The B2 recording conflict did **not** occur (no need to pause the Power Ops shortcuts). |
+| B3 | KO (setup) | Options+ "Add application" did not list `JUtilityPalette.exe`. Fixed in V2.4 below: Back/Forward now switch tabs natively, no Options+ app-specific setting needed. |
+| B4 | Noted | Options+ names: "Buttons", "Gestures" (presets "Virtual desktops", custom), "HOLD + MOVE UP/DOWN/LEFT/RIGHT", "CLICK", "Show Actions Ring", "+ ADD APPLICATION". The in-app guide said "Gesture button"; V2.4 now names the Sense Panel. |
+| C1 | OK | `quick ring = visible, centre (1282,758), pointer (1278,757)`; also on the second monitor: `centre (3262,-555), pointer (3262,-555)`. |
+| C2-C4 | OK | User-observed (snip overlay opens and Esc/cancel does nothing, Esc returns, outside click runs nothing). |
+| C5 | OK | Hold + up opens the **Quick capture window** (V2.2 behaviour; the checklist still said "Capture tab"); saved: `captures saved = 2`. Also clears the V2.2 BLOCKED item "Quick capture from a global shortcut while another app is focused". |
+| C6 | OK | Hold + down shows the Clipboard library. |
+| C7-C8 | Not run | Blocked by B3; covered for V2.4 by `quick-ring-v2.ps1` (synthesized XButton1/2). |
+| C9-C11, D1-D3 | Not run | The user stopped the session to move to the ring redesign; to be done at the end of the next pass. |
+
+Other observations: the test instance exited once at 22:07:22 with no crash event in the Windows Application log (most likely closed by the user; not reproduced). The observer stops by design after 3 hours.
+
+User feedback that drove V2.4: the gestures are more useful as Windows commands (Task view, desktop, snap left/right) than as Power Ops actions; the flat ring is too crowded, a second ring (Folders, Apps) is wanted; a whole-screen capture straight to the clipboard; a mouse button mapped to Esc should close Power Ops; Gmail, VS Code, Downloads, Desktop from the ring.
+
+## V2.4 Quick Ring v2 (sub-rings, whole-screen capture, Esc, mouse Back/Forward)
+
+### Changed
+
+- **Sub-rings.** A ring slot can be a `group:<id>` action ("Folders ›", "Apps ›"). Clicking it or pressing its digit swaps the ring to the group's actions in the same window; the centre becomes Back, Esc/Backspace go back, a second Esc closes. Sub-ring slots are tinted. Groups are stored in `quick-actions.json` as `RingGroups` (additive; format stays `powerops-quick-actions` v1; older files load unchanged with no groups). Validation: at most 8 groups, 1-8 actions each, no nesting, names 1-40 characters, glyphs in the Segoe private-use range, dangling references rejected. Deleting a web app removes it from groups, and an emptied group disappears with its slot. Bound to a global shortcut or put on the Shelf, a group opens the ring directly on it.
+- **Suggested layout** (fresh installs, and a button in Customize Quick Ring): Screenshot (region), Screenshot (whole screen), Quick Capture, Clipboard, Folders › (Downloads, Desktop, Explorer folder, File tray), Apps › (Terminal + configured web apps), Resume workspace. Existing rings are never changed without that button.
+- **Actions > Quick Ring sub-rings…**: new, rename, edit actions, delete.
+- **`tool:` actions**: every Tool Launcher entry (VS Code, Windows Terminal, a PowerToys editor…) can go on the ring, a sub-ring or the Shelf. Tools are business data, so they are registered on demand (when a surface or editor opens, and before a tool action runs), never on a timer; a removed tool shows as "Tool (not found)" instead of invalidating the file.
+- **`capture.screen`**: copies the monitor under the pointer (physical pixels, per-monitor DPI for that call only) to the clipboard, 180 ms after the ring hides, with a 1.6 s non-activating toast. No file is written. `folder.desktop` opens the Desktop folder.
+- **Esc** in the main window hides it (Summon) or minimizes it (other modes), after the controls that use Esc themselves (search clear, drop-downs, menus, dialogs). **Mouse Back/Forward** (XButton1/2) switch Power Ops tabs, unless the Summon hook already owns button 4/5. No Options+ application setting needed.
+- **MX guide**: names the MX Master 4 Sense Panel, suggests Windows commands for the moves (Win+Tab, Win+D, Win+Left/Right), says Back/Forward need no setup, and tells how to record a shortcut if the ring opens instead.
+- Actions menu no longer lists sub-rings (they open a ring, not an action).
+
+### Evidence (tested revision: this PR's head, on top of `cec1e2b`)
+
+- `.\scripts\build.ps1`: **PASS** (Release, all smoke tests, WorkspaceTests **111/111**, 9 new: two-level defaults, old-file compatibility, group validation, group removal cleanup, web-app removal cleanup, suggested-layout idempotence, tool actions, new catalog actions, guide wording).
+- `tests/native/quick-ring-v2.ps1` (new, isolated `--data-dir`): **PASS 12/12**: sub-ring slot marked; digit opens the sub-ring in place with Back as centre; Esc goes back then closes; a sub-ring action runs (throwaway page opened); a group shortcut opens the ring on the group; whole screen lands on the clipboard as an image with the toast; synthesized XButton1/XButton2 move to the previous/next tab; Esc minimizes; clean exit.
+- Regression: `quick-ring.ps1` PASS, `quick-shelf.ps1` PASS, `quick-actions-hotkeys.ps1` PASS, `interaction.ps1` PASS after one test fix: the longer Actions menu made its "Interaction settings..." lookup from the desktop root fail, so it now searches inside the Actions menu.
+
+### NOT RUN
+
+The physical MX Master 4 checks (Sense Panel click/moves with the new ring, C7-C11, D1-D3) are left for the user at the end of the next pass. Screen reader, mixed-DPI capture on the second monitor and the Options+ Windows-gesture mapping were not exercised.

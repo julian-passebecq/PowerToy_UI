@@ -36,8 +36,8 @@ public static class InteractionGuide
     private static readonly RecommendedShortcut Ring = new(QuickActionCatalog.RingShow, "Open the Quick Ring at the pointer", ["Ctrl+Alt+Shift+R", "Ctrl+Alt+Shift+Q", "Ctrl+Alt+Shift+F8"]);
     private static readonly RecommendedShortcut Toggle = new(QuickActionCatalog.AppToggle, "Show or hide full Power Ops", ["Ctrl+Alt+Shift+P", "Ctrl+Alt+Shift+Space", "Ctrl+Alt+Shift+F9"]);
     private static readonly RecommendedShortcut Shelf = new(QuickActionCatalog.ShelfToggle, "Show or hide the Quick Shelf", ["Ctrl+Alt+Shift+L", "Ctrl+Alt+Shift+F7"]);
-    private static readonly RecommendedShortcut Capture = new(QuickActionCatalog.CaptureQuick, "Quick Capture (gesture up)", ["Ctrl+Alt+Shift+N", "Ctrl+Alt+Shift+F10"]);
-    private static readonly RecommendedShortcut Clipboard = new(QuickActionCatalog.ClipboardOpen, "Clipboard library (gesture down)", ["Ctrl+Alt+Shift+V", "Ctrl+Alt+Shift+F11"]);
+    private static readonly RecommendedShortcut Capture = new(QuickActionCatalog.CaptureQuick, "Quick Capture", ["Ctrl+Alt+Shift+N", "Ctrl+Alt+Shift+F10"]);
+    private static readonly RecommendedShortcut Clipboard = new(QuickActionCatalog.ClipboardOpen, "Clipboard library", ["Ctrl+Alt+Shift+V", "Ctrl+Alt+Shift+F11"]);
 
     public static IReadOnlyList<RecommendedShortcut> Recommended(InteractionMode mode) => mode switch
     {
@@ -122,14 +122,21 @@ public static class InteractionGuide
             new("Before you start", "Install Logi Options+ from Logitech and pair the mouse. Power Ops does not need a Logitech driver: Options+ sends a keyboard shortcut and Power Ops reacts to it like any keyboard. Keep Power Ops running."),
         };
         if (mouseSummonWarning is not null) steps.Add(new GuideStep("Avoid double reaction", mouseSummonWarning, null, true));
-        steps.Add(Map("Gesture button (press)", QuickActionCatalog.RingShow));
-        steps.Add(Map("Gesture button + up", QuickActionCatalog.CaptureQuick, " Optional."));
-        steps.Add(Map("Gesture button + down", QuickActionCatalog.ClipboardOpen, " Optional."));
-        steps.Add(Map("Middle button or thumb button", QuickActionCatalog.AppToggle, " Optional: choose a button you do not use for scrolling."));
-        const string appSpecific = "In Logi Options+ add an application-specific setting for JUtilityPalette.exe (Power Ops). "
-            + "It applies only while Power Ops is focused; everywhere else the button keeps its normal browser behaviour.";
-        steps.Add(new GuideStep("Back → previous Power Ops tab", appSpecific + " Set Back to Keyboard shortcut Ctrl+Shift+Tab.", "Ctrl+Shift+Tab"));
-        steps.Add(new GuideStep("Forward → next Power Ops tab", appSpecific + " Set Forward to Keyboard shortcut Ctrl+Tab.", "Ctrl+Tab"));
+        steps.Add(Map("Sense Panel or gesture button (click)", QuickActionCatalog.RingShow,
+            " On an MX Master 4, the thumb Sense Panel (Options+ calls it \"Show Actions Ring\") is the easiest place: choose Gestures > Custom, then set Click."
+            + " If Options+ does not record the shortcut because the Quick Ring opens instead, untick Actions > Global shortcuts, record it, then tick it again."));
+        // Moves are Windows' own commands: they keep working when Power Ops is closed. Quick Capture and the clipboard are in the ring.
+        steps.Add(new GuideStep("Hold + move up → all windows (Windows)", "Optional. Same button, Hold + move up: Keyboard shortcut Win+Tab (Task view).", "Win+Tab"));
+        steps.Add(new GuideStep("Hold + move down → desktop (Windows)", "Optional. Hold + move down: Keyboard shortcut Win+D (show or hide the desktop).", "Win+D"));
+        steps.Add(new GuideStep("Hold + move left / right → half screen (Windows)", "Optional. Hold + move left: Win+Left, Hold + move right: Win+Right (snap the window to one half).", "Win+Left"));
+        steps.Add(Map("Any spare button", QuickActionCatalog.AppToggle, " Optional."));
+        steps.Add(Map("Any spare button", QuickActionCatalog.CaptureQuick, " Optional: it is also in the Quick Ring."));
+        steps.Add(Map("Any spare button", QuickActionCatalog.ClipboardOpen, " Optional: it is also in the Quick Ring."));
+        steps.Add(new GuideStep("Esc → put Power Ops away", "Esc hides Power Ops (or minimizes it, depending on the window mode). A button mapped to Esc in Options+, for example the middle button, therefore closes Power Ops too."));
+        const string builtIn = "Nothing to set up: while Power Ops is in front, the mouse's own Back and Forward buttons switch Power Ops tabs; "
+            + "everywhere else they keep their normal browser behaviour. From the keyboard:";
+        steps.Add(new GuideStep("Back → previous Power Ops tab", builtIn + " Ctrl+Shift+Tab.", "Ctrl+Shift+Tab"));
+        steps.Add(new GuideStep("Forward → next Power Ops tab", builtIn + " Ctrl+Tab.", "Ctrl+Tab"));
         steps.Add(new GuideStep(
             "Test",
             "Press each mouse button once. If nothing happens, open Actions > Global shortcuts: a shortcut that another program already owns is listed there as not registered."));

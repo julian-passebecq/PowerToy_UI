@@ -60,7 +60,7 @@ try {
   $main = $A::FromHandle($p.MainWindowHandle)
   $actions = ByName $main 'Actions' ([System.Windows.Automation.ControlType]::MenuItem)
   $actions.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern).Expand(); Start-Sleep -Milliseconds 400
-  Invoke (ByName $A::RootElement 'Interaction settings...' ([System.Windows.Automation.ControlType]::MenuItem))
+  Invoke (ByName $actions 'Interaction settings...' ([System.Windows.Automation.ControlType]::MenuItem))
   $dialog = Wait-Window 'Interaction settings'
   Rec 'dialog: opens from Actions menu' ($null -ne $dialog)
 
