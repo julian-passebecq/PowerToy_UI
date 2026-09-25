@@ -684,8 +684,17 @@ public partial class MainWindow : Window
         foreach (Button button in PrimaryNavPanel.Children.OfType<Button>())
         {
             bool active = string.Equals(button.Tag as string, _activeModule, StringComparison.OrdinalIgnoreCase);
-            button.Background = active ? new SolidColorBrush(Color.FromRgb(0xE8, 0xF2, 0xFF)) : Brushes.Transparent;
-            button.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x0B, 0x63, 0xCE)) : Brushes.Black;
+            if (active)
+            {
+                // Resource references keep the highlight in step with light/dark theme switches.
+                button.SetResourceReference(BackgroundProperty, "NavActiveBrush");
+                button.SetResourceReference(ForegroundProperty, "NavActiveTextBrush");
+            }
+            else
+            {
+                button.ClearValue(BackgroundProperty);
+                button.ClearValue(ForegroundProperty);
+            }
         }
     }
 
