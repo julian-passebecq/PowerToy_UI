@@ -136,6 +136,7 @@ Effort labels are relative implementation risk, not calendar estimates. P = impl
 | MX Master button bindings | N | Low-medium | Standard shortcuts + Logi Options+, not custom hardware drivers |
 | RSS/news card | V3 | Low-medium | Plain text, user feeds, no script execution or constant refresh |
 | Market watch | V3 | Medium | Authorized data provider and timestamp; no undocumented Yahoo scraping |
+| File tray (received files → AI chats) | P | Medium | Watches Downloads + chosen folders on first use; copy file/text/image, OCR on click; settings only in `file-tray.json`, never exported |
 | Downloads cleanup recipes | V3 | Medium-high | Dry run, selection, quarantine and undo; not blind deletion |
 | Password manager / plaintext .env vault | X | High risk | Link to established vault; store secret references only |
 | GitHub Desktop/GitLens clone | X | High | Existing tools own branching/merges/history |
@@ -233,6 +234,7 @@ RSS content must be treated as untrusted: plain text or sanitized rendering, no 
 Current formats:
 
 - `workspace.json`: inherited business schema v7, existing domain import/export behavior.
+- `file-tray.json`: `Format=powerops-file-tray`, `SchemaVersion=1`, 64 KiB cap: watched folders, N, per-project move folders. No file names or contents; excluded from every export.
 - `shell-workspaces.json`: `Format=powerops-shell`, `SchemaVersion=1`, view state only, 2 MiB cap, up to 20 workspaces/16 tabs each/20 bookmarks.
 - `powerops-content-export`: review/share envelope, selected domain sections, version 1. All-content export includes shell state; current/selected-module exports do not leak unrelated shell state. Launcher commands, arguments, machine paths/preferences are omitted in the UI path. User-entered text and URLs still require review.
 

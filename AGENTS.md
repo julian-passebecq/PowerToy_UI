@@ -35,3 +35,7 @@ The next approved direction is the shared Quick Actions layer: typed action cata
 ## V2.2 Credentials & IDs + Scratchpad (2026-09-25)
 
 Galaxy next-pass handoff for Power Ops: local Credentials & IDs (secret values only in Windows Credential Manager, opaque per-data-folder targets), .env registry (paths and key names only, never values, never edits files), quick capture `+` window reusing Capture/Clipboard, and a reviewed one-way `powerops.atlasnote-handoff/1` export. Read `docs/v2/CREDENTIALS_AND_SCRATCHPAD.md` for boundaries, evidence and the BLOCKED manual checks. Tests use synthetic secrets only; never put a real secret in a fixture, log or commit.
+
+## V2.3 File tray (2026-09-25)
+
+Recently received files (Downloads and user-chosen folders such as the WhatsApp save folder) ready to drag or paste into AI chats. Read the "V2.3 - File tray" section of `docs/v2/DELIVERY.md` for behaviour, evidence and the NOT RUN list. Settings only in `file-tray.json` (never file names or contents, never exported). Native test: `tests/native/file-tray.ps1` (isolated data dir, temporary watched folder, never the real Downloads). The app now targets `net8.0-windows10.0.19041.0`, so the executable is under `src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\`. Email/OTP codes are the planned slice 2, not built.
