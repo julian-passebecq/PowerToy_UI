@@ -766,3 +766,7 @@ Driven by the user's feedback on Power Ring 1.0 (smaller icons, children right b
 - The user's three layouts validate (`PowerRing.Tests --validate`).
 - `tests/native/power-ring.ps1` (updated for circles 2-3, centre switchers, the board): first run **26/29**, the 3 failures being test-side (an AZERTY keyboard turned the typed digits into `'é`, and the reload checks expected the first workspace while the ring correctly reopened on the last one); both fixed in the script. The re-runs were stopped by the safety guard because the desktop was in use; see the next entry for the idle re-run.
 - Screenshots of V2 (round Home with real app, folder and site icons; Travail gallery; Presse-papier board) checked by the session.
+
+### Power Ring 2: idle native re-run (2026-09-25 23:49)
+
+`tests/native/power-ring.ps1` on an untouched desktop, with the tighter circle-2 packing (PR #17): **PASS 28/28**: idle 20.1 MB private and 0 ms CPU; hotkey shows the focused ring centred on the pointer; circle 1, children behind their parent (circles 2 and 3), centre and workspace switchers present; digits open levels 2 and 3, Esc/Backspace go back; Tab and Ctrl+1 switch workspace; url and text actions; a child runs straight from the first circle; the board lists the last copy, the Right key changes table, a typed note lands in notes.json and no copied text is written to disk; hot reload applies a saved change, reports a broken file and keeps the last good ring; a second start drives the running ring; 48.1 MB after use; --exit closes it and releases the hotkey.
