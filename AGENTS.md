@@ -5,7 +5,7 @@ Current task, 2026-09-24: the user authorized a broader modular-workspace V2/V3 
 Branch: `codex/power-ops-v2-workspaces`.
 Base: `df3aa1626fee3c96f6008793214852b273595ffc` (Explorer checkpoint, schema v7, Windows CI #312 passed).
 
-Do not modify `codex/to-be-tested-v1` or `main` for this work, and do not merge. V1 native acceptance remains separate and incomplete. Existing source success is not native desktop evidence.
+Do not modify `codex/to-be-tested-v1` or `main` directly for this work; merge through PRs once CI is green. V1 native acceptance remains separate and incomplete. Existing source success is not native desktop evidence.
 
 ## Scope and architecture
 
@@ -23,7 +23,7 @@ Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer
 
 ## Delivery
 
-Keep changes focused; no production deployments or main merge. Secret-bearing values, user data and machine paths must not enter public logs or exports unnoticed. Content exports are review formats, not full backups; layout imports must validate and preview before replacement. Preserve malformed or future-state bytes instead of silently resetting them.
+Keep changes focused; no production deployments; merging PRs into main is allowed once CI is green. Secret-bearing values, user data and machine paths must not enter public logs or exports unnoticed. Content exports are review formats, not full backups; layout imports must validate and preview before replacement. Preserve malformed or future-state bytes instead of silently resetting them.
 
 Model choice is the user's session setting; this file does not configure or launch an agent. Use the selected efficient model for ordinary work and request escalation only for a reproducible difficult defect.
 
