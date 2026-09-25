@@ -91,6 +91,11 @@ try {
   $all = CardTexts
   Rec 'source inventory: overall state matches the API' ($(if ($bad -eq 0) { @($all | Where-Object { $_ -like "All $(@($inv.sections).Count) sections complete" }).Count -ge 1 } else { @($all | Where-Object { $_ -like "$bad unavailable*" }).Count -ge 1 })) "$bad section(s) not OK/EMPTY"
 
+  # Deep links: every card's "Open in Mongoku" target must exist in this Mongoku (checked with read-only GETs)
+  $cards = (Get-Content (Join-Path $root 'report-cards.json') -Raw | ConvertFrom-Json).Cards | Where-Object { $_.SourceUrl -like "$base*" -and $_.ReportId -ne 'NOPE_UNKNOWN_REPORT' }
+  $broken = @(foreach ($c in $cards) { $path = if ($c.ReportId -eq 'GLOBAL_PROJECTS') { '/projects' } else { "/foil/report/$($c.ReportId)" }; try { [void](Invoke-WebRequest "$base$path" -TimeoutSec 30 -UseBasicParsing -Headers @{ Accept = 'text/html' }) } catch { $path } })
+  Rec 'deep links: every card target exists in Mongoku' ($broken.Count -eq 0) $(if ($broken) { 'broken: ' + ($broken -join ', ') } else { "$(@($cards).Count) targets" })
+
   # Open in Mongoku lands on the report page inside the embedded Mongoku tab
   Invoke-Named $p 'Open FOIL status now in Mongoku'
   $addr = Wait-Text $p { $_ -like "*$base/foil/report/FOIL_STATUS_NOW*" -or $_ -like '*localhost:3100/foil/report/FOIL_STATUS_NOW*' } 40

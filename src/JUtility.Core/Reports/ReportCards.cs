@@ -93,13 +93,16 @@ public static partial class ReportCards
 
     public static Uri WorkspaceUri(string sourceUrl) => new(new Uri(EnsureSlash(sourceUrl)), "api/datapass/workspace");
 
-    /// <summary>Mongoku page for a report: FOIL reports have /foil/report/{id}; global projects live under /projects.</summary>
+    /// <summary>
+    /// Mongoku page for a report. Verified against a live Mongoku (2026-09-25): /foil/report/{id} serves every saved
+    /// report (including SOURCE_INVENTORY) except GLOBAL_PROJECTS, which answers 404 there and lives under /projects.
+    /// </summary>
     public static Uri DeepLink(ReportCard card)
     {
         var root = new Uri(EnsureSlash(card.SourceUrl));
-        if (card.ReportId.StartsWith("FOIL_", StringComparison.Ordinal)) return new Uri(root, "foil/report/" + Uri.EscapeDataString(card.ReportId));
-        if (card.ReportId == "GLOBAL_PROJECTS") return new Uri(root, "projects");
-        return root;
+        return card.ReportId == "GLOBAL_PROJECTS"
+            ? new Uri(root, "projects")
+            : new Uri(root, "foil/report/" + Uri.EscapeDataString(card.ReportId));
     }
 
     public static SectionHealth HealthOf(string? state) => state?.ToUpperInvariant() switch

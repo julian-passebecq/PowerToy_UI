@@ -644,7 +644,7 @@ Test("Report card addresses: API URL, and deep links into Mongoku", () =>
     Check(ReportCards.ReportUri(foil).AbsoluteUri == "http://localhost:3100/api/datapass/reports/FOIL_NEXT");
     Check(ReportCards.DeepLink(foil).AbsoluteUri == "http://localhost:3100/foil/report/FOIL_NEXT");
     Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "http://localhost:3100/", ReportId = "GLOBAL_PROJECTS" }).AbsoluteUri == "http://localhost:3100/projects");
-    Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "https://mongoku.example.com/base/", ReportId = "OTHER_REPORT" }).AbsoluteUri == "https://mongoku.example.com/base/");
+    Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "https://mongoku.example.com/base/", ReportId = "SOURCE_INVENTORY" }).AbsoluteUri == "https://mongoku.example.com/base/foil/report/SOURCE_INVENTORY", "every report but GLOBAL_PROJECTS has a /foil/report page");
     Check(ReportCards.WorkspaceUri("https://mongoku.example.com/base").AbsoluteUri == "https://mongoku.example.com/base/api/datapass/workspace", "base path kept");
 });
 Test("Report card fetch turns every failure into a readable message (fake server)", () =>

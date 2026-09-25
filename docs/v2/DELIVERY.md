@@ -520,6 +520,25 @@ Prompted by a notice from the Mongoku session (PR #7): `GET /api/datapass/report
   - `quick-shelf`, `quick-ring` and `web-embedded` (stand-in) failed only on foreground and focus checks during concurrent desktop use. In one run the safety guard **refused to send Esc to a non-Power Ops window**.
   - Their code is unchanged since `52e3364`/`095fcdd`: this commit only touches report-card files and tests. All of them passed on the first attempt at 02:25. They were not re-run further, to avoid taking over the user's desktop.
   - Mongoku health after the runs: `mongo-read-only`, `writesEnabled: false`. No `PowerOps/*` credentials remain.
+## Mongoku recheck (2026-09-25 ~03:45)
+
+- **Mongoku:** `master` at `41e9385`, with PRs #1-#8 merged and CI **success** on `41e9385`.
+  - Health: `ok`, `mongo-read-only`, `readOnly: true`, `writesEnabled: false`.
+  - The Mongoku session reports 10 sources qualified with one `mongoku_readonly` user per Atlas project. The only open item is in FOIL PM data (the AI Reasoning registry entry), not in Mongoku or Power Ops.
+- **API contract sweep over all 19 saved reports** (read-only GETs):
+  - all return HTTP 200 with `readOnly: true`;
+  - **no section state unknown to Power Ops** (`EMPTY` already appears in 2 FOIL reports);
+  - largest response 156 KB (card cap 4 MB); slowest 2.7 s, SOURCE_INVENTORY (card timeout 15 s);
+  - no URI, password or Atlas host in any response.
+- **Defect found and fixed:** "Open in Mongoku" sent non-`FOIL_*` reports such as SOURCE_INVENTORY to the Mongoku root.
+  - Live check: `/foil/report/{id}` returns 200 for all 18 other reports, and 404 for GLOBAL_PROJECTS, which lives under `/projects`.
+  - `DeepLink` now uses `/projects` for GLOBAL_PROJECTS and `/foil/report/{id}` for everything else. The unit test was updated.
+  - `report-cards.ps1` now checks that every card's target exists in the live Mongoku.
+- **Evidence:**
+  - `.\scripts\build.ps1`: **PASS**, 0 warnings, 68/68 and 65/65.
+  - `report-cards.ps1`: **PASS 19/19**, including SOURCE_INVENTORY "Sources resolved: 10/10" and deep links 3/3.
+  - `web-embedded.ps1 -RealUrl http://localhost:3100/`: **PASS**, with 222.6 MB before, 688.9 MB open and 219.4 MB after closing.
+  - Mongoku was still `writesEnabled: false` after the runs.
 ### Remaining V2.1 work (in order)
 
 1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
