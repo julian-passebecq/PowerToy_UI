@@ -45,6 +45,10 @@ public static class QuickWebApps
         new WebAppPreset("Gemini", "https://gemini.google.com/app", WebOpenMode.AppWindow, "Uses your existing browser sign-in."),
         new WebAppPreset("ChatGPT", "https://chatgpt.com/", WebOpenMode.AppWindow, "Uses your existing browser sign-in."),
         new WebAppPreset("Claude", "https://claude.ai/new", WebOpenMode.AppWindow, "Uses your existing browser sign-in."),
+        // claude.ai pages need the user's claude.ai sign-in, so the default is an app window on the existing browser profile
+        // (Embedded would need a separate sign-in inside WebView2). The private board link is personal: paste it, never commit it.
+        new WebAppPreset("Effort Board", "https://claude.ai/code/artifacts", WebOpenMode.AppWindow,
+            "Paste your Effort Board link (https://claude.ai/artifact/...) into URL, then Save. Opens with your browser's claude.ai sign-in. Add it to the Shelf with Actions > Customize Quick Shelf."),
     });
 
     public static bool IsWebActionId(string? id) => id?.StartsWith(Prefix, StringComparison.Ordinal) == true;
