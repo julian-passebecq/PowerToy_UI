@@ -21,7 +21,7 @@ public static class E {
 }
 '@
 $A = [System.Windows.Automation.AutomationElement]; $T = [System.Windows.Automation.TreeScope]
-$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe'
+$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 $root = Join-Path $env:TEMP ("powerops-embedded-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8)); New-Item -ItemType Directory $root | Out-Null
 $r = [ordered]@{}; $mem = [ordered]@{}
 function Rec($name, $ok, $detail = '') { $r[$name] = $(if ($ok) { 'PASS' } else { 'FAIL' }) + $(if ($detail) { "  ($detail)" } else { '' }) }

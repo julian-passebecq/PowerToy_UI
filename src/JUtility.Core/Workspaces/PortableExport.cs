@@ -34,6 +34,8 @@ public static class PortableExport
                 "tools" => includeLocalDetails ? Node(source.Tools) : Node(source.Tools.Select(x => new { x.Id, x.Name, x.Category, x.IsPinned, x.SortOrder, LocalLaunchDetailsOmitted = true })),
                 "settings" => includeLocalDetails ? Node(new { source.Preferences, source.ExplorerFolders }) : Node(new { ExplorerFolders = source.ExplorerFolders.Select(x => new { x.Id, x.Name, x.IsPinned }), LocalPathsAndPreferencesOmitted = true }),
                 "credentials" => CredentialsNode(credentials, includeLocalDetails),
+                // Tray items are local files and file-tray.json holds machine paths: neither is exported, even with local details.
+                "tray" => Node(new { Observation = "File tray items and settings are local to this computer and are never exported." }),
                 "features" => Node(ModuleCatalog.All),
                 "home" or "dashboard" => Node(new { Repositories = source.Projects.Count, Captures = source.Notes.Count, Media = source.ClipboardMedia.Count }),
                 _ => Node(new { Observation = "No runtime snapshot exported; open the module and inspect locally." })

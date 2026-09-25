@@ -756,6 +756,7 @@ public partial class MainWindow : Window
             "Prompt Builder" => "Compose reusable instruction modules",
             "Settings" => "Window and local storage behavior",
             CredentialsHeader => "Copyable service IDs; secrets stay in Windows Credential Manager; .env key names only",
+            FileTrayHeader => "Received files for AI chats",
             _ => string.Empty,
         };
 
@@ -770,10 +771,11 @@ public partial class MainWindow : Window
             "Clipboard" => "+ Snippet",
             "Prompt Builder" => "+ Module",
             CredentialsHeader => "+ ID",
+            FileTrayHeader => "+ Folder",
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or CredentialsHeader;
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or CredentialsHeader or FileTrayHeader;
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -934,6 +936,12 @@ public partial class MainWindow : Window
                 AddCredentialNavigation(Add);
                 break;
 
+            case FileTrayHeader:
+                SecondaryTitle.Text = "File tray";
+                SecondaryHint.Text = "Newest first; by folder or type";
+                AddTrayNavigation(Add);
+                break;
+
             default:
                 SecondaryTitle.Text = "Overview";
                 SecondaryHint.Text = "Use the modules on the left";
@@ -1068,6 +1076,7 @@ public partial class MainWindow : Window
             case "Clipboard": _snippetView?.Refresh(); _mediaView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
             case CredentialsHeader: RefreshCredentials(); break;
+            case FileTrayHeader: RenderTrayPage(); break;
         }
     }
 
@@ -1360,6 +1369,9 @@ public partial class MainWindow : Window
             case CredentialsHeader:
                 AddCredentialRecord(JUtility.Core.Credentials.CredentialKind.Id);
                 return; // Separate credentials file; business workspace unchanged.
+            case FileTrayHeader:
+                EditTraySettings();
+                return; // Separate file-tray.json; business workspace unchanged.
             default:
                 PrepareCaptureAddContext();
                 _viewModel.AddNote();
@@ -3254,14 +3266,16 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
-    private void PreviewPrompt_Click(object sender, RoutedEventArgs e)
+    private async void PreviewPrompt_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         _viewModel.ComposePrompt(appendProjectLinks: false);
         _viewModel.StatusText = "Prompt preview refreshed";
     }
 
-    private void ComposeCopy_Click(object sender, RoutedEventArgs e)
+    private async void ComposeCopy_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         string text = _viewModel.ComposePrompt(appendProjectLinks: false);
         if (CopyText(text, "Prompt copied"))
         {
@@ -3289,8 +3303,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ComposeCopyProject_Click(object sender, RoutedEventArgs e)
+    private async void ComposeCopyProject_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         string text = _viewModel.ComposePrompt(appendProjectLinks: true);
         if (CopyText(text, "Prompt + project copied"))
         {

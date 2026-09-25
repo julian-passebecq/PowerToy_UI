@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- File tray (V2.3): the Windows SDK projection gives offline Windows OCR (Windows.Media.Ocr) and PDF page
+         rendering (Windows.Data.Pdf). Only Services/FileTrayWinRt.cs uses it, so it loads on the first "Copy text"
+         or "Copy as image", never at startup. -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <!-- The CsWinRT AOT optimizer adds a module initializer that loads WinRT.Runtime at startup. This app is not
+         AOT-compiled, so keep Windows Runtime interop fully lazy. -->
+    <CsWinRTAotOptimizerEnabled>false</CsWinRTAotOptimizerEnabled>
     <UseWPF>true</UseWPF>
     <AssemblyName>JUtilityPalette</AssemblyName>
     <RootNamespace>JUtility.App</RootNamespace>
@@ -9,6 +15,8 @@
   <ItemGroup>
     <!-- Embedded web apps (V2.1): WebView2 uses the Evergreen runtime already on Windows; no Chromium is bundled. Loaded only on first embedded open. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <!-- File tray (V2.3): PDF text extraction (Apache-2.0, managed, no dependencies on net8.0). Loaded only on "Copy text" for a PDF. -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JUtility.Core\JUtility.Core.csproj" />

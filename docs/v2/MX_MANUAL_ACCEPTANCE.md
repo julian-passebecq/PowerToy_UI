@@ -31,7 +31,7 @@ Logi Options+ 2.7.961922 is installed on this laptop, and so is Logitech G HUB. 
 | A2 | Press one "Copy Ctrl+Alt+Shift+R" button and paste it somewhere | The clipboard contains `Ctrl+Alt+Shift+R`. |
 | B1 | Logi Options+ → MX Master → buttons | — |
 | B2 | Gesture button: click → keyboard shortcut Ctrl+Alt+Shift+R; up → …+N; down → …+V | Options+ records each shortcut. **Check:** while Power Ops owns a shortcut, Windows may deliver it to Power Ops, so Options+ may not record it and the ring opens instead. If so, record KO. The fix is to pause the test instance's shortcuts (Actions → Global shortcuts → untick → Save and apply), record them in Options+, then re-enable. |
-| B3 | Options+ → add application `JUtilityPalette.exe` (path `D:\PROJ\PowerToy_UI-v2\src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe`): Back → Ctrl+Shift+Tab, Forward → Ctrl+Tab | App-specific mapping saved. |
+| B3 | Options+ → add application `JUtilityPalette.exe` (path `D:\PROJ\PowerToy_UI-v2\src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe`): Back → Ctrl+Shift+Tab, Forward → Ctrl+Tab | App-specific mapping saved. |
 | B4 | Write down the **exact Options+ menu names** used in B2/B3 | Compare with the in-app guide wording and report any difference. |
 
 ## 2. Using the mouse

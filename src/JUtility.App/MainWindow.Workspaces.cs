@@ -53,6 +53,7 @@ public partial class MainWindow
         WorkspacePanel.Items.Add(new TabItem { Header = "Feature catalog", Content = CreateFeaturePage() });
         WorkspacePanel.Items.Add(new TabItem { Header = "Web", Content = CreateWebPage() });
         WorkspacePanel.Items.Add(new TabItem { Header = CredentialsHeader, Content = CreateCredentialsPage() });
+        WorkspacePanel.Items.Add(new TabItem { Header = FileTrayHeader, Content = CreateFileTrayPage() });
 
         var original = (UIElement)Content;
         Content = null;
@@ -134,6 +135,7 @@ public partial class MainWindow
         Add(view, "Show / hide quick ribbon", () => { RememberSession(); CurrentWorkspace().RibbonVisible = !CurrentWorkspace().RibbonVisible; RestoreSession(); MarkSessionDirty(); });
         Add(view, "Feature catalog", () => NavigateSession("features"));
         Add(view, "Credentials & IDs", () => NavigateSession("credentials"));
+        Add(view, "File tray", () => NavigateSession("tray"));
         return menu;
     }
     private WorkspaceProfile CurrentWorkspace() => WorkspaceSessions.Active(_sessionShell!);

@@ -75,7 +75,7 @@ public static class QuickActionLayouts
     {
         QuickActionCatalog.AppOpen, QuickActionCatalog.CaptureRegion, QuickActionCatalog.CaptureQuick,
         QuickActionCatalog.ClipboardOpen, QuickActionCatalog.FolderDownloads, QuickActionCatalog.FolderExplorer,
-        QuickActionCatalog.TerminalOpen, QuickActionCatalog.WorkspaceResume,
+        QuickActionCatalog.TerminalOpen, QuickActionCatalog.WorkspaceResume, QuickActionCatalog.TrayShow,
     });
 
     public static QuickActionSettings Defaults() => new();

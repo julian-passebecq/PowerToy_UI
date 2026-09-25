@@ -809,14 +809,19 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Prompt modules reordered";
     }
 
+    /// <summary>{{file}} / {{file_text}} from the file tray, resolved by the window just before composing. Never saved.</summary>
+    public IReadOnlyDictionary<string, string> PromptFileVariables { get; set; } = new Dictionary<string, string>();
+
     public string ComposePrompt(bool appendProjectLinks)
     {
         RenumberModules();
         RefreshPromptVariables();
 
-        Dictionary<string, string> variables = PromptVariables
-            .Where(input => !string.IsNullOrWhiteSpace(input.Value))
-            .ToDictionary(input => input.Name, input => input.Value, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> variables = new(PromptFileVariables, StringComparer.OrdinalIgnoreCase);
+        foreach (PromptVariableInput input in PromptVariables.Where(input => !string.IsNullOrWhiteSpace(input.Value)))
+        {
+            variables[input.Name] = input.Value;
+        }
 
         PromptPreview = PromptComposer.Compose(
             PromptModules,
@@ -836,6 +841,8 @@ public sealed class MainViewModel : ObservableObject
             "server",
             "chatgpt",
             "extra",
+            JUtility.Core.Files.FileTrayPrompt.FileVariable,
+            JUtility.Core.Files.FileTrayPrompt.TextVariable,
         };
 
         string[] required = PromptComposer.FindVariables(PromptModules)

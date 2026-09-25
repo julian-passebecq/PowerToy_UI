@@ -35,7 +35,7 @@ function Probe([uint32]$mods, [uint32]$vk) {
   if ($ok) { [void][W]::UnregisterHotKey([IntPtr]::Zero, 0x7777); return 'free' }
   return "taken(err $err)"
 }
-$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe'
+$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 $root = Join-Path $env:TEMP ("powerops-hotkey-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 $d1 = Join-Path $root 'default'; $d2 = Join-Path $root 'enabled'; $d3 = Join-Path $root 'collide'
 New-Item -ItemType Directory -Force $d1, $d2, $d3 | Out-Null
