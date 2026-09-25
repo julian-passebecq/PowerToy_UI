@@ -16,5 +16,7 @@ try {
     Invoke-Dotnet -Arguments @('run', '--project', '.\tests\JUtility.SmokeTests\JUtility.SmokeTests.csproj', '-c', 'Release', '--no-build')
     # Separate package-free regression executable; builds its project reference before running.
     Invoke-Dotnet -Arguments @('run', '--project', '.\tests\JUtility.WorkspaceTests\JUtility.WorkspaceTests.csproj', '-c', 'Release')
+    # Power Ring (separate light launcher): config, validation, navigation and key-combo tests.
+    Invoke-Dotnet -Arguments @('run', '--project', '.\tests\PowerRing.Tests\PowerRing.Tests.csproj', '-c', 'Release')
 }
 finally { Pop-Location }
