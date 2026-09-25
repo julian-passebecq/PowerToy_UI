@@ -419,7 +419,53 @@ Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `82032cf`, 
   - a Mongoku with basic auth or OIDC (the sign-in message path is unit-tested only);
   - a remote Mongoku over https;
   - the card editor dialog end-to-end (UI Automation of the dialog was not scripted).
+## V2.1 - slice 9 (sign-in for a protected Mongoku)
+
+Date: 2026-09-25. Author: Claude Code (Windows laptop). Code commit: `21ce53e`, parent `31d7c93`.
+
+### Changed
+
+- Report cards and the embedded Mongoku tab work with a Mongoku protected by `MONGOKU_AUTH_BASIC`. Mongoku answers 401 with `WWW-Authenticate: Basic`, as verified in `src/hooks.server.ts`.
+- The user name and password are stored per Mongoku origin in the **Windows Credential Manager** as a generic credential `PowerOps/Mongoku/<origin>`, per Windows user.
+  - They are never written to Power Ops JSON, logs, messages or exports, and `BasicCredential.ToString()` hides the password.
+  - The unmanaged copy used for writing is wiped.
+- **Sent only when safe:** only to that exact origin, only over https or to this computer (localhost / 127.0.0.1 / ::1). A plain-http LAN address is refused before any request is made. The credential goes on a single request with redirects disabled, so it cannot follow a redirect elsewhere.
+- **Embedded tab:** it answers WebView2's basic-auth challenge once per navigation, for the app's own origin only. If the sign-in is rejected, WebView2's own prompt appears instead of looping.
+- **401 messages:**
+  - "asks for a user name and password" (Basic challenge, nothing saved);
+  - "rejected the saved user name or password";
+  - "uses web sign-in (OIDC)" (a 401 without a Basic challenge, which is Mongoku's OIDC API mode). Cards cannot use OIDC, so the message says to open the report in Mongoku.
+- **Manage report cards → Sign-in:** shows the status for the entered address (saved user, never the password), with **Save user and password...** (a PasswordBox dialog) and **Forget sign-in**.
+- Accessibility: the status text is its own accessible name.
+
+### Evidence (tested revision `21ce53e`)
+
+- `.\scripts\build.ps1`: **PASS**. 0 warnings, SmokeTests 68/68, WorkspaceTests **64/64**. The 2 new tests cover:
+  - origin targets, the https/loopback-only rule, validation, and the password never being printed;
+  - sign-in through a fake server: no header without a saved sign-in, rejected vs accepted, the report list using the sign-in, **no request at all** for a LAN http address, and OIDC recognised.
+- `tests/native/report-auth.ps1`: **PASS, 14/14, in three consecutive runs**. It uses a local server that answers like `MONGOKU_AUTH_BASIC`; the real Mongoku's auth configuration was not changed. It uses UI Automation patterns only and drives both dialogs, including the PasswordBox. It observed:
+  - before saving, the card explains what to do and **no Authorization header is ever sent**;
+  - saving through the dialogs stores the entry in Credential Manager for exactly that origin, and the dialog shows the user, not the password;
+  - Refresh signs in and the server sees the correct header;
+  - **the embedded Mongoku tab opens the protected page without a prompt**;
+  - a wrong saved password is reported as rejected;
+  - no password appears in any Power Ops data file;
+  - Forget removes the entry, and the test entry is always removed at the end.
+- Test hygiene: an early run's cleanup used the `cmdkey` tool, which did not reliably find these generic entries, and left two dummy test entries (`PowerOps/Mongoku/http://localhost:46425` and `:44854`). Both were deleted with `CredDelete`. The script now uses the same Credential Manager API as Power Ops, and `PowerOps/*` enumerates to 0 entries.
+- Re-run on the same revision: `report-cards` (live read-only Mongoku), `interaction`, `quick-actions-hotkeys`, `quick-shelf`, `web-apps` and `quick-ring` all **PASS**. `web-embedded` failed once only on "Power Ops in front" (foreground lock) and then passed.
+- NOT RUN: a real Mongoku started with `MONGOKU_AUTH_BASIC`; an https Mongoku; OIDC (only the message is covered).
+
+### Mongoku session review (read-only, 2026-09-25)
+
+- The Mongoku handoff session merged PR #1 (`aa8ce9a`), and PR #2 (the Mongo cold-start fix) is also on `master`.
+- Its connected smoke on the real cluster passed: 27 routes returned 200, and `PUT` returned 403.
+- Mongoku now fails in about 5 s instead of hanging 30-90 s when Mongo is unreachable. That was the cause of the earlier "not verified" embedded run.
+- **Attention items from that session**, still open:
+  - Mongoku currently connects with the **`atlasAdmin`** account;
+  - `.mongoku.db` holds the URI with the password in plain text (gitignored);
+  - the recommended follow-up is a `mongoku_readonly` user with `read` on `dataprojects_control`.
+
+  Power Ops needs neither: it uses Mongoku's HTTP API and web UI only.
 ### Remaining V2.1 work (in order)
 
-1. Optional: sign-in support for a protected Mongoku (credential in Windows Credential Manager, never in JSON) once a shared/remote deployment is chosen.
-2. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.
+1. Native acceptance with a physical MX Master + Logi Options+, multi-monitor/mixed-DPI, and the user-assisted checklists above.

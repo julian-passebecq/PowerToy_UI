@@ -42,7 +42,7 @@ Date: 2026-09-24. Decided by Claude Code at the user's request ("decide"). Exten
   - There is no "list reports" endpoint.
   - `POST /api/datapass/query/:id` needs the control DB, so it fails in the default mode.
   - A future card must be on demand only, show source/age, and keep any credential in Windows Credential Manager/DPAPI, never in Power Ops JSON.
-- The branch is an open PR, not yet merged into `master`; its handoff asks for a connected UI smoke test first.
+- Update 2026-09-25: PR #1 was merged into `master` (`aa8ce9a`) after a connected smoke on the real cluster, followed by PR #2 (Mongo cold-start fix). The branch is kept as provenance.
 
 ## Grafana facts (source: `julian-passebecq/grafana`)
 
@@ -70,3 +70,5 @@ Measured on the user's laptop:
 Keep the feature for local tools. Do not keep many pages open.
 
 Real Mongoku embedding was **verified on 2026-09-25**. The local `datapass/control-plane-v1` dev server was in read-only mode, and its page loaded as "Mongoku · Datapass Mongo Control". With Mongoku open the total working set was 702 MB, and it returned to 229 MB after "Close web view". An earlier attempt had failed only because the dev server's HTML route was temporarily not responding. Power Ops never needs a MongoDB user: it loads Mongoku's web UI, and a future report card would use Mongoku's HTTP API.
+
+Sign-in (slice 9): a Mongoku protected with `MONGOKU_AUTH_BASIC` works for report cards and the embedded tab. The credential lives in Windows Credential Manager per origin, and is sent only over https or to localhost. Mongoku OIDC is not used by cards; open the report in Mongoku, where the embedded tab can sign in unless the IdP is Google.
