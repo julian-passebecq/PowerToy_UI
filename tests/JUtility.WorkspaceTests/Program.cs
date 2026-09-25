@@ -955,6 +955,35 @@ Test("AtlasNote handoff is non-secret, stable-id, snapshot-labelled and flags se
     Check(!json.Contains("SYNTH"));
     Reject(() => AtlasNoteHandoff.Create([], new Dictionary<Guid, string>(), DateTimeOffset.UtcNow));
 });
+Test("Claude usage card parses the Effort Board usage.json read-only shape", () =>
+{
+    string json = """
+    {"generated":"2026-09-25T14:40","today":"2026-09-25",
+     "plan":{"name":"Pro","asOf":"2026-09-25T12:39Z","windows":[
+       {"label":"5-hour limit","percentUsed":7,"resetsAt":"2026-09-25T16:59:59Z"},
+       {"label":"Weekly Ã‚Â· all models","percentUsed":123,"resetsAt":"2026-10-01T11:59:59Z"},
+       {"label":"no numbers"}]},
+     "days":[{"day":"2026-09-25","tokens":5}],
+     "projects":[{"name":"small","week":12300,"today":0},{"name":"datapass","week":1511041581,"today":905514715},{"week":5},"junk"]}
+    """;
+    var usage = ClaudeUsage.Parse(json);
+    Check(usage.PlanName == "Pro" && usage.Generated == "2026-09-25T14:40" && usage.Windows.Count == 3);
+    Check(usage.Windows[0].PercentUsed == 7 && usage.Windows[0].ResetsAt == DateTimeOffset.Parse("2026-09-25T16:59:59Z"));
+    Check(usage.Windows[1].Label == "Weekly · all models", "Double-encoded label repaired: " + usage.Windows[1].Label);
+    Check(usage.Windows[1].PercentUsed == 100 && double.IsNaN(usage.Windows[2].PercentUsed) && usage.Windows[2].ResetsAt is null);
+    Check(usage.Projects.Select(p => p.Name).SequenceEqual(["datapass", "small"]), "Sorted by week, nameless/invalid skipped");
+    Check(ClaudeUsage.Tokens(1511041581) == "1.51 B" && ClaudeUsage.Tokens(905514715) == "906 M" && ClaudeUsage.Tokens(12300) == "12.3 K" && ClaudeUsage.Tokens(7) == "7");
+    Check(ClaudeUsage.RepairMojibake("Weekly · Fable") == "Weekly · Fable" && ClaudeUsage.RepairMojibake("Café") == "Café");
+    Check(ClaudeUsage.Parse("{}").Windows.Count == 0);
+    Reject(() => ClaudeUsage.Parse("[1,2]"));
+    Reject(() => ClaudeUsage.Parse("{ broken"));
+});
+Test("Effort Board preset opens with the browser sign-in and carries no private link", () =>
+{
+    var preset = QuickWebApps.Presets.Single(x => x.Name == "Effort Board");
+    Check(preset.OpenMode == WebOpenMode.AppWindow && !preset.Url.Contains("/artifact/"));
+    QuickWebApps.Validate([QuickWebApps.FromPreset(preset)]);
+});
 Test("Credentials module is registered without breaking existing shell files", () =>
 {
     Check(ModuleCatalog.Get("credentials").Header == "Credentials & IDs");
