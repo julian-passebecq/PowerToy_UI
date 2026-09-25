@@ -576,3 +576,27 @@ Mongoku under test: `master` `8a873bf`/`187473f`, running on `http://localhost:3
 ### Remaining V2.1 work (in order)
 
 1. Next session: MX Master / Logi Options+ manual acceptance with the user (`docs/v2/MX_MANUAL_ACCEPTANCE.md`), plus multi-monitor if a second screen is available.
+
+## Mongoku MAINTENANCE card (2026-09-25, commit `17f1125`)
+
+Requested from the Mongoku session after Mongoku PR #12 added the global read-only `MAINTENANCE` report (`GET /api/datapass/reports/MAINTENANCE`, page `/maintenance`). Mongoku under test: `master` `6f26e71`, started locally with `vite dev --port 3100` (the `pnpm dev` script; pnpm is not installed on this machine), `mongo-read-only`, `writesEnabled: false` before and after.
+
+### Changed
+- `Core/Reports/MaintenanceReport.cs`: parses the MAINTENANCE summary row (summary line, top `nextAction`, `sourcesReachable`, the five counts, `backups`) and the rows whose `actionKind` is not `none` (title, summary, next-action label, link only). A row's `openUri` is resolved against the card's Mongoku address and accepted only as a same-origin path under it; anything else falls back to `/maintenance`. Repository names, heads and other row fields are not kept.
+- `ReportCards.Parse` attaches that digest only for `MAINTENANCE`; `DeepLink` maps it to `/maintenance`. The same fetch (`FetchAsync`, same handler, same limits) is used; no new HTTP client.
+- Launchpad card: summary line as the status, "Next: ...", one counts line, up to 6 rows as links plus "+N more to act on in Mongoku", card title as a link. Links open like "Open in Mongoku" (the user's Mongoku web-app mode: embedded tab, app window or browser). A header button "+ Maintenance card" adds the card when none exists; nothing is fetched until Refresh.
+- Unavailable: a section with `trace.resolved: false` (or an unavailable state) is listed as unavailable, and its count reads "unavailable" instead of a number and its rows are hidden. If the summary itself is unavailable, every count reads "unavailable". A stopped Mongoku shows "Maintenance unavailable: Mongoku is not reachable at ...", and the other cards and modules are unaffected.
+- No action buttons, agent launch, scheduler or credential field. The report carries no secrets and nothing from it is logged or persisted.
+
+### Evidence (tested revision `17f1125`)
+- `.\scripts\build.ps1`: **PASS** (0 errors; smoke tests passed; WorkspaceTests **86/86**, 4 new: parsing, link containment, unresolved/summary-missing/wrongly typed input, fake-server down and read-only GET without credentials).
+- `tests/native/maintenance-card.ps1` against the live read-only Mongoku: **PASS 19/19**. The card showed exactly the API's summary line, next action ("Atlas family: Record a verification at the next review") and counts ("Sources 10/10 · projects 8 · heads 0 · projections 1 · audits 4 · reconciliation 0 · backups not recorded"), 6 row links + "+7 more" (13 rows to act on), no repository names or heads. The first row link opened `http://localhost:3100/?project=atlas` in the embedded Mongoku tab. A card on a stopped Mongoku showed "Maintenance unavailable", while the neighbouring card still refreshed.
+- `tests/native/report-cards.ps1` (regression, the "Open in Mongoku" helper was generalised): **PASS 22/22**.
+- Live values seen: 10/10 sources reachable, 8 of 31 projects to act on, 5 consistent heads, AtlasNote projection not published, 4 partial audits, 0 reconciliation findings. No section was unresolved, so the unresolved path is covered by unit tests only.
+
+### Embedded Mongoku re-run after Mongoku's 5 s `serverSelectionTimeoutMS` fix
+`tests/native/web-embedded.ps1 -RealUrl http://localhost:3100/` on `9323610` (the app code under the card change):
+- Run 1: **9/10** in 26.2 s. The page loaded ("Mongoku · Datapass Mongo Control"); only "open: Power Ops in front" failed (Windows foreground lock while another app had focus).
+- Run 2: **PASS 10/10** in 25.3 s.
+- **No 30-90 s hang** in either run. Memory: 224 MB idle, 679 MB with Mongoku open (6 WebView2 processes, 467 MB), 216 MB after closing.
+- Cold Mongoku: the first MAINTENANCE API call after `vite dev` started took 11.2 s (on-demand compile), and later calls took about 3 s, within the 15 s card timeout.
