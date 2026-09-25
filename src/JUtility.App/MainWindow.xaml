@@ -4,12 +4,14 @@
         Title="J Utility Palette · Power Ops"
         Width="1440" Height="900" MinWidth="360" MinHeight="520"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource PanelBrush}">
+        Background="{DynamicResource PanelBrush}"
+        Foreground="{DynamicResource TextBrush}">
   <Window.TaskbarItemInfo>
     <TaskbarItemInfo x:Name="ShellTaskbarInfo"/>
   </Window.TaskbarItemInfo>
   <Window.Resources>
     <Style x:Key="PrimaryNavButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="0"/>
@@ -25,10 +27,10 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#EAF3FF"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
               </Trigger>
               <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#DCEBFF"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentSoftStrongBrush}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -37,6 +39,7 @@
     </Style>
 
     <Style x:Key="SecondaryNavButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="0"/>
@@ -51,10 +54,10 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#F0F5FB"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource HoverBrush}"/>
               </Trigger>
               <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#E3EDF9"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource HoverStrongBrush}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -81,8 +84,8 @@
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <TextBlock Text="{Binding Label}" FontWeight="{Binding Weight}"/>
-          <Border Grid.Column="1" Background="#EEF2F7" CornerRadius="8" Padding="6,1">
-            <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+          <Border Grid.Column="1" Background="{DynamicResource ChipBrush}" CornerRadius="8" Padding="6,1">
+            <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{DynamicResource MutedBrush}"/>
           </Border>
         </Grid>
       </Button>
@@ -91,21 +94,21 @@
     <HierarchicalDataTemplate x:Key="ProjectTreeTemplate" ItemsSource="{Binding Children}">
       <DockPanel Margin="1,2">
         <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
-        <Border Background="#EEF2F7" CornerRadius="8" Padding="6,1" Margin="8,0,0,0" HorizontalAlignment="Right">
-          <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+        <Border Background="{DynamicResource ChipBrush}" CornerRadius="8" Padding="6,1" Margin="8,0,0,0" HorizontalAlignment="Right">
+          <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{DynamicResource MutedBrush}"/>
         </Border>
       </DockPanel>
     </HierarchicalDataTemplate>
 
     <DataTemplate x:Key="QuickRibbonTemplate">
-      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="9,6" Margin="4,0" MinWidth="104" Background="White" BorderBrush="{StaticResource BorderBrush}" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Subtitle}">
+      <Button Tag="{Binding}" Click="QuickRibbon_Click" Padding="9,6" Margin="4,0" MinWidth="104" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Subtitle}">
         <StackPanel Orientation="Horizontal">
           <Border Width="36" Height="36" CornerRadius="8" Background="{Binding Accent}" Margin="0,0,8,0">
             <TextBlock Text="{Binding Glyph}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
           </Border>
           <StackPanel VerticalAlignment="Center">
             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedBrush}" FontSize="10" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedBrush}" FontSize="10" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
           </StackPanel>
         </StackPanel>
       </Button>
@@ -119,23 +122,23 @@
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,9">
+    <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,9">
       <DockPanel>
         <StackPanel DockPanel.Dock="Left">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="Power Ops" FontSize="18" FontWeight="SemiBold"/>
-            <Border Background="#EAF3FF" CornerRadius="5" Padding="6,2" Margin="8,0,0,0">
-              <TextBlock Text="J Utility Palette" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="SemiBold"/>
+            <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="5" Padding="6,2" Margin="8,0,0,0">
+              <TextBlock Text="J Utility Palette" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="SemiBold"/>
             </Border>
           </StackPanel>
-          <TextBlock Text="Repositories · portals · resources · capture · clipboard" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+          <TextBlock Text="Repositories · portals · resources · capture · clipboard" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
         </StackPanel>
 
         <WrapPanel HorizontalAlignment="Right">
           <Button Content="Sidebar" Click="Sidebar_Click"/>
           <Button Content="Compact" Click="Compact_Click"/>
           <Button Content="Expanded" Click="Expanded_Click"/>
-          <TextBlock Text="Window" VerticalAlignment="Center" Margin="10,0,4,0" Foreground="{StaticResource MutedBrush}"/>
+          <TextBlock Text="Window" VerticalAlignment="Center" Margin="10,0,4,0" Foreground="{DynamicResource MutedBrush}"/>
           <ComboBox Width="132"
                     ItemsSource="{Binding WindowBehaviorOptions}"
                     DisplayMemberPath="Label"
@@ -155,7 +158,7 @@
       <ScrollViewer x:Name="SidebarPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Margin="10">
         <StackPanel>
           <TextBlock Text="Quick access" FontSize="18" FontWeight="SemiBold"/>
-          <TextBlock Text="Open a portal, copy a snippet, or capture something, then get out of the way." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
+          <TextBlock Text="Open a portal, copy a snippet, or capture something, then get out of the way." Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
 
           <DockPanel Margin="0,8,0,4">
             <TextBlock Text="Portals" FontWeight="SemiBold" FontSize="14"/>
@@ -164,11 +167,11 @@
           <ItemsControl x:Name="SidebarPortalList" AutomationProperties.Name="Pinned or favorite portals">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
                   <DockPanel>
                     <StackPanel>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                      <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                      <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                     </StackPanel>
                     <Button Content="Open" Tag="{Binding MainUrl}" Click="OpenUrl_Click" HorizontalAlignment="Right"/>
                   </DockPanel>
@@ -186,11 +189,11 @@
           <ItemsControl x:Name="SidebarResourceList" ItemsSource="{Binding Resources}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
                   <DockPanel>
                     <StackPanel>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                      <TextBlock Text="{Binding Provider}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                      <TextBlock Text="{Binding Provider}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                     </StackPanel>
                     <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click" HorizontalAlignment="Right"/>
                   </DockPanel>
@@ -208,11 +211,11 @@
           <ItemsControl x:Name="SidebarSnippetList" AutomationProperties.Name="Pinned clipboard snippets">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
                   <DockPanel>
                     <StackPanel>
                       <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                      <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                      <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                     </StackPanel>
                     <Button Content="Copy" Tag="{Binding Text}" Click="CopyValue_Click" HorizontalAlignment="Right"/>
                   </DockPanel>
@@ -233,13 +236,13 @@
           <ItemsControl x:Name="SidebarCaptureList" ItemsSource="{Binding Notes}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Background="#FFFBEA" BorderBrush="#E6DFAF" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
+                <Border Background="{DynamicResource NoteBrush}" BorderBrush="{DynamicResource NoteBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,3">
                   <StackPanel>
                     <DockPanel>
                       <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                      <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                      <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                     </DockPanel>
-                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource MutedBrush}"/>
                   </StackPanel>
                 </Border>
               </DataTemplate>
@@ -254,11 +257,11 @@
           <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#FBFCFE" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+        <Border Grid.Row="0" Background="{DynamicResource ToolbarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
           <DockPanel>
             <StackPanel DockPanel.Dock="Left" Width="185" Margin="4,0,8,0">
               <TextBlock x:Name="CurrentModuleTitle" Text="Dashboard" FontSize="15" FontWeight="SemiBold"/>
-              <TextBlock x:Name="CurrentModuleSubtitle" Text="Overview and recent work" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+              <TextBlock x:Name="CurrentModuleSubtitle" Text="Overview and recent work" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
             </StackPanel>
             <Button DockPanel.Dock="Right" x:Name="QuickAddButton" Content="+ Add" Click="QuickAdd_Click" Margin="8,0,0,0"/>
             <TextBox DockPanel.Dock="Right"
@@ -273,7 +276,7 @@
             <TextBlock DockPanel.Dock="Right"
                        Text="Search"
                        VerticalAlignment="Center"
-                       Foreground="{StaticResource MutedBrush}"
+                       Foreground="{DynamicResource MutedBrush}"
                        Margin="8,0,0,0"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
               <ItemsControl x:Name="QuickRibbon" ItemTemplate="{StaticResource QuickRibbonTemplate}" AutomationProperties.Name="Quick actions">
@@ -292,7 +295,7 @@
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
 
-          <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
+          <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
             <DockPanel>
               <StackPanel x:Name="PrimaryNavPanel" DockPanel.Dock="Top" AutomationProperties.Name="Primary navigation">
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Dashboard" Click="PrimaryNav_Click" Content="▦  Dashboard" AutomationProperties.Name="Dashboard"/>
@@ -307,8 +310,8 @@
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Sessions" Click="PrimaryNav_Click" AutomationProperties.Name="Claude sessions">
                   <DockPanel LastChildFill="False" Width="140">
                     <TextBlock Text="◉  Sessions" DockPanel.Dock="Left"/>
-                    <Border x:Name="SessionsNeedsYouBadge" DockPanel.Dock="Right" Background="#B25D12" CornerRadius="8" Padding="6,0" MinWidth="18" Visibility="Collapsed" ToolTip="Sessions that need you">
-                      <TextBlock x:Name="SessionsNeedsYouBadgeText" Text="0" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <Border x:Name="SessionsNeedsYouBadge" DockPanel.Dock="Right" Background="{DynamicResource StatusAttentionBrush}" CornerRadius="8" Padding="6,0" MinWidth="18" Visibility="Collapsed" ToolTip="Sessions that need you">
+                      <TextBlock x:Name="SessionsNeedsYouBadgeText" Text="0" Foreground="{DynamicResource OnStatusBrush}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"/>
                     </Border>
                   </DockPanel>
                 </Button>
@@ -316,13 +319,13 @@
                 <Button Style="{StaticResource PrimaryNavButtonStyle}" Tag="Settings" Click="PrimaryNav_Click" Content="⚙  Settings" AutomationProperties.Name="Settings"/>
               </StackPanel>
               <StackPanel DockPanel.Dock="Bottom" Margin="4,12,4,2">
-                <TextBlock Text="Local-first workspace" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                <TextBlock Text="No cloud sync required" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                <TextBlock Text="Local-first workspace" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
+                <TextBlock Text="No cloud sync required" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
               </StackPanel>
             </DockPanel>
           </Border>
 
-          <Border Grid.Column="1" Background="#F8FAFD" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
+          <Border Grid.Column="1" Background="{DynamicResource SecondaryPanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" Padding="10">
             <Grid>
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -332,7 +335,7 @@
 
               <StackPanel>
                 <TextBlock x:Name="SecondaryTitle" Text="Overview" FontSize="12" FontWeight="SemiBold"/>
-                <TextBlock x:Name="SecondaryHint" Text="Choose a section" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,2,0,8"/>
+                <TextBlock x:Name="SecondaryHint" Text="Choose a section" Foreground="{DynamicResource MutedBrush}" FontSize="10" Margin="0,2,0,8"/>
               </StackPanel>
 
               <Grid Grid.Row="1">
@@ -350,7 +353,7 @@
 
               <StackPanel Grid.Row="2" x:Name="RepoSavedListsPanel" Visibility="Collapsed" Margin="0,10,0,0">
                 <Separator Margin="0,0,0,8"/>
-                <TextBlock Text="SAVED LISTS" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="SemiBold"/>
+                <TextBlock Text="SAVED LISTS" Foreground="{DynamicResource MutedBrush}" FontSize="9" FontWeight="SemiBold"/>
                 <DockPanel Margin="0,5,0,6">
                   <TextBox x:Name="NewRepoListName" MinWidth="112" ToolTip="List name" AutomationProperties.Name="Saved repository list name"/>
                   <Button Content="Save" Click="SaveRepoList_Click"/>
@@ -358,11 +361,11 @@
                 <ItemsControl ItemsSource="{Binding RepositoryLists}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="6" Margin="0,2">
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="6" Margin="0,2">
                         <StackPanel>
                           <DockPanel>
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Items.Count}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                            <TextBlock Text="{Binding Items.Count}" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                           </DockPanel>
                           <WrapPanel>
                             <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
@@ -379,25 +382,25 @@
             </Grid>
           </Border>
 
-          <Border Grid.Column="2" Background="{StaticResource PanelBrush}">
+          <Border Grid.Column="2" Background="{DynamicResource PanelBrush}">
             <TabControl x:Name="WorkspacePanel" Style="{StaticResource WorkspaceTabControlStyle}">
               <TabItem Header="Dashboard">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                   <StackPanel Margin="16">
                     <TextBlock Text="Dashboard" FontSize="26" FontWeight="SemiBold"/>
-                    <TextBlock Text="Recent work and quick access. Editing stays inside the dedicated modules." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,14"/>
+                    <TextBlock Text="Recent work and quick access. Editing stays inside the dedicated modules." Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,14"/>
                     <UniformGrid Columns="5">
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Repositories" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Projects.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Portals" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Portals.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Resources" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Resources.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Captures" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding Notes.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
-                      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Clipboard items" Foreground="{StaticResource MutedBrush}"/><TextBlock Text="{Binding ClipboardItemCount}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Repositories" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding Projects.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Portals" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding Portals.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Resources" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding Resources.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Captures" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding Notes.Count}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
+                      <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="4"><StackPanel><TextBlock Text="Clipboard items" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding ClipboardItemCount}" FontSize="26" FontWeight="SemiBold"/></StackPanel></Border>
                     </UniformGrid>
 
                     <DockPanel Margin="4,16,4,6">
                       <StackPanel>
                         <TextBlock Text="Capture board" FontSize="16" FontWeight="SemiBold"/>
-                        <TextBlock Text="The dashboard view mirrors your Inbox / To-do / Notes / Bookmarks / Read later workflow, with Transcript as the long-text capture type." Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        <TextBlock Text="The dashboard view mirrors your Inbox / To-do / Notes / Bookmarks / Read later workflow, with Transcript as the long-text capture type." Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right">
                         <CheckBox Content="Include completed"
@@ -416,22 +419,22 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="4" Padding="10" MinHeight="150">
+                          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="4" Padding="10" MinHeight="150">
                             <Grid>
                               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                               <DockPanel>
                                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"/>
-                                <Border Background="#EEF2F7" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right">
-                                  <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{StaticResource MutedBrush}"/>
+                                <Border Background="{DynamicResource ChipBrush}" CornerRadius="8" Padding="6,1" HorizontalAlignment="Right">
+                                  <TextBlock Text="{Binding Count}" FontSize="10" Foreground="{DynamicResource MutedBrush}"/>
                                 </Border>
                               </DockPanel>
                               <ItemsControl Grid.Row="1" ItemsSource="{Binding Items}" Margin="0,7,0,4">
                                 <ItemsControl.ItemTemplate>
                                   <DataTemplate>
-                                    <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,4">
+                                    <Border BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,4">
                                       <StackPanel>
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Subject}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                       </StackPanel>
                                     </Border>
                                   </DataTemplate>
@@ -444,7 +447,7 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="4,16,4,0">
+                    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="4,16,4,0">
                       <StackPanel>
                         <DockPanel>
                           <TextBlock Text="Pinned local tools" FontSize="15" FontWeight="SemiBold"/>
@@ -464,7 +467,7 @@
                     <Grid Margin="4,16,4,0">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
 
-                      <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+                      <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
                         <StackPanel>
                           <DockPanel>
                             <TextBlock Text="Pinned / favorite portals" FontSize="15" FontWeight="SemiBold"/>
@@ -476,7 +479,7 @@
                                 <DockPanel Margin="0,5">
                                   <StackPanel>
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                    <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                                   </StackPanel>
                                   <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click" HorizontalAlignment="Right"/>
                                 </DockPanel>
@@ -486,7 +489,7 @@
                         </StackPanel>
                       </Border>
 
-                      <Border Grid.Column="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0">
+                      <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0">
                         <StackPanel>
                           <DockPanel>
                             <TextBlock Text="Pinned / favorite resources" FontSize="15" FontWeight="SemiBold"/>
@@ -495,11 +498,11 @@
                           <ItemsControl x:Name="DashboardResourceList" ItemsSource="{Binding Resources}">
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,5">
+                                <Border BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,5">
                                   <DockPanel>
                                     <StackPanel>
                                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                      <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="10">
+                                      <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="10">
                                         <Run Text="{Binding Provider}"/><Run Text=" · "/><Run Text="{Binding Kind}"/>
                                       </TextBlock>
                                     </StackPanel>
@@ -515,7 +518,7 @@
                         </StackPanel>
                       </Border>
 
-                      <Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
+                      <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
                         <StackPanel>
                           <DockPanel>
                             <TextBlock Text="Saved repository lists" FontSize="15" FontWeight="SemiBold"/>
@@ -524,11 +527,11 @@
                           <ItemsControl ItemsSource="{Binding RepositoryLists}">
                             <ItemsControl.ItemTemplate>
                               <DataTemplate>
-                                <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="0,5">
+                                <Border BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,5">
                                   <DockPanel>
                                     <StackPanel>
                                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                      <TextBlock Text="{Binding Items.Count, StringFormat={}{0} repositories}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                      <TextBlock Text="{Binding Items.Count, StringFormat={}{0} repositories}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                                     </StackPanel>
                                     <WrapPanel HorizontalAlignment="Right">
                                       <Button Content="Load" Tag="{Binding}" Click="LoadRepoList_Click"/>
@@ -553,10 +556,10 @@
                   <DockPanel Grid.Row="0" Margin="0,0,0,8">
                     <StackPanel>
                       <TextBlock Text="Repository Hub" FontSize="20" FontWeight="SemiBold"/>
-                      <TextBlock Text="One project row, four primary links: GitHub, website, server, ChatGPT." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      <TextBlock Text="One project row, four primary links: GitHub, website, server, ChatGPT." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                     </StackPanel>
                     <WrapPanel HorizontalAlignment="Right">
-                      <TextBlock x:Name="SelectedRepoCountText" Text="0 selected" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
+                      <TextBlock x:Name="SelectedRepoCountText" Text="0 selected" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0"/>
                       <TextBox x:Name="RepoSearchBox" Width="210" ToolTip="Search repository name, description, category, language…" TextChanged="RepoSearch_TextChanged" AutomationProperties.Name="Repository search"/>
                       <Button Content="+ Project" Click="AddProject_Click"/>
                       <Button Content="Sync GitHub" Click="SyncGitHub_Click" ToolTip="Uses the authenticated GitHub CLI when available; otherwise imports public repositories."/>
@@ -570,7 +573,7 @@
                     </WrapPanel>
                   </DockPanel>
 
-                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" FrozenColumnCount="2" CellEditEnding="ProjectsGrid_CellEditEnding" AutomationProperties.Name="Repository projects">
+                  <DataGrid x:Name="ProjectsGrid" Grid.Row="1" ItemsSource="{Binding Projects}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="{DynamicResource SurfaceBrush}" FrozenColumnCount="2" CellEditEnding="ProjectsGrid_CellEditEnding" AutomationProperties.Name="Repository projects">
                     <DataGrid.Columns>
                       <DataGridTemplateColumn Header="✓" Width="36">
                         <DataGridTemplateColumn.CellTemplate>
@@ -674,7 +677,7 @@
                     </DataGrid.Columns>
                   </DataGrid>
 
-                  <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Select a project with ✓ to include every available URL by default. Each link cell has its own bottom-left include box so you can exclude individual URLs without deselecting the project. Saved lists preserve the exact choices."/>
+                  <TextBlock Grid.Row="2" Margin="4,8,4,0" Foreground="{DynamicResource MutedBrush}" Text="Select a project with ✓ to include every available URL by default. Each link cell has its own bottom-left include box so you can exclude individual URLs without deselecting the project. Saved lists preserve the exact choices."/>
                 </Grid>
               </TabItem>
 
@@ -687,7 +690,7 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Portal Launcher" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Direct-open services; no selection workflow." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Direct-open services; no selection workflow." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                         <Button Content="Starter pack" Click="AddStarterCatalog_Click" ToolTip="Add missing common service portals and reusable workflow snippets"/>
@@ -698,19 +701,19 @@
                     <ListBox x:Name="PortalList" Grid.Row="1" ItemsSource="{Binding Portals}" SelectedItem="{Binding SelectedPortal}" Margin="0,8" MouseDoubleClick="PortalList_MouseDoubleClick" KeyDown="PortalList_KeyDown" AutomationProperties.Name="Portals" AutomationProperties.HelpText="Press Enter to open the selected portal. Press Ctrl+C to copy its URL.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
-                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
+                          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
                             <StackPanel>
                               <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <Border Width="36" Height="36" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
-                                  <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Top">
+                                  <TextBlock Text="{Binding IconKey}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="8,0">
                                   <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
                                   </StackPanel>
-                                  <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
-                                  <TextBlock Text="{Binding MainUrl}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                  <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
+                                  <TextBlock Text="{Binding MainUrl}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                                   <Button Content="Open ↗" Tag="{Binding MainUrl}" Click="OpenUrl_Click"/>
@@ -735,7 +738,7 @@
                                     <DockPanel Margin="0,2">
                                       <StackPanel>
                                         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="11"/>
-                                        <TextBlock Text="{Binding Project}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+                                        <TextBlock Text="{Binding Project}" Foreground="{DynamicResource MutedBrush}" FontSize="9"/>
                                       </StackPanel>
                                       <WrapPanel HorizontalAlignment="Right">
                                         <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
@@ -778,7 +781,7 @@
                         <TextBlock Text="Quick actions · up to 3 recommended" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button Content="+ Quick action" HorizontalAlignment="Right" Click="AddPortalQuickAction_Click"/>
                       </DockPanel>
-                      <DataGrid x:Name="PortalQuickActionsGrid" ItemsSource="{Binding QuickActions}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" MaxHeight="155" Margin="0,4,0,8">
+                      <DataGrid x:Name="PortalQuickActionsGrid" ItemsSource="{Binding QuickActions}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="{DynamicResource SurfaceBrush}" MaxHeight="155" Margin="0,4,0,8">
                         <DataGrid.Columns>
                           <DataGridTextColumn Header="Action" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
                           <DataGridTextColumn Header="URL" Binding="{Binding Url, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
@@ -791,7 +794,7 @@
                       </DockPanel>
                     </StackPanel>
 
-                    <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="White" AutomationProperties.Name="Portal project links">
+                    <DataGrid x:Name="PortalLinksGrid" Grid.Row="2" ItemsSource="{Binding Links}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0" Background="{DynamicResource SurfaceBrush}" AutomationProperties.Name="Portal project links">
                       <DataGrid.Columns>
                         <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
                         <DataGridTextColumn Header="Project" Binding="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
@@ -811,7 +814,7 @@
                       </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" Text="Top-ribbon portal icons open the main URL immediately. Sub-links remain attached to this service for project-specific navigation."/>
+                    <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{DynamicResource MutedBrush}" Text="Top-ribbon portal icons open the main URL immediately. Sub-links remain attached to this service for project-specific navigation."/>
                   </Grid>
                 </Grid>
               </TabItem>
@@ -824,21 +827,21 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Tool Launcher" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Launch VS Code and your small local PowerToy utilities." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Launch VS Code and your small local PowerToy utilities." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <Button Content="+ Tool" HorizontalAlignment="Right" Click="AddTool_Click"/>
                     </DockPanel>
                     <ListBox x:Name="ToolList" Grid.Row="1" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}" Margin="0,8">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
-                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
+                          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="9" Margin="0,4">
                             <DockPanel>
-                              <Border Width="36" Height="36" CornerRadius="8" Background="#EAF3FF" Margin="0,0,8,0">
-                                <TextBlock Text="{Binding IconKey}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding IconKey}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                               </Border>
                               <StackPanel>
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                               </StackPanel>
                               <Button Content="Launch" Tag="{Binding}" Click="LaunchTool_Click" HorizontalAlignment="Right"/>
                             </DockPanel>
@@ -861,7 +864,7 @@
                     <TextBox Grid.Row="4" Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" ToolTip="Optional working directory"/>
                     <StackPanel Grid.Row="5" Margin="3,12,3,3">
                       <Button Content="Launch tool" Tag="{Binding}" Click="LaunchTool_Click" HorizontalAlignment="Left"/>
-                      <TextBlock Text="Examples: command = code, wt, an .exe path, a .bat/.cmd file, or another registered Windows command. Arguments can point VS Code at a project folder." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                      <TextBlock Text="Examples: command = code, wt, an .exe path, a .bat/.cmd file, or another registered Windows command. Arguments can point VS Code at a project folder." TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,0"/>
                     </StackPanel>
                   </Grid>
                 </Grid>
@@ -874,7 +877,7 @@
                     <DockPanel Margin="0,0,0,10">
                       <StackPanel>
                         <TextBlock Text="System / Cheat Sheet" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Live machine facts, useful Windows configuration and developer paths." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Live machine facts, useful Windows configuration and developer paths." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <Button Content="Refresh" Click="RefreshSystemInfo_Click" HorizontalAlignment="Right" VerticalAlignment="Top"/>
                     </DockPanel>
@@ -885,9 +888,9 @@
                       </ItemsControl.ItemsPanel>
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Border Width="220" MinHeight="74" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,8,8">
+                          <Border Width="220" MinHeight="74" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,8,8">
                             <StackPanel>
-                              <TextBlock Text="{Binding Label}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              <TextBlock Text="{Binding Label}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                               <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
                           </Border>
@@ -899,22 +902,22 @@
                     <ItemsControl x:Name="SystemReferenceList">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,7">
+                          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,7">
                             <Grid>
                               <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="42"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                               </Grid.ColumnDefinitions>
-                              <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding Glyph}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding Glyph}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                               </Border>
                               <StackPanel Grid.Column="1" Margin="8,0,10,0">
                                 <DockPanel>
                                   <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                  <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right"/>
+                                  <TextBlock Text="{Binding Category}" Foreground="{DynamicResource MutedBrush}" FontSize="10" HorizontalAlignment="Right"/>
                                 </DockPanel>
-                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding Description}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                 <TextBlock Text="{Binding CopyValue}" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0"/>
                               </StackPanel>
                               <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -939,7 +942,7 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Resource Hub" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Specific folders, repositories, documents and dashboards across your services." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Specific folders, repositories, documents and dashboards across your services." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right">
                         <Button Content="Import repos" Click="ImportRepositoryResources_Click" ToolTip="Create/update GitHub resource links from Repository Hub"/>
@@ -951,18 +954,18 @@
                     <ListBox x:Name="ResourceList" Grid.Row="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" Margin="0,8" MouseDoubleClick="ResourceList_MouseDoubleClick" KeyDown="ResourceList_KeyDown" AutomationProperties.Name="Resources" AutomationProperties.HelpText="Press Enter to open the selected resource. Press Ctrl+C to copy its URL.">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
-                          <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,4">
+                          <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,4">
                             <Grid>
                               <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                              <Border Width="34" Height="34" CornerRadius="8" Background="#EAF3FF" VerticalAlignment="Top">
-                                <TextBlock Text="◆" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                              <Border Width="34" Height="34" CornerRadius="8" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Top">
+                                <TextBlock Text="◆" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                               </Border>
                               <StackPanel Grid.Column="1" Margin="8,0">
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="10">
+                                <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="10">
                                   <Run Text="{Binding Provider}"/><Run Text=" · "/><Run Text="{Binding Kind}"/><Run Text=" · "/><Run Text="{Binding Group}"/>
                                 </TextBlock>
-                                <TextBlock Text="{Binding Url}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Url}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                               </StackPanel>
                               <WrapPanel Grid.Column="2">
                                 <Button Content="Open" Tag="{Binding Url}" Click="OpenUrl_Click"/>
@@ -1011,7 +1014,7 @@
                     <TextBlock Grid.Row="1" Text="Notes" FontWeight="SemiBold" Margin="3,10,3,3"/>
                     <TextBox Grid.Row="2" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="3" AutomationProperties.Name="Resource notes"/>
 
-                    <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
+                    <TextBlock Grid.Row="3" Margin="4,8,4,0" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"
                                Text="Use Resource Hub for exact destinations such as a Google Drive folder, Dropbox folder, GitHub repository, Notion page or shared document. Portal Launcher remains for service home pages."/>
                   </Grid>
                 </Grid>
@@ -1026,7 +1029,7 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Capture" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Inbox · To-do · Notes · Bookmarks · Read later · Transcript" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Inbox · To-do · Notes · Bookmarks · Read later · Transcript" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right">
                         <CheckBox Content="Include completed"
@@ -1047,10 +1050,10 @@
                             <StackPanel>
                               <DockPanel>
                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                <TextBlock Text="{Binding Kind}" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                               </DockPanel>
-                              <TextBlock Text="{Binding Subject}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
-                              <TextBlock Text="{Binding Text}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Text="{Binding Subject}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Text="{Binding Text}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -1117,7 +1120,7 @@
                   <DockPanel Margin="0,0,0,8">
                     <StackPanel>
                       <TextBlock Text="Clipboard Library" FontSize="20" FontWeight="SemiBold"/>
-                      <TextBlock Text="Reusable text, screenshots and short clips organized by project and category." Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                      <TextBlock Text="Reusable text, screenshots and short clips organized by project and category." Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                     </StackPanel>
                     <WrapPanel HorizontalAlignment="Right">
                       <Button Content="Paste image" Click="PasteClipboardImage_Click" ToolTip="Save the image currently on the Windows clipboard"/>
@@ -1135,7 +1138,7 @@
                           <DockPanel>
                             <StackPanel>
                               <TextBlock Text="Snippets" FontSize="16" FontWeight="SemiBold"/>
-                              <TextBlock Text="Commands, URLs, signatures and reusable text" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              <TextBlock Text="Commands, URLs, signatures and reusable text" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                             </StackPanel>
                             <Button Content="+ Snippet" HorizontalAlignment="Right" Click="AddSnippet_Click"/>
                           </DockPanel>
@@ -1147,9 +1150,9 @@
                                   <StackPanel>
                                     <DockPanel>
                                       <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                      <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                      <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                                     </DockPanel>
-                                    <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}"/>
+                                    <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource MutedBrush}"/>
                                   </StackPanel>
                                 </Border>
                               </DataTemplate>
@@ -1174,7 +1177,7 @@
 
                           <WrapPanel Grid.Row="2">
                             <Button Content="Copy now" Click="CopySnippet_Click"/>
-                            <TextBlock Text="Prompt Builder remains separate for composed multi-module prompts." VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8"/>
+                            <TextBlock Text="Prompt Builder remains separate for composed multi-module prompts." VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" Margin="8"/>
                           </WrapPanel>
                         </Grid>
                       </Grid>
@@ -1189,7 +1192,7 @@
                           <DockPanel>
                             <StackPanel>
                               <TextBlock Text="Media collection" FontSize="16" FontWeight="SemiBold"/>
-                              <TextBlock Text="Screenshots and small reference clips stored locally" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                              <TextBlock Text="Screenshots and small reference clips stored locally" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                             </StackPanel>
                           </DockPanel>
 
@@ -1204,16 +1207,16 @@
                                 <Border Padding="7">
                                   <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Border Width="48" Height="42" Background="#EEF2F7" CornerRadius="5">
+                                    <Border Width="48" Height="42" Background="{DynamicResource ChipBrush}" CornerRadius="5">
                                       <TextBlock Text="{Binding Kind}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                       <DockPanel>
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                        <TextBlock Text="{Binding Category}" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                                       </DockPanel>
-                                      <TextBlock Text="{Binding FileName}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
-                                      <TextBlock Text="{Binding Tags}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                      <TextBlock Text="{Binding FileName}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                      <TextBlock Text="{Binding Tags}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                   </Grid>
                                 </Border>
@@ -1240,10 +1243,10 @@
                                         AutomationProperties.Name="Media project"/>
                               <CheckBox Content="Pinned" IsChecked="{Binding IsPinned}" Margin="8" Click="ClipboardMediaChanged"/>
                             </WrapPanel>
-                            <TextBlock Text="{Binding Kind}" Foreground="{StaticResource MutedBrush}" Margin="3,3,0,0"/>
+                            <TextBlock Text="{Binding Kind}" Foreground="{DynamicResource MutedBrush}" Margin="3,3,0,0"/>
                           </StackPanel>
 
-                          <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="3,8" Padding="8">
+                          <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="3,8" Padding="8">
                             <Grid>
                               <Image Source="{Binding ResolvedPath}" Stretch="Uniform" MaxHeight="470">
                                 <Image.Style>
@@ -1260,7 +1263,7 @@
                               <TextBlock Text="Video clip — open with the default Windows player"
                                          FontSize="15"
                                          FontWeight="SemiBold"
-                                         Foreground="{StaticResource MutedBrush}"
+                                         Foreground="{DynamicResource MutedBrush}"
                                          HorizontalAlignment="Center"
                                          VerticalAlignment="Center">
                                 <TextBlock.Style>
@@ -1281,7 +1284,7 @@
                             <Button Content="Copy" Click="CopyClipboardMedia_Click"/>
                             <Button Content="Open" Click="OpenClipboardMedia_Click"/>
                             <Button Content="Delete" Click="DeleteClipboardMedia_Click"/>
-                            <TextBlock Text="{Binding RelativePath}" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="8" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+                            <TextBlock Text="{Binding RelativePath}" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" Margin="8" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
                           </WrapPanel>
                         </Grid>
                       </Grid>
@@ -1299,7 +1302,7 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Prompt Builder" FontSize="20" FontWeight="SemiBold"/>
-                        <TextBlock Text="Compose reusable modules with project variables" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                        <TextBlock Text="Compose reusable modules with project variables" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                       </StackPanel>
                       <Button Content="+ Module" HorizontalAlignment="Right" Click="AddModule_Click"/>
                     </DockPanel>
@@ -1323,7 +1326,7 @@
                       </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <TextBlock Grid.Row="2" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Text="Variables: {{project}}, {{repo}}, {{site}}, {{server}}, {{chatgpt}}, {{extra}}. Unknown variables remain visible."/>
+                    <TextBlock Grid.Row="2" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Text="Variables: {{project}}, {{repo}}, {{site}}, {{server}}, {{chatgpt}}, {{extra}}. Unknown variables remain visible."/>
                   </Grid>
 
                   <Grid Grid.Column="1" Margin="8,0,0,0">
@@ -1340,7 +1343,7 @@
                           <ItemsControl.ItemTemplate>
                             <DataTemplate>
                               <DockPanel Margin="0,2">
-                                <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
+                                <TextBlock Text="{Binding Name}" Width="130" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
                                 <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" MinWidth="220" ToolTip="Value for this {{variable}} placeholder" AutomationProperties.Name="Prompt variable value"/>
                               </DockPanel>
                             </DataTemplate>
@@ -1361,7 +1364,7 @@
                           <DockPanel Margin="4">
                             <StackPanel>
                               <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                              <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{StaticResource MutedBrush}" MaxWidth="420"/>
+                              <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource MutedBrush}" MaxWidth="420"/>
                             </StackPanel>
                             <WrapPanel HorizontalAlignment="Right">
                               <Button Content="Recall" Tag="{Binding}" Click="RecallRecentPrompt_Click"/>
@@ -1381,7 +1384,7 @@
                     <DockPanel>
                       <StackPanel>
                         <TextBlock Text="Claude Code sessions" FontSize="22" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="SessionsSummaryText" Text="Scanning…" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,10"/>
+                        <TextBlock x:Name="SessionsSummaryText" Text="Scanning…" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,10"/>
                       </StackPanel>
                       <WrapPanel HorizontalAlignment="Right" VerticalAlignment="Top">
                         <CheckBox x:Name="SessionsShowOldCheck" Content="Show archived / old (&gt;3 days)" VerticalAlignment="Center" Margin="0,0,10,0" Click="SessionsFilter_Click"/>
@@ -1389,33 +1392,33 @@
                       </WrapPanel>
                     </DockPanel>
                     <WrapPanel x:Name="SessionsStatusChips" Margin="0,0,0,4">
-                      <TextBlock Text="Status" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
+                      <TextBlock Text="Status" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
                     </WrapPanel>
                     <WrapPanel x:Name="SessionsTypeChips" Margin="0,0,0,10">
-                      <TextBlock Text="Type" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
+                      <TextBlock Text="Type" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
                     </WrapPanel>
                   </StackPanel>
                   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
-                      <TextBlock x:Name="SessionsEmptyText" Visibility="Collapsed" Foreground="{StaticResource MutedBrush}" Margin="4,12" TextWrapping="Wrap"/>
+                      <TextBlock x:Name="SessionsEmptyText" Visibility="Collapsed" Foreground="{DynamicResource MutedBrush}" Margin="4,12" TextWrapping="Wrap"/>
                       <ItemsControl x:Name="SessionGroupList" AutomationProperties.Name="Claude sessions grouped by project">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,8" Padding="4">
+                            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,8" Padding="4">
                               <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Expanded="SessionGroup_Toggled" Collapsed="SessionGroup_Toggled" Tag="{Binding Name}">
                                 <Expander.Header>
                                   <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" Margin="10,1,0,0" FontSize="11"/>
-                                    <Border Background="#B25D12" CornerRadius="8" Padding="6,0" Margin="10,1,0,0" Visibility="{Binding NeedsYouVisibility}">
-                                      <TextBlock Text="{Binding NeedsYouLabel}" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Meta}" Foreground="{DynamicResource MutedBrush}" Margin="10,1,0,0" FontSize="11"/>
+                                    <Border Background="{DynamicResource StatusAttentionBrush}" CornerRadius="8" Padding="6,0" Margin="10,1,0,0" Visibility="{Binding NeedsYouVisibility}">
+                                      <TextBlock Text="{Binding NeedsYouLabel}" Foreground="{DynamicResource OnStatusBrush}" FontSize="10" FontWeight="Bold"/>
                                     </Border>
                                   </StackPanel>
                                 </Expander.Header>
                                 <ItemsControl ItemsSource="{Binding Sessions}" Margin="0,4,0,0">
                                   <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                      <Border BorderBrush="#EEF1F5" BorderThickness="0,1,0,0" Padding="6,6" Background="{Binding RowBackground}">
+                                      <Border BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="6,6" Background="{Binding RowBackground}">
                                         <Grid>
                                           <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="28"/>
@@ -1427,7 +1430,7 @@
                                           <Grid Width="22" Height="22" VerticalAlignment="Center" ToolTip="{Binding StatusTooltip}">
                                             <Ellipse Fill="{Binding StatusBrush}" Opacity="{Binding SymbolBackgroundOpacity}"/>
                                             <TextBlock Text="{Binding Symbol}" Foreground="{Binding SymbolForeground}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            <Ellipse x:Name="WorkingDot" Width="10" Height="10" Fill="#0F6E7A" Visibility="{Binding WorkingVisibility}">
+                                            <Ellipse x:Name="WorkingDot" Width="10" Height="10" Fill="{DynamicResource StatusOkBrush}" Visibility="{Binding WorkingVisibility}">
                                               <Ellipse.Triggers>
                                                 <EventTrigger RoutedEvent="Loaded">
                                                   <BeginStoryboard>
@@ -1441,10 +1444,10 @@
                                           </Grid>
                                           <StackPanel Grid.Column="1" Margin="4,0,8,0" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}"/>
-                                            <TextBlock Text="{Binding Meta}" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Meta}" Foreground="{DynamicResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                           </StackPanel>
-                                          <TextBlock Grid.Column="2" Text="{Binding Ago}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" ToolTip="{Binding LastActivityText}"/>
-                                          <TextBlock Grid.Column="3" Text="{Binding LastLine}" Foreground="#3A4455" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0">
+                                          <TextBlock Grid.Column="2" Text="{Binding Ago}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" ToolTip="{Binding LastActivityText}"/>
+                                          <TextBlock Grid.Column="3" Text="{Binding LastLine}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0">
                                             <TextBlock.ToolTip>
                                               <ToolTip MaxWidth="640"><TextBlock Text="{Binding FullText}" TextWrapping="Wrap"/></ToolTip>
                                             </TextBlock.ToolTip>
@@ -1470,7 +1473,7 @@
                   <StackPanel Margin="18" MaxWidth="760" HorizontalAlignment="Left">
                     <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"/>
                     <TextBlock Text="Window behavior" FontSize="16" FontWeight="SemiBold" Margin="0,16,0,3"/>
-                    <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,3,0,8"/>
+                    <TextBlock Text="Choose whether the utility behaves like a normal window, stays above other apps, or is summoned only when needed." TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,3,0,8"/>
                     <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding WindowBehaviorOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding WindowBehavior, Mode=TwoWay}" SelectionChanged="WindowBehavior_Changed" AutomationProperties.Name="Window behavior"/>
 
                     <TextBlock Text="Summon trigger" FontWeight="SemiBold" Margin="0,14,0,3"/>
@@ -1486,11 +1489,11 @@
                     <TextBlock Text="GitHub repository discovery" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Text="Owner / account" FontWeight="SemiBold" Margin="0,10,0,0"/>
                     <TextBox Width="300" HorizontalAlignment="Left" Text="{Binding GitHubOwner, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Sync GitHub first tries your local authenticated gh CLI, so private repositories can be discovered without storing a token in the workspace. If gh is unavailable it falls back to public repositories only." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                    <TextBlock Text="Sync GitHub first tries your local authenticated gh CLI, so private repositories can be discovered without storing a token in the workspace. If gh is unavailable it falls back to public repositories only." TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0"/>
 
                     <Separator Margin="0,16,0,12"/>
                     <TextBlock Text="Starter cockpit" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Text="Merge missing common service portals and reusable workflow snippets into this workspace. Existing customized entries are preserved." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,8"/>
+                    <TextBlock Text="Merge missing common service portals and reusable workflow snippets into this workspace. Existing customized entries are preserved." TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,8"/>
                     <Button Content="Add missing starter links" Width="210" HorizontalAlignment="Left" Click="AddStarterCatalog_Click"/>
 
                     <Separator Margin="0,16,0,12"/>
@@ -1511,10 +1514,10 @@
       </Grid>
     </Grid>
 
-    <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,5">
+    <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,5">
       <DockPanel>
-        <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}"/>
-        <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" Text="Local JSON · Normal / Topmost / Summon"/>
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource MutedBrush}"/>
+        <TextBlock HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}" Text="Local JSON · Normal / Topmost / Summon"/>
       </DockPanel>
     </Border>
   </Grid>

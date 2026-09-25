@@ -221,6 +221,14 @@ Read-only live view of every Claude Code session on this PC, grouped by project 
 - Status: **Needs you** (pending AskUserQuestion/ExitPlanMode, a tool call stalled > 5 min, or a final message ending in a question / waiting for input or a manual test), **Working** (written in the last 60 s or a tool running < 5 min), **Done** (reports done/merged, or all its PRs merged), otherwise **Idle**. Sessions archived or idle > 3 days are hidden unless toggled on.
 - Refresh: file watcher (debounced 1 s) + 10 s timer. The Needs-you count shows as a badge on the Sessions nav button and as a taskbar overlay.
 
+## Light / dark theme
+
+Power Ops follows the Windows app mode (`HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` → `AppsUseLightTheme`) and switches live when it changes, title bar included.
+
+- Color tokens live in `JUtility.Core/Services/ThemePalette.cs` (light + dark, same keys). `ThemeService` turns them into brushes in `Application.Resources`; XAML must reference them with `DynamicResource`, never hard-coded colors.
+- Status colors follow the Effort Board: teal `#0F6E7A` = OK, amber `#B25D12` = attention, with lighter dark-mode variants (`#3FB6C4`, `#F0A155`). Smoke tests enforce contrast for text and status colors in both palettes.
+- `JUTILITY_THEME=light|dark` pins the theme for a run (acceptance screenshots) without touching Windows settings.
+
 ## Navigation model
 
 ```text
