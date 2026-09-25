@@ -5,8 +5,9 @@ public sealed record RingNode(RingItem Item, int Level, int Index, double X, dou
 
 /// <summary>
 /// Where every button goes, all levels visible at once: the main circle around the centre, each item's children on the
-/// next circle right behind it (fanned around its angle), and optionally a third circle. Each circle starts as close
-/// as possible and only moves out until no two buttons touch. Coordinates are relative to the disc centre, already
+/// next circle right behind it (fanned around its angle), and optionally a third circle. Each circle sits as close as
+/// possible: children first slide sideways along their circle (staying centred on their parent where there is room),
+/// and the circle only moves out when the whole circle is full. Coordinates are relative to the disc centre, already
 /// multiplied by appearance.scale.
 /// </summary>
 public static class RingLayout
@@ -31,29 +32,13 @@ public static class RingLayout
             level1.Add(new RingNode(items[i], 1, i, r1 * Math.Cos(angle), r1 * Math.Sin(angle), s1, a.IconSize * k, angle, null));
         }
 
-        // Circle 2: fan each item's children around its angle; grow the radius until nothing touches.
-        List<RingNode> level2 = [];
-        double r2 = r1 + s1 / 2 + gap + s2 / 2;
-        if (showSecond && level1.Any(x => Children(x.Item).Count > 0))
-        {
-            for (int attempt = 0; attempt < 400; attempt++, r2 += 1.5 * k)
-            {
-                level2 = Fan(level1, r2, s2, a.SatelliteIconSize * k, gap, 2);
-                if (!Overlaps(level2, gap * 0.6) && !Overlaps(level1.Concat(level2).ToList(), gap * 0.6)) break;
-            }
-        }
+        // Circle 2: children packed along the circle right behind circle 1.
+        List<RingNode> level2 = showSecond ? Pack(level1, r1 + s1 / 2 + gap * 0.7 + s2 / 2, s2, a.SatelliteIconSize * k, gap * 0.6, 2) : [];
+        double r2 = level2.Count > 0 ? Radius(level2[0]) : r1 + s1 / 2 + gap + s2 / 2;
 
         // Circle 3: the same for the children's children.
-        List<RingNode> level3 = [];
-        double r3 = r2 + s2 / 2 + gap + s3 / 2;
-        if (showThird && level2.Any(x => Children(x.Item).Count > 0))
-        {
-            for (int attempt = 0; attempt < 400; attempt++, r3 += 1.5 * k)
-            {
-                level3 = Fan(level2, r3, s3, a.ThirdIconSize * k, gap * 0.6, 3);
-                if (!Overlaps(level3, gap * 0.4) && !Overlaps(level2.Concat(level3).ToList(), gap * 0.4)) break;
-            }
-        }
+        List<RingNode> level3 = showThird && level2.Count > 0 ? Pack(level2, r2 + s2 / 2 + gap * 0.6 + s3 / 2, s3, a.ThirdIconSize * k, gap * 0.4, 3) : [];
+        double r3 = level3.Count > 0 ? Radius(level3[0]) : r2;
 
         var nodes = level1.Concat(level2).Concat(level3).ToList();
         double outer = nodes.Count == 0 ? center / 2 : nodes.Max(x => Math.Sqrt(x.X * x.X + x.Y * x.Y) + x.Size / 2);
@@ -68,20 +53,50 @@ public static class RingLayout
     public static IReadOnlyList<RingItem> Children(RingItem item) =>
         item.Items is { Count: > 0 } items ? items.Take(RingConfigs.MaxSatellites).ToList() : [];
 
-    private static List<RingNode> Fan(List<RingNode> parents, double radius, double size, double iconSize, double gap, int level)
+    private static double Radius(RingNode node) => Math.Sqrt(node.X * node.X + node.Y * node.Y);
+
+    /// <summary>
+    /// Places every parent's children on one circle: each group starts fanned around its parent's angle, then
+    /// neighbours are pushed apart along the circle until none touch (keeping their order). The radius only grows
+    /// when the circle cannot hold them all side by side.
+    /// </summary>
+    private static List<RingNode> Pack(List<RingNode> parents, double minRadius, double size, double iconSize, double gap, int level)
     {
-        var nodes = new List<RingNode>();
+        var wanted = new List<(RingItem Item, int Index, RingNode Parent, double Angle)>();
+        int count = parents.Sum(p => Children(p.Item).Count);
+        if (count == 0) return [];
+        double radius = Math.Max(minRadius, count * (size + gap) / (2 * Math.PI) * 1.02);
         double step = (size + gap) / radius;
         foreach (RingNode parent in parents)
         {
             IReadOnlyList<RingItem> kids = Children(parent.Item);
             for (int c = 0; c < kids.Count; c++)
-            {
-                double angle = parent.Angle + (c - (kids.Count - 1) / 2.0) * step;
-                nodes.Add(new RingNode(kids[c], level, c, radius * Math.Cos(angle), radius * Math.Sin(angle), size, iconSize, angle, parent));
-            }
+                wanted.Add((kids[c], c, parent, parent.Angle + (c - (kids.Count - 1) / 2.0) * step));
         }
-        return nodes;
+
+        // 1D packing on the circle: relax overlapping neighbours in angle order (around the full turn).
+        var angles = wanted.Select(w => w.Angle).ToArray();
+        int[] order = Enumerable.Range(0, angles.Length).OrderBy(i => angles[i]).ToArray();
+        for (int iteration = 0; iteration < 600; iteration++)
+        {
+            bool moved = false;
+            for (int j = 0; j < order.Length && order.Length > 1; j++)
+            {
+                int a = order[j], b = order[(j + 1) % order.Length];
+                double diff = angles[b] - angles[a];
+                if (j == order.Length - 1) diff += 2 * Math.PI;
+                if (diff < step - 1e-9)
+                {
+                    double push = (step - diff) / 2;
+                    angles[a] -= push;
+                    angles[b] += push;
+                    moved = true;
+                }
+            }
+            if (!moved) break;
+        }
+
+        return wanted.Select((w, i) => new RingNode(w.Item, level, w.Index, radius * Math.Cos(angles[i]), radius * Math.Sin(angles[i]), size, iconSize, angles[i], w.Parent)).ToList();
     }
 
     /// <summary>True when two buttons are closer than their radii plus <paramref name="gap"/>.</summary>
