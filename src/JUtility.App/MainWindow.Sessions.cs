@@ -24,12 +24,6 @@ public sealed class SessionGroupView
 
 public sealed class SessionRowView
 {
-    // Same palette as the Effort Board: teal = OK, amber = attention.
-    private static readonly Brush Teal = Freeze(new SolidColorBrush(Color.FromRgb(0x0F, 0x6E, 0x7A)));
-    private static readonly Brush Amber = Freeze(new SolidColorBrush(Color.FromRgb(0xB2, 0x5D, 0x12)));
-    private static readonly Brush Slate = Freeze(new SolidColorBrush(Color.FromRgb(0x8A, 0x94, 0xA6)));
-    private static readonly Brush AmberRow = Freeze(new SolidColorBrush(Color.FromRgb(0xFD, 0xF4, 0xEA)));
-
     public SessionRowView(ClaudeSessionInfo info, DateTimeOffset now)
     {
         Info = info;
@@ -65,14 +59,16 @@ public sealed class SessionRowView
         _ => "",
     };
 
-    public Brush StatusBrush => Info.Status switch
+    // Same palette as the Effort Board (teal = OK, amber = attention), resolved from the active
+    // light/dark theme. Rows are rebuilt on every render, including after a theme switch.
+    public Brush StatusBrush => ThemeBrush(Info.Status switch
     {
-        ClaudeSessionStatus.NeedsYou => Amber,
-        ClaudeSessionStatus.Idle => Slate,
-        _ => Teal,
-    };
+        ClaudeSessionStatus.NeedsYou => "StatusAttentionBrush",
+        ClaudeSessionStatus.Idle => "StatusIdleBrush",
+        _ => "StatusOkBrush",
+    });
 
-    public Brush SymbolForeground => Info.Status == ClaudeSessionStatus.NeedsYou ? Brushes.White : StatusBrush;
+    public Brush SymbolForeground => Info.Status == ClaudeSessionStatus.NeedsYou ? ThemeBrush("OnStatusBrush") : StatusBrush;
     public double SymbolBackgroundOpacity => Info.Status switch
     {
         ClaudeSessionStatus.NeedsYou => 1.0,
@@ -80,7 +76,7 @@ public sealed class SessionRowView
         _ => 0.14,
     };
 
-    public Brush RowBackground => Info.Status == ClaudeSessionStatus.NeedsYou ? AmberRow : Brushes.Transparent;
+    public Brush RowBackground => Info.Status == ClaudeSessionStatus.NeedsYou ? ThemeBrush("AttentionRowBrush") : Brushes.Transparent;
     public Visibility WorkingVisibility => Info.Status == ClaudeSessionStatus.Working ? Visibility.Visible : Visibility.Collapsed;
     public string StatusTooltip => $"{MainWindow.SessionStatusLabel(Info.Status)} — {Info.StatusReason}";
     public string GoTooltip => Info.DeepLink ?? "No deep link found: opens Claude and copies the session title";
@@ -93,11 +89,7 @@ public sealed class SessionRowView
         return $"{(int)span.TotalDays}d";
     }
 
-    private static Brush Freeze(SolidColorBrush brush)
-    {
-        brush.Freeze();
-        return brush;
-    }
+    private static Brush ThemeBrush(string key) => Application.Current?.TryFindResource(key) as Brush ?? Brushes.Transparent;
 }
 
 public partial class MainWindow
@@ -159,6 +151,11 @@ public partial class MainWindow
             _sessionWatcher = null; // The 10 s timer still keeps the view fresh.
         }
 
+        if (App.Theme is { } theme)
+        {
+            theme.ThemeChanged += SessionsTheme_Changed;
+        }
+
         Loaded += (_, _) =>
         {
             _sessionTimer.Start();
@@ -168,7 +165,20 @@ public partial class MainWindow
         {
             _sessionTimer.Stop();
             _sessionWatcher?.Dispose();
+            if (App.Theme is { } closingTheme)
+            {
+                closingTheme.ThemeChanged -= SessionsTheme_Changed;
+            }
         };
+    }
+
+    private void SessionsTheme_Changed(object? sender, EventArgs e)
+    {
+        // Row status brushes are resolved when rows are built, so rebuild them for the new palette.
+        if (_activeModule == "Sessions")
+        {
+            RenderSessions();
+        }
     }
 
     private void SessionFileChanged(object sender, FileSystemEventArgs e)

@@ -11,11 +11,6 @@ namespace JUtility.App;
 
 public partial class MainWindow
 {
-    private static readonly Color AuditTeal = Color.FromRgb(0x0F, 0x6E, 0x7A);
-    private static readonly Color AuditAmber = Color.FromRgb(0xB2, 0x5D, 0x12);
-    private static readonly Color AuditRed = Color.FromRgb(0xB4, 0x23, 0x18);
-    private static readonly Color AuditSlate = Color.FromRgb(0x8A, 0x94, 0xA6);
-
     private readonly WorkflowAuditReader _auditReader = WorkflowAuditReader.CreateDefault();
     private WorkflowAuditReport? _auditReport;
     private bool _auditReadRunning;
@@ -51,21 +46,21 @@ public partial class MainWindow
         AuditCard.ToolTip = logLine is null ? _auditReader.AuditsDirectory : "Last run: " + logLine;
         if (report is null)
         {
-            SetAuditBadge("No report", AuditSlate);
+            SetAuditBadge("No report", "StatusIdleBrush");
             AuditStaleBadge.Visibility = Visibility.Collapsed;
             AuditMetaText.Text = string.Empty;
             AuditSummaryText.Text = $"No audit report yet in {_auditReader.AuditsDirectory}. Use Checkup to run \"{WorkflowAuditReader.ScheduledTaskName}\".";
             return;
         }
 
-        (string label, Color color) = report.Status switch
+        (string label, string brushKey) = report.Status switch
         {
-            WorkflowAuditStatus.Ok => ("OK", AuditTeal),
-            WorkflowAuditStatus.Warning => ("Warning", AuditAmber),
-            WorkflowAuditStatus.Critical => ("Critical", AuditRed),
-            _ => ("Unknown", AuditSlate),
+            WorkflowAuditStatus.Ok => ("OK", "StatusOkBrush"),
+            WorkflowAuditStatus.Warning => ("Warning", "StatusAttentionBrush"),
+            WorkflowAuditStatus.Critical => ("Critical", "StatusCriticalBrush"),
+            _ => ("Unknown", "StatusIdleBrush"),
         };
-        SetAuditBadge(label, color);
+        SetAuditBadge(label, brushKey);
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         AuditStaleBadge.Visibility = report.IsStale(now) ? Visibility.Visible : Visibility.Collapsed;
@@ -74,10 +69,10 @@ public partial class MainWindow
         AuditSummaryText.Text = report.Summary.Count == 0 ? "(no Résumé section)" : string.Join(Environment.NewLine, report.Summary);
     }
 
-    private void SetAuditBadge(string text, Color color)
+    private void SetAuditBadge(string text, string brushKey)
     {
         AuditStatusText.Text = text;
-        AuditStatusBadge.Background = new SolidColorBrush(color);
+        AuditStatusBadge.SetResourceReference(Border.BackgroundProperty, brushKey); // Follows light/dark switches.
     }
 
     internal static string FormatAuditAgo(TimeSpan span)
@@ -133,8 +128,9 @@ public partial class MainWindow
             Height = 720,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = root,
-            Background = Brushes.White,
         };
+        window.SetResourceReference(BackgroundProperty, "SurfaceBrush");
+        App.Theme?.Track(window);
         close.Click += (_, _) => window.Close();
         window.Show();
     }
@@ -191,6 +187,8 @@ public partial class MainWindow
             FontSize = 13,
             PagePadding = new Thickness(24, 16, 24, 16),
         };
+        document.SetResourceReference(FlowDocument.ForegroundProperty, "TextBrush");
+        document.SetResourceReference(FlowDocument.BackgroundProperty, "SurfaceBrush");
         List? list = null;
         foreach (string raw in markdown.Replace("\r\n", "\n").Split('\n'))
         {
@@ -252,7 +250,9 @@ public partial class MainWindow
             }
             else if (part.StartsWith('`') && part.EndsWith('`') && part.Length > 2)
             {
-                span.Inlines.Add(new Run(part[1..^1]) { FontFamily = new FontFamily("Consolas"), Background = new SolidColorBrush(Color.FromRgb(0xF1, 0xF3, 0xF6)) });
+                Run code = new(part[1..^1]) { FontFamily = new FontFamily("Consolas") };
+                code.SetResourceReference(TextElement.BackgroundProperty, "ChipBrush");
+                span.Inlines.Add(code);
             }
             else
             {

@@ -2220,6 +2220,58 @@ Check("workflow audit: latest report picks soir over matin, ignores log.md, flag
     }
 });
 
+Check("theme palettes define the same tokens with valid colors", () =>
+{
+    True(ThemePalette.Light.Count > 0);
+    True(ThemePalette.Light.Keys.OrderBy(k => k, StringComparer.Ordinal).SequenceEqual(ThemePalette.Dark.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+    foreach (string hex in ThemePalette.Light.Values.Concat(ThemePalette.Dark.Values))
+    {
+        _ = ThemePalette.ParseHex(hex);
+    }
+});
+
+Check("theme follows the Windows AppsUseLightTheme value", () =>
+{
+    True(ThemePalette.FromAppsUseLightTheme(0) == AppTheme.Dark);
+    True(ThemePalette.FromAppsUseLightTheme(1) == AppTheme.Light);
+    True(ThemePalette.FromAppsUseLightTheme(null) == AppTheme.Light);
+    True(ThemePalette.FromAppsUseLightTheme("0") == AppTheme.Light);
+    True(ThemePalette.For(AppTheme.Dark) == ThemePalette.Dark);
+    True(ThemePalette.ParseOverride(" Dark ") == AppTheme.Dark);
+    True(ThemePalette.ParseOverride("light") == AppTheme.Light);
+    True(ThemePalette.ParseOverride("system") is null);
+    True(ThemePalette.ParseOverride(null) is null);
+});
+
+Check("theme keeps the Effort Board teal and amber in light mode", () =>
+{
+    Equal("#0F6E7A", ThemePalette.Light["StatusOkBrush"]);
+    Equal("#B25D12", ThemePalette.Light["StatusAttentionBrush"]);
+});
+
+Check("both themes keep readable contrast for text and session status", () =>
+{
+    foreach (IReadOnlyDictionary<string, string> p in new[] { ThemePalette.Light, ThemePalette.Dark })
+    {
+        foreach (string surface in new[] { "SurfaceBrush", "PanelBrush", "SecondaryPanelBrush" })
+        {
+            True(ThemePalette.ContrastRatio(p["TextBrush"], p[surface]) >= 7.0);
+            True(ThemePalette.ContrastRatio(p["MutedBrush"], p[surface]) >= 4.5);
+            True(ThemePalette.ContrastRatio(p["StatusOkBrush"], p[surface]) >= 3.0);
+            True(ThemePalette.ContrastRatio(p["StatusAttentionBrush"], p[surface]) >= 3.0);
+        }
+
+        True(ThemePalette.ContrastRatio(p["SecondaryTextBrush"], p["AttentionRowBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["MutedBrush"], p["AttentionRowBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["StatusAttentionBrush"], p["AttentionRowBrush"]) >= 3.0);
+        True(ThemePalette.ContrastRatio(p["OnStatusBrush"], p["StatusAttentionBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["OnStatusBrush"], p["StatusCriticalBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["NavActiveTextBrush"], p["NavActiveBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["AccentBrush"], p["AccentSoftBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["TextBrush"], p["ControlBrush"]) >= 7.0);
+    }
+});
+
 if (failures.Count > 0)
 {
     Console.Error.WriteLine($"{failures.Count} smoke test(s) failed:");

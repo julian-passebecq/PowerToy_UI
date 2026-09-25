@@ -229,6 +229,14 @@ Top of the Sessions tab. Read-only view of the reports written by the `workflow-
 - **Open report** renders the markdown in a viewer window, with **Open in default app** (falls back to Notepad).
 - **Checkup** opens `claude://claude.ai/epitaxy/scheduled/workflow-audit`. The Claude desktop app (checked on 2.9939.2.0) has no URL or CLI that runs a scheduled task now: `run_scheduled_task` is only available inside the app. So the button opens the task page and shows the tooltip "Scheduled → workflow-audit → Run now". It never calls the Anthropic API.
 
+## Light / dark theme
+
+Power Ops follows the Windows app mode (`HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` → `AppsUseLightTheme`) and switches live when it changes, title bar included.
+
+- Color tokens live in `JUtility.Core/Services/ThemePalette.cs` (light + dark, same keys). `ThemeService` turns them into brushes in `Application.Resources`; XAML must reference them with `DynamicResource`, never hard-coded colors.
+- Status colors follow the Effort Board: teal `#0F6E7A` = OK, amber `#B25D12` = attention, with lighter dark-mode variants (`#3FB6C4`, `#F0A155`). Smoke tests enforce contrast for text and status colors in both palettes.
+- `JUTILITY_THEME=light|dark` pins the theme for a run (acceptance screenshots) without touching Windows settings.
+
 ## Navigation model
 
 ```text

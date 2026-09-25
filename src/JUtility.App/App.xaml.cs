@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using JUtility.App.Services;
 using JUtility.Core.Services;
 
 namespace JUtility.App;
@@ -13,6 +14,8 @@ public partial class App : Application
     private const int SwShow = 5;
     private const int SwRestore = 9;
     private Mutex? _singleInstanceMutex;
+
+    internal static ThemeService? Theme { get; private set; }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -55,8 +58,10 @@ public partial class App : Application
 
         try
         {
+            Theme = new ThemeService(this);
             WorkspaceStore store = new(dataDirectory);
             MainWindow window = new(store);
+            Theme.Track(window);
             if (!usesDefaultWorkspace)
             {
                 window.Title = $"J Utility Palette · Power Ops — {Path.GetFileName(dataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))}";
@@ -79,6 +84,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Theme?.Dispose();
+        Theme = null;
+
         try
         {
             _singleInstanceMutex?.ReleaseMutex();
