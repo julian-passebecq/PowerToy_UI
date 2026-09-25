@@ -1388,6 +1388,32 @@
                         <Button Content="Refresh" Click="SessionsRefresh_Click"/>
                       </WrapPanel>
                     </DockPanel>
+                    <Border x:Name="AuditCard" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,10" AutomationProperties.Name="Workflow audit">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Audit" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Border x:Name="AuditStatusBadge" Background="#8A94A6" CornerRadius="8" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                              <TextBlock x:Name="AuditStatusText" Text="No report" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                            </Border>
+                            <Border x:Name="AuditStaleBadge" Background="#FDF4EA" BorderBrush="#B25D12" BorderThickness="1" CornerRadius="8" Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" ToolTip="Latest audit is older than 14 h">
+                              <TextBlock Text="STALE" Foreground="#B25D12" FontSize="10" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock x:Name="AuditMetaText" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="10,1,0,0" VerticalAlignment="Center"/>
+                          </StackPanel>
+                          <TextBlock x:Name="AuditSummaryText" Foreground="#3A4455" TextWrapping="Wrap" Margin="0,6,0,0" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                          <Button x:Name="AuditOpenButton" Content="Open report" Click="AuditOpen_Click" Margin="0,0,6,0" IsEnabled="False" AutomationProperties.Name="Open full audit report"/>
+                          <Button Content="Checkup" Click="AuditCheckup_Click" AutomationProperties.Name="Run workflow audit checkup"
+                                  ToolTip="Opens the Claude app on the scheduled task: Scheduled → workflow-audit → Run now"/>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
                     <WrapPanel x:Name="SessionsStatusChips" Margin="0,0,0,4">
                       <TextBlock Text="Status" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Width="56"/>
                     </WrapPanel>

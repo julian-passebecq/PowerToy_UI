@@ -199,6 +199,7 @@ public partial class MainWindow
         try
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
+            _ = RefreshAuditCardAsync();
             _sessions = await Task.Run(() => _sessionMonitor.Scan(now));
             UpdateSessionsBadge();
             if (_activeModule == "Sessions")
