@@ -991,6 +991,74 @@ Test("Credentials module is registered without breaking existing shell files", (
     var old = WorkspaceSessions.NewProfile("Old", "repositories"); old.VisibleModules.Remove("credentials");
     state.Workspaces.Add(old); WorkspaceSessions.Validate(state);
 });
+// Trimmed from the live Mongoku MAINTENANCE response (2026-09-25); extra row fields must never be kept.
+const string MaintenanceSample = """
+{"reportId":"MAINTENANCE","title":"Portfolio maintenance","description":"What needs attention, from recorded metadata only.","generatedAt":"2026-09-25T13:59:10.361Z","readOnly":true,"sections":[
+ {"id":"summary","label":"Summary","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":1},"rows":[{"_id":"summary","title":"Maintenance summary","sourcesReachable":"10/10","projectsNeedingAction":8,"headsToReconcile":0,"auditsToReview":4,"projectionsNeedingAction":1,"reconciliationFindings":0,"backups":"NOT_RECORDED","summary":"10/10 sources reachable; 8 project(s) need attention.","actionKind":"verify","nextAction":"Atlas family: Record a verification at the next review"}]},
+ {"id":"sources","label":"Source reachability","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":1},"rows":[{"_id":"FOIL_PM","title":"FOIL PM","actionKind":"none","nextAction":"No action"}]},
+ {"id":"reconciliation","label":"Needs reconciliation","trace":{"resolved":true},"meta":{"state":"EMPTY","returnedRows":0},"rows":[]},
+ {"id":"projects","label":"Project verification freshness","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":3},"rows":[
+   {"_id":"atlas","title":"Atlas family","repo":"julian-passebecq/atlasnote-private-marker","openUri":"/?project=atlas","summary":"Active but never verified.","actionKind":"verify","nextAction":"Record a verification at the next review"},
+   {"_id":"evil","title":"Elsewhere","openUri":"https://evil.example/steal","actionKind":"review_record","nextAction":"Review the record"},
+   {"_id":"done","title":"Done project","openUri":"/?project=done","actionKind":"none","nextAction":"No action"}]},
+ {"id":"heads","label":"Recorded heads (GitHub not read)","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":1},"rows":[{"_id":"a","title":"AtlasNote","recordedHead":"215d3c962736bbac44c3f2e3602fa1f80cee77c8","actionKind":"none","nextAction":"No action"}]},
+ {"id":"projections","label":"Galaxy projections","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":1},"rows":[{"_id":"atlasnote","title":"AtlasNote projection","actionKind":"export_projection","nextAction":"No projection published yet"}]},
+ {"id":"audits","label":"Audit runs","trace":{"resolved":true},"meta":{"state":"OK","returnedRows":1},"rows":[{"_id":"AUDIT-1","title":"AUDIT-1","actionKind":"review_audit","nextAction":"Review its recorded next actions and coverage"}]}]}
+""";
+Test("Maintenance card parses the summary line, next action, counts and rows to act on", () =>
+{
+    var root = new Uri("http://localhost:3100/");
+    var s = ReportCards.Parse(MaintenanceSample, DateTimeOffset.Now, root);
+    var m = s.Maintenance!;
+    Check(m.SummaryLine!.StartsWith("10/10 sources reachable") && m.NextAction == "Atlas family: Record a verification at the next review");
+    Check(m.SourcesReachable == "10/10" && m.ProjectsNeedingAction == 8 && m.HeadsToReconcile == 0 && m.AuditsToReview == 4 && m.ProjectionsNeedingAction == 1 && m.ReconciliationFindings == 0 && m.Backups == "NOT_RECORDED");
+    Check(!m.SummaryUnavailable && !m.UnavailableSections.Any() && m.Sections.Count == 7);
+    Check(MaintenanceReport.CountsLine(m) == "Sources 10/10 · projects 8 · heads 0 · projections 1 · audits 4 · reconciliation 0 · backups not recorded", MaintenanceReport.CountsLine(m));
+    Check(m.Actions.Select(x => x.Title).SequenceEqual(["Atlas family", "Elsewhere", "AtlasNote projection", "AUDIT-1"]), "actionKind none rows are skipped");
+    Check(m.Actions[0].OpenUri!.AbsoluteUri == "http://localhost:3100/?project=atlas" && m.Actions[0].Summary == "Active but never verified.");
+    Check(m.Actions[1].OpenUri is null, "cross-origin openUri is dropped (card falls back to the maintenance page)");
+    string kept = JsonSerializer.Serialize(s);
+    Check(!kept.Contains("atlasnote-private-marker") && !kept.Contains("215d3c9"), "only title/summary/next action/link are kept from rows");
+    Check(ReportCards.DeepLink(new ReportCard { SourceUrl = "http://localhost:3100", ReportId = "MAINTENANCE" }).AbsoluteUri == "http://localhost:3100/maintenance");
+    Check(ReportCards.Parse(FoilStatusSample, DateTimeOffset.Now, root).Maintenance is null, "other reports are unchanged");
+});
+Test("Maintenance row links stay inside the card's Mongoku", () =>
+{
+    var root = new Uri("http://localhost:3100/");
+    Check(MaintenanceReport.ResolveOpenUri(root, "/?project=a_b")!.AbsoluteUri == "http://localhost:3100/?project=a_b");
+    Check(MaintenanceReport.ResolveOpenUri(new Uri("https://m.example.com/base/"), "/?project=x")!.AbsoluteUri == "https://m.example.com/base/?project=x", "relative to the Mongoku base address");
+    foreach (string? bad in new[] { null, "", "?project=x", "//evil.example/x", "/\\evil", "javascript:alert(1)", "https://evil.example/", "file:///C:/x", "/\nx" })
+        Check(MaintenanceReport.ResolveOpenUri(root, bad) is null, "rejected: " + bad);
+    Check(MaintenanceReport.ResolveOpenUri(null, "/?project=x") is null);
+});
+Test("Maintenance card shows unresolved sections as unavailable, never substitute numbers", () =>
+{
+    string auditsDown = MaintenanceSample.Replace("""{"id":"audits","label":"Audit runs","trace":{"resolved":true}""", """{"id":"audits","label":"Audit runs","trace":{"resolved":false}""");
+    var m = ReportCards.Parse(auditsDown, DateTimeOffset.Now, new Uri("http://localhost:3100/")).Maintenance!;
+    Check(m.UnavailableSections.Single().Id == "audits" && !m.SummaryUnavailable);
+    Check(m.CountFor("audits", m.AuditsToReview) is null && MaintenanceReport.CountsLine(m).Contains("audits unavailable") && MaintenanceReport.CountsLine(m).Contains("projects 8"));
+    Check(m.Actions.All(x => x.Section != "audits"), "rows of an unresolved section are not shown");
+
+    string summaryDown = MaintenanceSample.Replace("""{"id":"summary","label":"Summary","trace":{"resolved":true},"meta":{"state":"OK",""", """{"id":"summary","label":"Summary","trace":{"resolved":false},"meta":{"state":"SOURCE_UNAVAILABLE",""");
+    var d = ReportCards.Parse(summaryDown, DateTimeOffset.Now, new Uri("http://localhost:3100/")).Maintenance!;
+    Check(d.SummaryUnavailable && d.SummaryLine is null && d.NextAction is null);
+    Check(MaintenanceReport.CountsLine(d) == "Sources unavailable · projects unavailable · heads unavailable · projections unavailable · audits unavailable · reconciliation unavailable · backups unavailable", MaintenanceReport.CountsLine(d));
+
+    var bare = ReportCards.Parse("""{"reportId":"MAINTENANCE","sections":[]}""", DateTimeOffset.Now).Maintenance!;
+    Check(bare.SummaryUnavailable && bare.Actions.Count == 0, "a report without a summary section is unavailable, not all-clear");
+    var odd = ReportCards.Parse("""{"reportId":"MAINTENANCE","sections":[{"id":"summary","rows":[{"projectsNeedingAction":"8","auditsToReview":-1}]},{"id":"projects","rows":"x"},7]}""", DateTimeOffset.Now).Maintenance!;
+    Check(odd.ProjectsNeedingAction is null && odd.AuditsToReview is null && odd.Actions.Count == 0, "wrong types stay unknown");
+});
+Test("Maintenance card: Mongoku down is a readable failure, never an exception (fake server)", () =>
+{
+    var card = new ReportCard { SourceUrl = "http://localhost:3100/", ReportId = "MAINTENANCE" };
+    var down = ReportCards.FetchAsync(card, new FakeHandler(_ => throw new HttpRequestException("refused", new System.Net.Sockets.SocketException(10061)))).GetAwaiter().GetResult();
+    Check(!down.Succeeded && down.Error!.Contains("not reachable"));
+    HttpRequestMessage? seen = null;
+    var ok = ReportCards.FetchAsync(card, new FakeHandler(r => { seen = r; return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(MaintenanceSample) }; })).GetAwaiter().GetResult();
+    Check(ok.Summary!.Maintenance!.Actions[0].OpenUri!.AbsoluteUri == "http://localhost:3100/?project=atlas", "links resolved against the card's address");
+    Check(seen!.Method == HttpMethod.Get && seen.RequestUri!.AbsolutePath == "/api/datapass/reports/MAINTENANCE" && seen.Headers.Authorization is null, "read-only GET, no credential");
+});
 int failures = 0;
 foreach (var test in tests)
 {

@@ -57,7 +57,8 @@ public sealed record ReportSummary(
     bool? ReadOnly,
     IReadOnlyList<ReportSectionSummary> Sections,
     DateTimeOffset FetchedAt,
-    IReadOnlyList<string>? AuthorityBoundaries = null)
+    IReadOnlyList<string>? AuthorityBoundaries = null,
+    MaintenanceDigest? Maintenance = null)
 {
     /// <summary>Mongoku declared at least one row non-authoritative: the card must say so, whatever its title.</summary>
     public bool NonAuthoritative => AuthorityBoundaries?.Any(x => x.StartsWith("NON_AUTHORITATIVE", StringComparison.OrdinalIgnoreCase)) == true;
@@ -105,13 +106,17 @@ public static partial class ReportCards
     /// <summary>
     /// Mongoku page for a report. Verified against a live Mongoku (2026-09-25): /foil/report/{id} serves every saved
     /// report (including SOURCE_INVENTORY) except GLOBAL_PROJECTS, which answers 404 there and lives under /projects.
+    /// MAINTENANCE has its own page, /maintenance (Mongoku PR #12).
     /// </summary>
     public static Uri DeepLink(ReportCard card)
     {
         var root = new Uri(EnsureSlash(card.SourceUrl));
-        return card.ReportId == "GLOBAL_PROJECTS"
-            ? new Uri(root, "projects")
-            : new Uri(root, "foil/report/" + Uri.EscapeDataString(card.ReportId));
+        return card.ReportId switch
+        {
+            "GLOBAL_PROJECTS" => new Uri(root, "projects"),
+            MaintenanceReport.ReportId => MaintenanceReport.Page(root),
+            _ => new Uri(root, "foil/report/" + Uri.EscapeDataString(card.ReportId)),
+        };
     }
 
     public static SectionHealth HealthOf(string? state) => state?.ToUpperInvariant() switch
@@ -140,7 +145,8 @@ public static partial class ReportCards
     };
 
     /// <summary>Parses a report response defensively: unknown fields are ignored, missing values stay unknown.</summary>
-    public static ReportSummary Parse(string json, DateTimeOffset fetchedAt)
+    /// <param name="mongokuRoot">Card's Mongoku address, used to resolve MAINTENANCE row links (none when null).</param>
+    public static ReportSummary Parse(string json, DateTimeOffset fetchedAt, Uri? mongokuRoot = null)
     {
         using JsonDocument document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 64 });
         JsonElement root = document.RootElement;
@@ -176,7 +182,8 @@ public static partial class ReportCards
 
         DateTimeOffset? generated = Text(root, "generatedAt") is string g && DateTimeOffset.TryParse(g, out DateTimeOffset parsed) ? parsed : null;
         bool? readOnly = root.TryGetProperty("readOnly", out JsonElement ro) && ro.ValueKind is JsonValueKind.True or JsonValueKind.False ? ro.GetBoolean() : null;
-        return new ReportSummary(reportId, Text(root, "title") ?? reportId, Text(root, "description"), generated, readOnly, sections.AsReadOnly(), fetchedAt, boundaries.ToList().AsReadOnly());
+        MaintenanceDigest? maintenance = MaintenanceReport.Is(reportId) ? MaintenanceReport.Parse(root, mongokuRoot) : null;
+        return new ReportSummary(reportId, Text(root, "title") ?? reportId, Text(root, "description"), generated, readOnly, sections.AsReadOnly(), fetchedAt, boundaries.ToList().AsReadOnly(), maintenance);
     }
 
     /// <summary>One on-demand GET. Never throws for network/HTTP problems: the card shows the returned message.</summary>
@@ -187,7 +194,7 @@ public static partial class ReportCards
         if (body is null) return new ReportFetchResult(null, error);
         try
         {
-            return new ReportFetchResult(Parse(body, DateTimeOffset.Now), null);
+            return new ReportFetchResult(Parse(body, DateTimeOffset.Now, new Uri(EnsureSlash(card.SourceUrl))), null);
         }
         catch (Exception ex) when (ex is JsonException or InvalidDataException)
         {
