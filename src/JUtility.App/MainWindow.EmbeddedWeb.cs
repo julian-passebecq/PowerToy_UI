@@ -141,7 +141,7 @@ public partial class MainWindow
             _webPicker.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DarkGoldenrod, Margin = new Thickness(0, 8, 0, 4) });
         }
 
-        List<WebAppEntry> embedded = (_quickActionSettings?.WebApps ?? []).Where(x => x.OpenMode == WebOpenMode.Embedded).ToList();
+        List<WebAppEntry> embedded = QuickWebApps.All(_quickActionSettings).Where(x => x.OpenMode == WebOpenMode.Embedded).ToList();
         _webPicker.Children.Add(new TextBlock
         {
             Text = embedded.Count == 0

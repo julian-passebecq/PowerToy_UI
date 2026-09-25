@@ -1451,6 +1451,13 @@
 
     <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,5">
       <DockPanel>
+        <Button x:Name="ClaudeControlHealthButton" DockPanel.Dock="Right" Visibility="Collapsed" Click="ClaudeControlHealth_Click"
+                Background="Transparent" BorderThickness="0" Padding="6,0" Margin="8,0,0,0" Cursor="Hand" AutomationProperties.AutomationId="ClaudeControlHealth">
+          <StackPanel Orientation="Horizontal">
+            <Ellipse x:Name="ClaudeControlDot" Width="9" Height="9" Fill="Gray" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBlock x:Name="ClaudeControlHealthText" Text="Claude Control" Foreground="{StaticResource MutedBrush}"/>
+          </StackPanel>
+        </Button>
         <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}"/>
         <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" Text="Local JSON · Normal / Topmost / Summon"/>
       </DockPanel>
