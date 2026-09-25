@@ -56,6 +56,8 @@ public sealed class QuickActionSettings
     public List<WorkspaceActionOverride> WorkspaceOverrides { get; set; } = [];
     // Opt-in user destinations (Mongoku, Grafana, Gemini...). Each becomes a "web:" action usable on every surface.
     public List<WebAppEntry> WebApps { get; set; } = [];
+    // Optional local Claude Control server (tab, start action, health dot, Launchpad status). Null = off.
+    public ClaudeControlSettings? ClaudeControl { get; set; }
 }
 
 public static class QuickActionLayouts
@@ -123,6 +125,7 @@ public static class QuickActionLayouts
                 throw new InvalidDataException("Invalid Quick Shelf position.");
         }
         QuickWebApps.Validate(settings.WebApps);
+        JUtility.Core.Actions.ClaudeControl.Validate(settings.ClaudeControl, settings.WebApps);
         var webApps = QuickWebApps.Definitions(settings);
         ValidateLayout(settings.Ring, ActionSurface.QuickRing, webApps);
         ValidateLayout(settings.Shelf, ActionSurface.QuickShelf, webApps);

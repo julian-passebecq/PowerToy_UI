@@ -1059,6 +1059,97 @@ Test("Maintenance card: Mongoku down is a readable failure, never an exception (
     Check(ok.Summary!.Maintenance!.Actions[0].OpenUri!.AbsoluteUri == "http://localhost:3100/?project=atlas", "links resolved against the card's address");
     Check(seen!.Method == HttpMethod.Get && seen.RequestUri!.AbsolutePath == "/api/datapass/reports/MAINTENANCE" && seen.Headers.Authorization is null, "read-only GET, no credential");
 });
+Test("Claude Control is off by default and adds nothing", () =>
+{
+    var settings = QuickActionLayouts.Defaults();
+    QuickActionLayouts.Validate(settings);
+    Check(settings.ClaudeControl is null && ClaudeControl.WebApp(settings) is null && QuickWebApps.All(settings).Count == 0);
+});
+Test("Claude Control becomes an embedded tab with a fixed identity and survives a save", () => Temporary(directory =>
+{
+    var store = new QuickActionSettingsStore(directory);
+    var settings = QuickActionLayouts.Defaults();
+    settings.WebApps.Add(new WebAppEntry { Name = "Claude Home", Url = "https://claude.ai/new" });
+    settings.ClaudeControl = new ClaudeControlSettings { Url = "http://127.0.0.1:7430/home.html", StartCommand = @"C:\tools\start-control.cmd" };
+    store.Save(settings);
+    var loaded = store.Load();
+    string id = QuickWebApps.ActionId(ClaudeControl.WebAppId);
+    Check(QuickWebApps.All(loaded).Select(x => x.Name).SequenceEqual(["Claude Home", "Claude Control"]), "user web apps first, Claude Control last");
+    var tab = QuickWebApps.Find(loaded, id)!;
+    Check(tab.OpenMode == WebOpenMode.Embedded && tab.Url == "http://127.0.0.1:7430/home.html");
+    Check(QuickActionLayouts.Describe(loaded, id).Label == "Claude Control");
+    Check(loaded.WebApps.Count == 1, "the synthesized entry is never written into WebApps");
+    Check(ClaudeControl.HealthUri(loaded.ClaudeControl!).AbsoluteUri == "http://127.0.0.1:7430/api/health");
+    Check(ClaudeControl.StatusUri(loaded.ClaudeControl!).AbsoluteUri == "http://127.0.0.1:7430/api/status");
+    var workspace = WorkspaceSessions.NewProfile("Claude");
+    EmbeddedWebPolicy.ShowInWorkspace(workspace, id);
+    Check(EmbeddedWebPolicy.LiveViews(workspace, loaded).Contains(id));
+    QuickActionLayouts.SetWorkspaceShelf(loaded, workspace.Id, [id]);
+    loaded.ClaudeControl = null;
+    Reject(() => QuickActionLayouts.Validate(loaded)); // a shelf that still points at the removed tab fails closed
+}));
+Test("Claude Control settings reject remote addresses, odd start commands and the reserved id", () =>
+{
+    QuickActionSettings With(string url, string? start = null)
+    {
+        var s = QuickActionLayouts.Defaults();
+        s.ClaudeControl = new ClaudeControlSettings { Url = url, StartCommand = start };
+        return s;
+    }
+    QuickActionLayouts.Validate(With("http://localhost:7430/home.html"));
+    QuickActionLayouts.Validate(With("http://[::1]:7430/"));
+    Reject(() => QuickActionLayouts.Validate(With("https://example.com/home.html")));
+    Reject(() => QuickActionLayouts.Validate(With("file:///C:/home.html")));
+    Reject(() => QuickActionLayouts.Validate(With("http://user:pw@127.0.0.1:7430/")));
+    Reject(() => QuickActionLayouts.Validate(With("http://127.0.0.1:7430/", @"tools\start-control.cmd")));
+    Reject(() => QuickActionLayouts.Validate(With("http://127.0.0.1:7430/", @"C:\tools\start.ps1")));
+    var clash = With("http://127.0.0.1:7430/");
+    clash.WebApps.Add(new WebAppEntry { Id = ClaudeControl.WebAppId, Name = "Fake", Url = "https://example.com/" });
+    Reject(() => QuickActionLayouts.Validate(clash));
+});
+Test("Claude Control status parses the documented contract defensively", () =>
+{
+    string json = """
+    {"generated": "2026-09-25T18:36", "project": null,
+     "plan": {"five_hour": 44, "week": 133, "sampled": "2026-09-25T18:10"},
+     "sessions": {"open": 12, "running": 3, "needs_you": 1},
+     "todo": 8, "open_prs": 2, "checks_to_act": -2,
+     "urgent": [{"time": "2026-09-25T16:12", "level": "urgent", "source": "session", "project": "Mongoku", "text": "Waiting on you", "link": "claude://claude.ai/epitaxy/x"},
+                {"text": "bad link", "link": "javascript:alert(1)"}, {"level": "no text"}, 7],
+     "latest_audit": {"name": "2026-09-25-systeme", "status": "🟠"},
+     "links": {"home": "https://claude.ai/artifact/x"}}
+    """;
+    var status = ClaudeControl.ParseStatus(json);
+    Check(status.Generated == "2026-09-25T18:36" && status.Plan!.FiveHour == 44 && status.Plan.Week == 100 && status.Plan.Sampled == "2026-09-25T18:10");
+    Check(status.Sessions == new ClaudeControlSessions(12, 3, 1) && status.Todo == 8 && status.OpenPrs == 2 && status.ChecksToAct == 0);
+    Check(status.Urgent.Count == 2 && status.Urgent[0].Link!.Scheme == "claude" && status.Urgent[0].Project == "Mongoku" && status.Urgent[1].Link is null);
+    Check(status.AuditName == "2026-09-25-systeme" && status.AuditStatus == "🟠");
+    var empty = ClaudeControl.ParseStatus("{}");
+    Check(empty.Plan is null && empty.Sessions is null && empty.Todo is null && empty.Urgent.Count == 0);
+    Reject(() => ClaudeControl.ParseStatus("[1]"));
+    Check(ClaudeControl.Friendly("2026-09-25T18:10", new DateTime(2026, 9, 25, 20, 0, 0)) == "18:10");
+    Check(ClaudeControl.Friendly("2026-09-24T18:10", new DateTime(2026, 9, 25, 20, 0, 0)) == "2026-09-24 18:10");
+});
+Test("Claude Control is only read with GET and reports an absent server", () =>
+{
+    var control = new ClaudeControlSettings { Url = "http://127.0.0.1:7430/home.html" };
+    var seen = new List<HttpRequestMessage>();
+    HttpResponseMessage Answer(HttpRequestMessage request, string body, HttpStatusCode code = HttpStatusCode.OK)
+    {
+        seen.Add(request);
+        return new HttpResponseMessage(code) { Content = new StringContent(body) };
+    }
+    Check(ClaudeControl.IsHealthyAsync(control, new FakeHandler(r => Answer(r, """{"ok": true, "time": "x"}"""))).GetAwaiter().GetResult());
+    Check(!ClaudeControl.IsHealthyAsync(control, new FakeHandler(r => Answer(r, """{"ok": false}"""))).GetAwaiter().GetResult());
+    Check(!ClaudeControl.IsHealthyAsync(control, new FakeHandler(r => Answer(r, "oops", HttpStatusCode.InternalServerError))).GetAwaiter().GetResult());
+    var (status, error) = ClaudeControl.FetchStatusAsync(control, new FakeHandler(r => Answer(r, """{"todo": 3}"""))).GetAwaiter().GetResult();
+    Check(status!.Todo == 3 && error is null);
+    Check(seen.All(r => r.Method == HttpMethod.Get && r.Content is null && r.Headers.Authorization is null), "GET only, no body, no credential");
+    Check(seen.Select(r => r.RequestUri!.AbsolutePath).Distinct().SequenceEqual(["/api/health", "/api/status"]));
+    var (none, why) = ClaudeControl.FetchStatusAsync(control, new FakeHandler(_ => throw new HttpRequestException("refused"))).GetAwaiter().GetResult();
+    Check(none is null && why!.Contains("not running"), why ?? "");
+    Check(!ClaudeControl.IsHealthyAsync(control, new FakeHandler(_ => throw new HttpRequestException("refused"))).GetAwaiter().GetResult());
+});
 int failures = 0;
 foreach (var test in tests)
 {

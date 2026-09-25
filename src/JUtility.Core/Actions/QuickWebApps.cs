@@ -68,7 +68,13 @@ public static class QuickWebApps
     }
 
     public static IReadOnlyList<QuickActionDefinition> Definitions(QuickActionSettings? settings) =>
-        (settings?.WebApps ?? []).Where(x => x is not null).Select(Definition).ToList().AsReadOnly();
+        All(settings).Select(Definition).ToList().AsReadOnly();
+
+    /// <summary>The user's web apps followed by the Claude Control tab when it is configured.</summary>
+    public static IReadOnlyList<WebAppEntry> All(QuickActionSettings? settings) =>
+        (settings?.WebApps ?? []).Where(x => x is not null)
+            .Concat(ClaudeControl.WebApp(settings) is { } control ? [control] : [])
+            .ToList().AsReadOnly();
 
     public static void Validate(List<WebAppEntry>? apps)
     {
@@ -95,7 +101,7 @@ public static class QuickWebApps
     }
 
     public static WebAppEntry? Find(QuickActionSettings? settings, string? actionId) =>
-        settings?.WebApps.FirstOrDefault(x => ActionId(x.Id) == actionId);
+        All(settings).FirstOrDefault(x => ActionId(x.Id) == actionId);
 
     public static WebAppEntry FromPreset(WebAppPreset preset) => new() { Name = preset.Name, Url = preset.Url, OpenMode = preset.OpenMode };
 
