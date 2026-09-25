@@ -132,6 +132,7 @@ public partial class MainWindow : Window
 
         _summonService.Triggered += SummonService_Triggered;
         InitializeQuickActions();
+        InitializeMouseKeys();
         Loaded += MainWindow_Loaded;
         Deactivated += MainWindow_Deactivated;
         Closing += MainWindow_Closing;

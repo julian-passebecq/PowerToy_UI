@@ -33,9 +33,7 @@ public partial class MainWindow
             [.. ring ? settings.Ring : settings.Shelf],
             savedList is null ? null : [.. savedList],
             new TextBlock { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap });
-        IReadOnlyList<QuickActionDefinition> eligible = QuickActionLayouts.Eligible(surface, settings)
-            .Where(x => _quickActions.IsRegistered(x.Id))
-            .ToList();
+        IReadOnlyList<QuickActionDefinition> eligible = EligibleActions(surface, settings, includeGroups: true);
 
         string group = surfaceName + "Scope";
         var defaultScope = new RadioButton { Content = $"Default {noun} (all workspaces)", IsChecked = true, GroupName = group };
@@ -65,7 +63,7 @@ public partial class MainWindow
             List<string> ids = shown();
             list.ItemsSource = ids.Select((id, index) =>
             {
-                QuickActionDefinition action = QuickActionLayouts.Describe(settings, id);
+                QuickActionDefinition action = DescribeAction(settings, id);
                 return ring ? action with { Label = $"{index + 1}. {action.Label}" } : action; // Ring slots are numbered (digit keys).
             }).ToList();
             if (select >= 0 && select < ids.Count) list.SelectedIndex = select;
@@ -125,6 +123,21 @@ public partial class MainWindow
         Refresh();
         return state;
     }
+
+    /// <summary>Catalog, web apps, ring groups (optional) and Tool Launcher entries that may be placed on a surface.</summary>
+    private IReadOnlyList<QuickActionDefinition> EligibleActions(ActionSurface surface, QuickActionSettings settings, bool includeGroups)
+    {
+        RefreshToolActions();
+        return QuickActionLayouts.Eligible(surface, settings)
+            .Where(x => _quickActions.IsRegistered(x.Id) || QuickRingGroups.IsGroupActionId(x.Id))
+            .Where(x => includeGroups || !QuickRingGroups.IsGroupActionId(x.Id))
+            .Concat(_quickActions.Definitions.Where(x => QuickToolActions.IsToolActionId(x.Id)))
+            .ToList();
+    }
+
+    /// <summary>Like <see cref="QuickActionLayouts.Describe"/>, plus the current name of a Tool Launcher entry.</summary>
+    private QuickActionDefinition DescribeAction(QuickActionSettings settings, string id) =>
+        (QuickToolActions.IsToolActionId(id) ? _quickActions.Definition(id) : null) ?? QuickActionLayouts.Describe(settings, id);
 
     /// <summary>Writes an editor's result into a settings copy (validated by the caller's save).</summary>
     private static void ApplyLayoutEditor(QuickActionSettings settings, ActionSurface surface, LayoutEditorState state)

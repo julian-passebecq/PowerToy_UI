@@ -486,7 +486,7 @@ Test("Quick Ring uses the workspace ring, web apps and never lists itself", () =
     var probes = 0;
     var items = QuickRingModel.Build(s, work, _ => { probes++; return null; }, _ => null);
     Check(items.Select(x => x.Label).SequenceEqual(new[] { "Mongoku", "Screenshot (region)", "Quick Shelf" }) && probes == 3);
-    Check(QuickRingModel.Build(s, Guid.NewGuid(), _ => null, _ => null).Select(x => x.Id).SequenceEqual(QuickActionLayouts.DefaultRing), "inherits default");
+    Check(QuickRingModel.Build(s, Guid.NewGuid(), _ => null, _ => null).Select(x => x.Id).SequenceEqual(s.Ring), "inherits default");
     Check(QuickActionLayouts.DefaultRing.Count <= QuickActionLayouts.MaxRing && !QuickActionLayouts.DefaultRing.Contains("app.open"), "centre is Open Power Ops");
     Reject(() => QuickActionLayouts.SetWorkspaceRing(s, work, ["ring.show"]));
 });
@@ -1397,6 +1397,110 @@ Test("Claude Control is only read with GET and reports an absent server", () =>
     var (none, why) = ClaudeControl.FetchStatusAsync(control, new FakeHandler(_ => throw new HttpRequestException("refused"))).GetAwaiter().GetResult();
     Check(none is null && why!.Contains("not running"), why ?? "");
     Check(!ClaudeControl.IsHealthyAsync(control, new FakeHandler(_ => throw new HttpRequestException("refused"))).GetAwaiter().GetResult());
+});
+// ---- V2.4 Quick Ring sub-rings, tool actions, whole-screen capture ----
+Test("Fresh settings use the two-level ring: Folders and Apps sub-rings, all valid", () =>
+{
+    var s = QuickActionLayouts.Defaults(); QuickActionLayouts.Validate(s);
+    string folders = QuickRingGroups.ActionId(QuickRingGroups.FoldersId), apps = QuickRingGroups.ActionId(QuickRingGroups.AppsId);
+    Check(s.Ring.Contains("capture.screen") && s.Ring.Contains(folders) && s.Ring.Contains(apps) && s.Ring.Count <= QuickActionLayouts.MaxRing);
+    Check(QuickRingGroups.Find(s, folders)!.Items.SequenceEqual(new[] { "folder.downloads", "folder.desktop", "folder.explorer", "tray.show" }));
+    var items = QuickRingModel.Build(s, Guid.NewGuid(), _ => null, _ => null);
+    Check(items.Single(x => x.Id == folders).Label == "Folders ›", "sub-ring slots are marked");
+    Check(QuickRingModel.BuildGroup(s, apps, _ => null, _ => null)!.Select(x => x.Id).SequenceEqual(new[] { "terminal.open" }));
+    Check(QuickRingModel.BuildGroup(s, "group:" + Guid.NewGuid().ToString("N"), _ => null, _ => null) is null, "a missing group opens nothing");
+});
+Test("Older quick-actions files without sub-rings load unchanged", () => Temporary(dir =>
+{
+    var old = JsonNode.Parse(JsonSerializer.Serialize(new QuickActionSettings()))!.AsObject(); old.Remove("RingGroups");
+    File.WriteAllText(Path.Combine(dir, "quick-actions.json"), old.ToJsonString());
+    var s = new QuickActionSettingsStore(dir).Load();
+    Check(s.RingGroups.Count == 0 && s.Ring.SequenceEqual(QuickActionLayouts.DefaultRing), "flat ring kept, nothing invented");
+}));
+Test("Sub-rings are validated: no nesting, no empty or oversized group, sane name and icon", () =>
+{
+    QuickActionSettings With(Action<RingGroup> change)
+    {
+        var s = QuickActionLayouts.Defaults(); change(s.RingGroups[0]); return s;
+    }
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Items = [QuickRingGroups.ActionId(QuickRingGroups.AppsId)])));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Items = [])));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Items = ["folder.downloads", "folder.downloads"])));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Items = QuickActionCatalog.All.Where(x => x.GlobalAllowed && x.Id != "ring.show").Take(9).Select(x => x.Id).ToList())));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Items = ["tab.next"])));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Name = " ")));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Name = new string('x', 41))));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Glyph = "0041")));
+    Reject(() => QuickActionLayouts.Validate(With(g => g.Id = QuickRingGroups.AppsId)));
+    var dangling = QuickActionLayouts.Defaults(); dangling.Ring.Add("group:" + Guid.NewGuid().ToString("N"));
+    try { QuickActionLayouts.Validate(dangling); throw new Exception("accepted"); }
+    catch (InvalidDataException ex) { Check(ex.Message.Contains("group that no longer exists"), ex.Message); }
+});
+Test("A sub-ring can be bound to a shortcut or the Shelf, and deleting it cleans every reference", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var work = Guid.NewGuid();
+    string apps = QuickRingGroups.ActionId(QuickRingGroups.AppsId);
+    s.Shelf.Add(apps); s.GlobalShortcuts.Add(new ShortcutBinding { Gesture = "Ctrl+Alt+Shift+A", ActionId = apps });
+    QuickActionLayouts.SetWorkspaceRing(s, work, [apps]);
+    QuickActionLayouts.Validate(s);
+    QuickRingGroups.Remove(s, QuickRingGroups.AppsId);
+    QuickActionLayouts.Validate(s);
+    Check(!s.Ring.Contains(apps) && !s.Shelf.Contains(apps) && s.GlobalShortcuts.All(x => x.ActionId != apps) && s.WorkspaceOverrides.Count == 0);
+    var only = QuickActionLayouts.Defaults(); only.Ring = [QuickRingGroups.ActionId(QuickRingGroups.FoldersId)];
+    QuickRingGroups.Remove(only, QuickRingGroups.FoldersId);
+    Check(only.Ring.SequenceEqual(QuickActionLayouts.DefaultRing), "an emptied ring falls back to the flat default");
+});
+Test("Removing a web app also removes it from sub-rings; an emptied sub-ring disappears", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var app = new WebAppEntry { Name = "Gmail", Url = "https://mail.google.com/" }; s.WebApps.Add(app);
+    QuickRingGroups.ApplySuggested(s); QuickActionLayouts.Validate(s);
+    string web = QuickWebApps.ActionId(app.Id);
+    Check(QuickRingGroups.Find(s, QuickRingGroups.ActionId(QuickRingGroups.AppsId))!.Items.SequenceEqual(new[] { "terminal.open", web }), "suggested Apps holds web apps");
+    var mail = new RingGroup { Id = Guid.NewGuid(), Name = "Mail", Items = [web] };
+    s.RingGroups.Add(mail); s.Ring.Add(QuickRingGroups.ActionId(mail.Id));
+    QuickActionLayouts.Validate(s);
+    QuickWebApps.RemoveWebApp(s, app.Id); QuickActionLayouts.Validate(s);
+    Check(s.RingGroups.All(g => !g.Items.Contains(web)) && s.RingGroups.All(g => g.Id != mail.Id) && !s.Ring.Contains(QuickRingGroups.ActionId(mail.Id)));
+});
+Test("Suggested layout is idempotent and keeps the user's other sub-rings", () =>
+{
+    var s = QuickActionLayouts.Defaults(); var mine = new RingGroup { Id = Guid.NewGuid(), Name = "Projects", Items = ["workspace.next"] };
+    s.RingGroups.Add(mine);
+    QuickRingGroups.ApplySuggested(s); QuickRingGroups.ApplySuggested(s); QuickActionLayouts.Validate(s);
+    Check(s.RingGroups.Count == 3 && s.RingGroups.Count(x => x.Id == mine.Id) == 1, "own group kept once");
+});
+Test("Tool Launcher entries become tool: actions; a removed tool is shown, never breaks the file", () =>
+{
+    var toolId = Guid.NewGuid(); string id = QuickToolActions.ActionId(toolId);
+    Check(QuickToolActions.ToolId(id) == toolId && QuickToolActions.ToolId("tool:nope") is null);
+    var s = QuickActionLayouts.Defaults(); s.RingGroups[1].Items.Add(id); s.Shelf.Add(id);
+    QuickActionLayouts.Validate(s);
+    Check(QuickActionLayouts.Describe(s, id).Label == "Tool (not found)");
+    var code = QuickToolActions.Definition(toolId, "VS Code", "code");
+    Check(code.Label == "VS Code" && code.Glyph == "E943" && code.GlobalAllowed && code.Risk == ActionRisk.Safe);
+    var items = QuickRingModel.BuildGroup(s, QuickRingGroups.ActionId(QuickRingGroups.AppsId), _ => null, _ => null, x => x == id ? code : null)!;
+    Check(items.Any(x => x.Label == "VS Code"), "the live tool name wins over the placeholder");
+    var bad = QuickActionLayouts.Defaults(); bad.Ring.Add("tool:not-a-guid"); Reject(() => QuickActionLayouts.Validate(bad));
+    var dispatcher = new QuickActionDispatcher(); var ran = 0;
+    dispatcher.ReplaceDynamic(QuickToolActions.Prefix, [(code, new QuickActionHandler(() => ran++))]);
+    Check(dispatcher.Invoke(id, ActionSurface.QuickRing).Succeeded && ran == 1);
+});
+Test("Whole-screen capture and Desktop folder are safe out-of-app catalog actions", () =>
+{
+    foreach (string id in new[] { "capture.screen", "folder.desktop" })
+    {
+        var action = QuickActionCatalog.Get(id);
+        Check(action.GlobalAllowed && action.Risk == ActionRisk.Safe, id);
+    }
+    Check(QuickActionCatalog.All.Select(x => x.Id).Distinct().Count() == QuickActionCatalog.All.Count, "IDs stay unique");
+});
+Test("MX guide: Sense Panel opens the ring, moves are Windows commands, Back/Forward need no setup", () =>
+{
+    var s = QuickActionLayouts.Defaults(); InteractionGuide.AddRecommended(s, InteractionMode.Hybrid, _ => true);
+    var steps = InteractionGuide.MxMasterSteps(s, null);
+    Check(steps.Single(x => x.Title.Contains("Quick Ring")).Detail.Contains("Sense Panel"));
+    Check(steps.Any(x => x.CopyText == "Win+Tab") && steps.Any(x => x.CopyText == "Win+D"));
+    Check(steps.Single(x => x.Title.StartsWith("Back")).Detail.StartsWith("Nothing to set up"), "no Options+ app-specific setting");
 });
 int failures = 0;
 foreach (var test in tests)

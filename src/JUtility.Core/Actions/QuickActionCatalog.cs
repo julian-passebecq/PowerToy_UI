@@ -37,7 +37,9 @@ public static class QuickActionCatalog
 {
     public const string AppToggle = "app.toggle", AppOpen = "app.open", RingShow = "ring.show", ShelfToggle = "shelf.toggle";
     public const string CaptureRegion = "capture.region", CaptureQuick = "capture.quick", ClipboardOpen = "clipboard.open";
+    public const string CaptureScreen = "capture.screen";
     public const string FolderDownloads = "folder.downloads", FolderExplorer = "folder.explorer", TerminalOpen = "terminal.open";
+    public const string FolderDesktop = "folder.desktop";
     public const string WorkspaceResume = "workspace.resume", WorkspaceNext = "workspace.next", WorkspacePrevious = "workspace.previous";
     public const string TabNext = "tab.next", TabPrevious = "tab.previous";
     // File tray (V2.3). Item actions act on the tray row they were started from; from a global shortcut, the
@@ -55,9 +57,11 @@ public static class QuickActionCatalog
         new QuickActionDefinition(RingShow, "Quick Ring", "Power Ops", "Show the radial Quick Ring near the pointer.", "E8A9", null, true, ActionRisk.Safe),
         new QuickActionDefinition(ShelfToggle, "Quick Shelf", "Power Ops", "Show or hide the compact Quick Shelf bar.", "E8A0", null, true, ActionRisk.Safe),
         new QuickActionDefinition(CaptureRegion, "Screenshot (region)", "Capture", "Start the supported Windows region-capture flow.", "E7A8", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(CaptureScreen, "Screenshot (whole screen)", "Capture", "Copy the whole screen under the pointer to the clipboard, ready for Ctrl+V.", "E7F4", null, true, ActionRisk.Safe),
         new QuickActionDefinition(CaptureQuick, "Quick Capture", "Capture", "Add a note, task or link to the local Capture inbox.", "E70B", null, true, ActionRisk.Safe),
         new QuickActionDefinition(ClipboardOpen, "Clipboard library", "Capture", "Open the reusable text, screenshot and clip library.", "E77F", null, true, ActionRisk.Safe),
         new QuickActionDefinition(FolderDownloads, "Downloads", "Files", "Open the Windows Downloads folder in Explorer.", "E896", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(FolderDesktop, "Desktop folder", "Files", "Open your Windows Desktop folder in Explorer.", "E8FC", null, true, ActionRisk.Safe),
         new QuickActionDefinition(FolderExplorer, "Explorer folder", "Files", "Open the configured Explorer folder.", "E8B7", "Ctrl+Shift+E", true, ActionRisk.Safe),
         new QuickActionDefinition(TerminalOpen, "Terminal", "Tools", "Open the configured terminal. Never runs imported commands.", "E756", null, true, ActionRisk.Safe),
         new QuickActionDefinition(WorkspaceResume, "Resume workspace", "Workspace", "Reopen Power Ops on the active workspace and tab.", "E768", null, true, ActionRisk.Safe),

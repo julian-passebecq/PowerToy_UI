@@ -58,6 +58,8 @@ public sealed class QuickActionSettings
     public List<WebAppEntry> WebApps { get; set; } = [];
     // Optional local Claude Control server (tab, start action, health dot, Launchpad status). Null = off.
     public ClaudeControlSettings? ClaudeControl { get; set; }
+    // V2.4 sub-rings ("group:" slots). Missing in older files = none; the Ring keeps working unchanged.
+    public List<RingGroup> RingGroups { get; set; } = [];
 }
 
 public static class QuickActionLayouts
@@ -80,25 +82,38 @@ public static class QuickActionLayouts
         QuickActionCatalog.TerminalOpen, QuickActionCatalog.WorkspaceResume, QuickActionCatalog.TrayShow,
     });
 
-    public static QuickActionSettings Defaults() => new();
+    /// <summary>Fresh installs start with the suggested two-level ring (Folders › and Apps › sub-rings).</summary>
+    public static QuickActionSettings Defaults()
+    {
+        var settings = new QuickActionSettings();
+        QuickRingGroups.ApplySuggested(settings);
+        return settings;
+    }
+
+    /// <summary>Web apps and ring groups: the user-defined actions a layout may reference.</summary>
+    public static IReadOnlyList<QuickActionDefinition> Dynamic(QuickActionSettings? settings) =>
+        QuickWebApps.Definitions(settings).Concat(QuickRingGroups.Definitions(settings)).ToList().AsReadOnly();
 
     /// <summary>Catalog actions that may be placed on the given surface (same rules as <see cref="ValidateLayout"/>).</summary>
     public static IReadOnlyList<QuickActionDefinition> Eligible(ActionSurface surface, QuickActionSettings? settings = null)
     {
         string self = surface == ActionSurface.QuickRing ? QuickActionCatalog.RingShow : QuickActionCatalog.ShelfToggle;
-        return QuickActionCatalog.All.Concat(QuickWebApps.Definitions(settings))
+        return QuickActionCatalog.All.Concat(Dynamic(settings))
             .Where(x => x.GlobalAllowed && x.Risk != ActionRisk.Destructive && x.Id != self).ToList().AsReadOnly();
     }
 
     /// <summary>Built-in catalog entry or one of this settings file's web apps.</summary>
-    public static QuickActionDefinition Describe(QuickActionSettings settings, string id) => Lookup(id, QuickWebApps.Definitions(settings));
+    public static QuickActionDefinition Describe(QuickActionSettings settings, string id) => Lookup(id, Dynamic(settings));
 
-    private static QuickActionDefinition Lookup(string id, IReadOnlyList<QuickActionDefinition>? webApps) =>
+    private static QuickActionDefinition Lookup(string id, IReadOnlyList<QuickActionDefinition>? dynamic) =>
         QuickActionCatalog.Find(id)
-        ?? webApps?.FirstOrDefault(x => x.Id == id)
+        ?? dynamic?.FirstOrDefault(x => x.Id == id)
+        ?? (QuickToolActions.ToolId(id) is not null ? QuickToolActions.Missing(id) : null)
         ?? throw new InvalidDataException(QuickWebApps.IsWebActionId(id)
             ? "A layout or shortcut refers to a web app that no longer exists."
-            : $"Unknown quick action: {id}");
+            : QuickRingGroups.IsGroupActionId(id)
+                ? "A layout or shortcut refers to a Quick Ring group that no longer exists."
+                : $"Unknown quick action: {id}");
 
     public static IReadOnlyList<string> ResolveRing(QuickActionSettings settings, Guid workspaceId) =>
         (Override(settings, workspaceId)?.Ring ?? settings.Ring).AsReadOnly();
@@ -126,7 +141,8 @@ public static class QuickActionLayouts
         }
         QuickWebApps.Validate(settings.WebApps);
         JUtility.Core.Actions.ClaudeControl.Validate(settings.ClaudeControl, settings.WebApps);
-        var webApps = QuickWebApps.Definitions(settings);
+        var webApps = Dynamic(settings);
+        QuickRingGroups.Validate(settings, webApps);
         ValidateLayout(settings.Ring, ActionSurface.QuickRing, webApps);
         ValidateLayout(settings.Shelf, ActionSurface.QuickShelf, webApps);
         if (settings.WorkspaceOverrides is null || settings.WorkspaceOverrides.Count > MaxOverrides)
@@ -198,7 +214,7 @@ public static class QuickActionLayouts
     {
         if (workspaceId == Guid.Empty) throw new InvalidDataException("Missing workspace.");
         List<string>? list = ids?.ToList();
-        if (list is not null) ValidateLayout(list, surface, QuickWebApps.Definitions(settings));
+        if (list is not null) ValidateLayout(list, surface, Dynamic(settings));
         var entry = Override(settings, workspaceId);
         if (entry is null)
         {

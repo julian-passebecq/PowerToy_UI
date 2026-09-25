@@ -19,11 +19,13 @@ public static class QuickSurfaceModel
         QuickActionSettings settings,
         IEnumerable<string> ids,
         Func<string, string?> unavailableReason,
-        Func<string, string?> globalGesture)
+        Func<string, string?> globalGesture,
+        Func<string, QuickActionDefinition?>? resolve = null)
     {
         return ids.Select(id =>
         {
-            QuickActionDefinition action = QuickActionLayouts.Describe(settings, id);
+            // resolve: runtime-only actions such as Tool Launcher entries, which quick-actions.json cannot describe.
+            QuickActionDefinition action = resolve?.Invoke(id) ?? QuickActionLayouts.Describe(settings, id);
             string? reason = unavailableReason(id);
             string? gesture = globalGesture(id);
             string tip = action.Label
@@ -44,8 +46,9 @@ public static class QuickShelfModel
         QuickActionSettings settings,
         Guid workspaceId,
         Func<string, string?> unavailableReason,
-        Func<string, string?> globalGesture) =>
-        QuickSurfaceModel.Build(settings, QuickActionLayouts.ResolveShelf(settings, workspaceId), unavailableReason, globalGesture);
+        Func<string, string?> globalGesture,
+        Func<string, QuickActionDefinition?>? resolve = null) =>
+        QuickSurfaceModel.Build(settings, QuickActionLayouts.ResolveShelf(settings, workspaceId), unavailableReason, globalGesture, resolve);
 }
 
 public static class QuickRingModel
@@ -54,8 +57,20 @@ public static class QuickRingModel
         QuickActionSettings settings,
         Guid workspaceId,
         Func<string, string?> unavailableReason,
-        Func<string, string?> globalGesture) =>
-        QuickSurfaceModel.Build(settings, QuickActionLayouts.ResolveRing(settings, workspaceId), unavailableReason, globalGesture);
+        Func<string, string?> globalGesture,
+        Func<string, QuickActionDefinition?>? resolve = null) =>
+        QuickSurfaceModel.Build(settings, QuickActionLayouts.ResolveRing(settings, workspaceId), unavailableReason, globalGesture, resolve);
+
+    /// <summary>The second-level ring of a "group:" slot; null when the group no longer exists.</summary>
+    public static IReadOnlyList<QuickSurfaceItem>? BuildGroup(
+        QuickActionSettings settings,
+        string groupActionId,
+        Func<string, string?> unavailableReason,
+        Func<string, string?> globalGesture,
+        Func<string, QuickActionDefinition?>? resolve = null) =>
+        QuickRingGroups.Find(settings, groupActionId) is { } group
+            ? QuickSurfaceModel.Build(settings, group.Items, unavailableReason, globalGesture, resolve)
+            : null;
 
     /// <summary>Slot centre relative to the ring centre: slot 0 at the top, then clockwise (screen Y grows downward).</summary>
     public static (double X, double Y) SlotOffset(int index, int count, double radius)

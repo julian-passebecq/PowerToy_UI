@@ -107,11 +107,13 @@ public partial class MainWindow
     {
         if (_shelf is null || _quickActionSettings is null) return;
         _shelfWorkspaceId = _sessionShell?.ActiveWorkspaceId ?? Guid.Empty;
+        RefreshToolActions();
         IReadOnlyList<QuickSurfaceItem> items = QuickShelfModel.Build(
             _quickActionSettings,
             _shelfWorkspaceId,
             id => _quickActions.UnavailableReason(id),
-            id => string.Join(", ", _hotkeys.Registered.Where(x => x.ActionId == id).Select(x => x.Gesture.ToString())));
+            id => string.Join(", ", _hotkeys.Registered.Where(x => x.ActionId == id).Select(x => x.Gesture.ToString())),
+            _quickActions.Definition);
         _shelf.Render(items, _quickActionSettings.ShelfOrientation, _quickActionSettings.ShelfAlwaysOnTop, _quickActionSettings.ShelfAutoHide);
     }
 
