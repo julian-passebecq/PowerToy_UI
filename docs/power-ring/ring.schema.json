@@ -4,23 +4,44 @@
   "title": "Power Ring settings (ring.json)",
   "description": "Everything about Power Ring: hotkey, look, profiles and the circles of actions. Save the file and the ring reloads; an invalid file is reported and the previous version stays active.",
   "type": "object",
-  "required": ["version", "profiles"],
+  "required": [
+    "version",
+    "profiles"
+  ],
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
-    "version": { "const": 1, "description": "File format version. Always 1." },
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "description": "File format version. Always 1."
+    },
     "hotkey": {
       "type": "string",
       "default": "Ctrl+Alt+Shift+R",
       "description": "Global shortcut that opens the ring at the pointer. Needs Ctrl, Alt or Win. Map a mouse button (for example the MX Master Sense Panel) to it in Logi Options+.",
-      "examples": ["Ctrl+Alt+Shift+R", "Ctrl+Alt+Space", "Ctrl+Alt+Shift+F8"]
+      "examples": [
+        "Ctrl+Alt+Shift+R",
+        "Ctrl+Alt+Space",
+        "Ctrl+Alt+Shift+F8"
+      ]
     },
-    "startProfile": { "type": "string", "description": "Id of the profile shown first. Omit for the first profile." },
-    "appearance": { "$ref": "#/definitions/appearance" },
+    "startProfile": {
+      "type": "string",
+      "description": "Id of the profile shown first. Omit for the first profile."
+    },
+    "appearance": {
+      "$ref": "#/definitions/appearance"
+    },
     "profiles": {
-      "type": "array", "minItems": 1, "maxItems": 5,
-      "description": "1 to 5 profiles (Dev, Perso, Work...). Buttons 1-5 above the ring switch profile; Tab cycles; the mouse wheel over the ring too.",
-      "items": { "$ref": "#/definitions/profile" }
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "description": "1 to 6 workspaces. The centre of the ring shows the previous/next workspace icons; Tab, Ctrl+1-6 and the mouse wheel switch too. \"enabled\": false hides one.",
+      "items": {
+        "$ref": "#/definitions/profile"
+      }
     }
   },
   "definitions": {
@@ -31,11 +52,78 @@
     },
     "icon": {
       "type": "string",
-      "description": "An icon name, a Segoe Fluent Icons code point such as \"E943\", or a file path ending in .png, .ico, .jpg or .exe (an .exe shows its own icon).",
+      "description": "An icon name, a Segoe Fluent Icons code point such as \"E943\", or a path: .png/.ico/.jpg, an .exe or any file or folder (its Windows icon). Omit it and programs, folders and web sites show their own icon.",
       "anyOf": [
-        { "enum": ["app", "apps", "back", "bolt", "book", "bug", "calendar", "camera", "chat", "clipboard", "cloud", "code", "copy", "database", "desktop", "dev", "document", "download", "downloads", "edit", "explorer", "favorite", "folder", "game", "globe", "heart", "home", "keyboard", "link", "lock", "mail", "map", "music", "note", "person", "phone", "photo", "pin", "play", "power", "powerops", "refresh", "screen", "screenshot", "search", "settings", "share", "shop", "snap-left", "snap-right", "star", "task-view", "terminal", "text", "tools", "video", "volume", "web", "windows", "work"] },
-        { "pattern": "^[0-9A-Fa-f]{4,5}$" },
-        { "pattern": "\\.(png|ico|jpg|jpeg|exe|PNG|ICO|JPG|JPEG|EXE)$" }
+        {
+          "enum": [
+            "app",
+            "apps",
+            "back",
+            "bolt",
+            "book",
+            "bug",
+            "calendar",
+            "camera",
+            "chat",
+            "clipboard",
+            "cloud",
+            "code",
+            "copy",
+            "database",
+            "desktop",
+            "dev",
+            "document",
+            "download",
+            "downloads",
+            "edit",
+            "explorer",
+            "favorite",
+            "folder",
+            "game",
+            "globe",
+            "heart",
+            "home",
+            "keyboard",
+            "link",
+            "lock",
+            "mail",
+            "map",
+            "music",
+            "note",
+            "person",
+            "phone",
+            "photo",
+            "pin",
+            "play",
+            "power",
+            "powerops",
+            "refresh",
+            "screen",
+            "screenshot",
+            "search",
+            "settings",
+            "share",
+            "shop",
+            "snap-left",
+            "snap-right",
+            "star",
+            "task-view",
+            "terminal",
+            "text",
+            "tools",
+            "video",
+            "volume",
+            "web",
+            "windows",
+            "work"
+          ]
+        },
+        {
+          "pattern": "^[0-9A-Fa-f]{4,5}$"
+        },
+        {
+          "pattern": "(\\.(png|ico|jpg|jpeg|exe|PNG|ICO|JPG|JPEG|EXE)$)|(^[A-Za-z]:)|(^%)|(^\\\\\\\\)"
+        }
       ]
     },
     "appearance": {
@@ -43,60 +131,379 @@
       "additionalProperties": false,
       "description": "Sizes are in Windows display units (scaled with the monitor). Colours override the theme.",
       "properties": {
-        "theme": { "enum": ["system", "dark", "light"], "default": "system", "description": "system follows the Windows app theme." },
-        "ringSize": { "type": "number", "minimum": 200, "maximum": 800, "default": 340, "description": "Diameter of the disc." },
-        "slotSize": { "type": "number", "minimum": 28, "maximum": 160, "default": 60, "description": "Diameter of each action button. Must be less than half of ringSize." },
-        "centerSize": { "type": "number", "minimum": 28, "maximum": 200, "default": 78, "description": "Diameter of the centre button (home / back)." },
-        "slotRadius": { "type": "number", "minimum": 40, "maximum": 400, "description": "Distance from the centre to the buttons. Omit to compute it." },
-        "iconSize": { "type": "number", "minimum": 10, "maximum": 96, "default": 24 },
-        "fontSize": { "type": "number", "minimum": 8, "maximum": 32, "default": 12 },
-        "accent": { "$ref": "#/definitions/color", "description": "Hover/selection colour. Omit for the Windows accent colour. A profile's accent wins." },
-        "background": { "$ref": "#/definitions/color", "description": "Disc colour." },
-        "border": { "$ref": "#/definitions/color", "description": "Disc outline." },
-        "slot": { "$ref": "#/definitions/color", "description": "Button colour." },
-        "slotHover": { "$ref": "#/definitions/color", "description": "Button colour under the pointer. Omit to use the accent." },
-        "icon": { "$ref": "#/definitions/color", "description": "Icon colour." },
-        "text": { "$ref": "#/definitions/color", "description": "Label and number colour." },
-        "opacity": { "type": "number", "minimum": 0.3, "maximum": 1, "default": 0.94, "description": "Opacity of the disc background." },
-        "shadow": { "type": "boolean", "default": true },
-        "showNumbers": { "type": "boolean", "default": true, "description": "Small 1-8 numbers next to the buttons (keys 1-8 run them)." },
-        "showLabels": { "type": "boolean", "default": true, "description": "Name of the hovered button under the centre." },
-        "animationMs": { "type": "integer", "minimum": 0, "maximum": 1000, "default": 120, "description": "Open and circle-change animation; 0 = none." }
+        "theme": {
+          "enum": [
+            "system",
+            "dark",
+            "light"
+          ],
+          "default": "system",
+          "description": "system follows the Windows app theme."
+        },
+        "ringSize": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 900,
+          "description": "Disc diameter. Omit: just big enough for every circle."
+        },
+        "slotSize": {
+          "type": "number",
+          "minimum": 28,
+          "maximum": 160,
+          "default": 42,
+          "description": "Circle 1 (main) button diameter."
+        },
+        "centerSize": {
+          "type": "number",
+          "minimum": 28,
+          "maximum": 200,
+          "default": 60,
+          "description": "Centre button (workspace / back)."
+        },
+        "slotRadius": {
+          "type": "number",
+          "minimum": 40,
+          "maximum": 400,
+          "description": "Minimum distance from the centre to circle 1. Omit to compute it."
+        },
+        "iconSize": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 96,
+          "default": 20
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 32,
+          "default": 12
+        },
+        "accent": {
+          "$ref": "#/definitions/color",
+          "description": "Hover/selection colour. Omit for the Windows accent colour. A profile's accent wins."
+        },
+        "background": {
+          "$ref": "#/definitions/color",
+          "description": "Disc colour."
+        },
+        "border": {
+          "$ref": "#/definitions/color",
+          "description": "Disc outline."
+        },
+        "slot": {
+          "$ref": "#/definitions/color",
+          "description": "Button colour."
+        },
+        "slotHover": {
+          "$ref": "#/definitions/color",
+          "description": "Button colour under the pointer. Omit to use the accent."
+        },
+        "icon": {
+          "$ref": "#/definitions/color",
+          "description": "Icon colour."
+        },
+        "text": {
+          "$ref": "#/definitions/color",
+          "description": "Label and number colour."
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 1,
+          "default": 1,
+          "description": "Opacity of the disc background."
+        },
+        "shadow": {
+          "type": "boolean",
+          "default": true
+        },
+        "showNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Small 1-10 numbers next to the main buttons (keys 1-9 run them either way)."
+        },
+        "showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Name of the hovered button under the centre."
+        },
+        "animationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 120,
+          "description": "Open and circle-change animation; 0 = none."
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5,
+          "default": 1,
+          "description": "Multiplies every size: 0.85 = smaller ring, 1.2 = bigger. The easiest knob."
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60,
+          "default": 6,
+          "description": "Gap between the centre, the circles and the buttons."
+        },
+        "satelliteSize": {
+          "type": "number",
+          "minimum": 16,
+          "maximum": 100,
+          "default": 34,
+          "description": "Circle 2 button diameter (children shown behind their parent)."
+        },
+        "thirdSize": {
+          "type": "number",
+          "minimum": 12,
+          "maximum": 80,
+          "default": 24,
+          "description": "Circle 3 button diameter (children of children)."
+        },
+        "satelliteIconSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 48,
+          "default": 18
+        },
+        "thirdIconSize": {
+          "type": "number",
+          "minimum": 6,
+          "maximum": 40,
+          "default": 12
+        },
+        "showSatellites": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show circle 2 (children behind their parent)."
+        },
+        "showThirdRing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show circle 3 (children of children)."
+        },
+        "webIcons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Web buttons show the site's own icon, fetched once from that site and cached in the icons folder."
+        },
+        "boardWidth": {
+          "type": "number",
+          "minimum": 300,
+          "maximum": 1400,
+          "default": 560,
+          "description": "Width of board and gallery workspaces."
+        },
+        "boardHeight": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 1000,
+          "default": 420,
+          "description": "Height of board and gallery workspaces."
+        }
       }
     },
     "profile": {
       "type": "object",
-      "required": ["id", "name", "items"],
+      "required": [
+        "id",
+        "name"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,30}$", "description": "Short unique id, for example \"dev\"." },
-        "name": { "type": "string", "minLength": 1, "maxLength": 30, "description": "Shown on the profile button." },
-        "icon": { "$ref": "#/definitions/icon" },
-        "accent": { "$ref": "#/definitions/color", "description": "Accent colour while this profile is shown." },
-        "items": { "$ref": "#/definitions/items" }
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{1,30}$",
+          "description": "Short unique id, for example \"dev\"."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Shown on the profile button."
+        },
+        "icon": {
+          "$ref": "#/definitions/icon"
+        },
+        "accent": {
+          "$ref": "#/definitions/color",
+          "description": "Accent colour while this profile is shown."
+        },
+        "items": {
+          "$ref": "#/definitions/items"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "false hides this workspace without deleting it (tray icon > Workspaces)."
+        },
+        "kind": {
+          "enum": [
+            "ring",
+            "board",
+            "gallery"
+          ],
+          "default": "ring",
+          "description": "ring: circles of buttons. board: tables (clipboard, images, notes, links) switched with arrows. gallery: themed sections of app icons in rows, all visible."
+        },
+        "tables": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/definitions/table"
+          },
+          "description": "Board workspaces only."
+        },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/definitions/section"
+          },
+          "description": "Gallery workspaces only: 1-4 sections show as 2 columns, 5-6 as 3."
+        }
       }
     },
     "items": {
-      "type": "array", "minItems": 1, "maxItems": 8,
-      "description": "One circle: 1 to 8 buttons, numbered clockwise from the top.",
-      "items": { "$ref": "#/definitions/item" }
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "description": "One circle: 1 to 10 buttons, clockwise from the top.",
+      "items": {
+        "$ref": "#/definitions/item"
+      }
     },
     "item": {
       "type": "object",
-      "required": ["label"],
+      "required": [
+        "label"
+      ],
       "additionalProperties": false,
       "properties": {
-        "label": { "type": "string", "minLength": 1, "maxLength": 40 },
-        "icon": { "$ref": "#/definitions/icon", "description": "Omit to pick one from the action." },
-        "color": { "$ref": "#/definitions/color", "description": "Background of this button only." },
-        "action": {
-          "enum": ["run", "url", "folder", "keys", "text", "screenshot", "screen-to-clipboard", "powerops", "group"],
-          "description": "run: start a program (target = command or .exe, args optional). url: open an http(s) or mailto address. folder: open a folder (path, or downloads/desktop/documents/pictures/videos/music/home). keys: press a key combination in the window that was in front (target like \"Win+Tab\"). text: copy target text to the clipboard. screenshot: Windows region snip. screen-to-clipboard: whole screen under the pointer to the clipboard. powerops: show Power Ops (target = its .exe path, optional when it is running). group: a sub-circle (items), omit action and just give items."
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
         },
-        "target": { "type": "string", "description": "What the action uses: program, address, folder, key combination or text. Environment variables like %USERPROFILE% work." },
-        "args": { "type": "string", "description": "run: command-line arguments." },
-        "workingDirectory": { "type": "string", "description": "run: start folder." },
-        "items": { "$ref": "#/definitions/items", "description": "Sub-circle. At most 3 levels in total (ring > circle > circle)." }
+        "icon": {
+          "$ref": "#/definitions/icon",
+          "description": "Omit to pick one from the action."
+        },
+        "color": {
+          "$ref": "#/definitions/color",
+          "description": "Background of this button only."
+        },
+        "action": {
+          "enum": [
+            "run",
+            "url",
+            "folder",
+            "keys",
+            "text",
+            "screenshot",
+            "screen-to-clipboard",
+            "powerops",
+            "ring-settings",
+            "group"
+          ],
+          "description": "run: start a program (target = command or .exe, args optional). url: open an http(s), mailto: or ms-settings: address. folder: open a folder (path, or downloads/desktop/documents/pictures/videos/music/home). keys: press a key combination in the window that was in front (\"Win+Tab\"). text: copy target text. screenshot: Windows region snip. screen-to-clipboard: whole screen under the pointer to the clipboard. powerops: show Power Ops (target = its .exe). ring-settings: Power Ring's own settings (target edit, folder, reload or guide). group: omit the action and give items: a sub-circle that opens."
+        },
+        "target": {
+          "type": "string",
+          "description": "What the action uses: program, address, folder, key combination, text or ring-settings target. Environment variables like %LOCALAPPDATA% work."
+        },
+        "args": {
+          "type": "string",
+          "description": "run: command-line arguments."
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "run: start folder."
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/definitions/item"
+          },
+          "description": "Children, shown right behind this button on the next circle (up to 4 visible; 3 circles in total). With an action: click the button runs it, click a child runs the child. Without an action: a group whose full circle opens on click."
+        }
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": [
+        "title",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "kind": {
+          "enum": [
+            "clipboard",
+            "images",
+            "notes",
+            "links"
+          ],
+          "description": "clipboard: last copied texts (memory only). images: last copied images (memory only). notes: quick notes saved in notes.json. links: items you list."
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "default": 2
+        },
+        "keep": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "clipboard/images: how many recent entries to keep."
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 60,
+          "items": {
+            "$ref": "#/definitions/item"
+          },
+          "description": "links tables only. Right-click a link copies its address."
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": [
+        "title",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "icon": {
+          "$ref": "#/definitions/icon"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/definitions/item"
+          }
+        }
       }
     }
   }

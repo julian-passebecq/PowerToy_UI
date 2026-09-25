@@ -7,7 +7,7 @@ public static class RingIcons
     {
         ["app"] = "ECAA", ["apps"] = "ECAA", ["back"] = "E72B", ["bolt"] = "E945", ["book"] = "E82D", ["bug"] = "EBE8",
         ["calendar"] = "E787", ["camera"] = "E722", ["chat"] = "E8BD", ["clipboard"] = "E77F", ["cloud"] = "E753",
-        ["code"] = "E943", ["copy"] = "E8C8", ["database"] = "EFC7", ["desktop"] = "E8FC", ["dev"] = "EC7A", ["document"] = "E8A5",
+        ["code"] = "E943", ["copy"] = "E8C8", ["database"] = "E8F1", ["desktop"] = "E8FC", ["dev"] = "EC7A", ["document"] = "E8A5",
         ["download"] = "E896", ["downloads"] = "E896", ["edit"] = "E70F", ["explorer"] = "EC50", ["favorite"] = "E734",
         ["folder"] = "E8B7", ["game"] = "E7FC", ["globe"] = "E774", ["heart"] = "EB51", ["home"] = "E80F", ["keyboard"] = "E765",
         ["link"] = "E71B", ["lock"] = "E72E", ["mail"] = "E715", ["map"] = "E707", ["music"] = "E8D6", ["note"] = "E70B",
@@ -25,10 +25,13 @@ public static class RingIcons
     public static bool IsGlyphCode(string icon) =>
         icon.Length is 4 or 5 && icon.All(Uri.IsHexDigit) && Convert.ToInt32(icon, 16) is >= 0xE000 and <= 0xF8FF;
 
+    /// <summary>An image file, or any file/folder path (the icon Windows shows for it): "C:\...", "%LOCALAPPDATA%\...", "\\server\...".</summary>
     public static bool IsFile(string icon)
     {
+        if (icon.IndexOfAny(Path.GetInvalidPathChars()) >= 0) return false;
         string extension = Path.GetExtension(icon).ToLowerInvariant();
-        return extension is ".png" or ".ico" or ".exe" or ".jpg" or ".jpeg" && icon.IndexOfAny(Path.GetInvalidPathChars()) < 0;
+        return extension is ".png" or ".ico" or ".exe" or ".jpg" or ".jpeg"
+            || icon.Length > 2 && (icon[1] == ':' || icon.StartsWith('%') || icon.StartsWith(@"\\", StringComparison.Ordinal));
     }
 
     /// <summary>The glyph character for a name or code; null for file icons.</summary>

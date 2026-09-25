@@ -744,3 +744,25 @@ Direction from the user after the MX session: code the ring first, as a light ap
 - The physical MX Master 4 Sense Panel with Power Ring, the look on the user's screens, the tray menu and "Start with Windows" are for the user to try.
 - The default hotkey is Ctrl+Alt+Shift+R, the same as Power Ops' Quick Ring in Hybrid mode: when Power Ops owns it, Power Ring shows a notice; turn Power Ops' ring shortcut off (Actions > Global shortcuts) or change `hotkey`.
 - No graphical editor yet (by design: JSON first). Screen reader pass not done.
+
+## Power Ring 2: three circles, workspaces, board, gallery, real icons (2026-09-25/26)
+
+Driven by the user's feedback on Power Ring 1.0 (smaller icons, children right behind their parent, a third optional circle, no Windows-control duplicates, a clipboard board, galleries, 4-5 workspaces, three versions to compare).
+
+### Changed
+
+- **All circles visible at once**: a button's `items` are drawn right behind it on circle 2 (up to 4), and their children on an optional circle 3. `RingLayout` (Core) fans children around their parent's angle and moves each circle out only until nothing touches. Actions can now have children; a button without an action is still a group that opens its full circle.
+- **Easy size knobs**: `scale`, `spacing`, `slotSize` (42), `satelliteSize` (34), `thirdSize` (24), `centerSize` (60), per-circle icon sizes, `showSatellites`, `showThirdRing`; the disc size is computed unless `ringSize` is set. Up to 10 buttons on circle 1.
+- **Workspace switch in the centre**: the centre shows the workspace icon, with the previous/next workspaces as small icons on its sides (profile buttons on top removed). Tab, Ctrl+1-6, F1-F6 and the wheel still switch; the ring reopens on the last workspace.
+- **Workspace kinds**: `ring`, `board` (tables switched with ‹ ›: `clipboard` = last copied texts, `images` = last copied images, both **memory only** via `AddClipboardFormatListener`, skipping copies marked private by password managers; `notes` saved in `notes.json`; `links`), and `gallery` (1-6 themed sections of app tiles, all visible). `"enabled": false` hides a workspace; the tray menu toggles it and re-adds presets (writes keep `ring.json.bak`).
+- **Real icons**: programs and folders show their Windows icon (IShellItemImageFactory with alpha; commands resolved through App Paths and PATH), web buttons the site's own icon (apple-touch-icon, favicon.ico, then the page's declared icon link; fetched once from that site only, cached in `icons\`; `"webIcons": false` turns it off).
+- **Layouts**: `%APPDATA%\PowerRing\layouts\*.json`, tray menu > Layouts makes one active after validation (`ring.json.bak` kept). The user's three versions (V1 Anneaux, V2 Galerie, V3 Compact) are personal files, not in the repo.
+- New actions: `ring-settings` (edit, folder, reload, guide), `ms-settings:` URLs. Defaults: Home, Code, Manage (window management, Task Manager, apps, environment variables, clipboard history, Windows settings, Power Ring settings: no duplicates of the Windows quick settings), Clipboard board. Power Ops removed from the default ring. Disc fully opaque by default.
+- Idle footprint: **19-20 MB private**, 0 ms CPU.
+
+### Evidence
+
+- `tests/PowerRing.Tests`: **18/18** (adds layout: no overlaps, inside the disc, children behind and near their parent for every default ring and a dense 10 x 4 x 2 ring; scale and hidden circles; boards and galleries validation; enabled workspaces in the navigator; clipboard history bounds and dedupe; notes store with a corrupt file kept aside; layouts apply/validate/backup; schema and guide in sync). `build.ps1`: smoke, WorkspaceTests 111/111, Power Ring 18/18.
+- The user's three layouts validate (`PowerRing.Tests --validate`).
+- `tests/native/power-ring.ps1` (updated for circles 2-3, centre switchers, the board): first run **26/29**, the 3 failures being test-side (an AZERTY keyboard turned the typed digits into `'é`, and the reload checks expected the first workspace while the ring correctly reopened on the last one); both fixed in the script. The re-runs were stopped by the safety guard because the desktop was in use; see the next entry for the idle re-run.
+- Screenshots of V2 (round Home with real app, folder and site icons; Travail gallery; Presse-papier board) checked by the session.
