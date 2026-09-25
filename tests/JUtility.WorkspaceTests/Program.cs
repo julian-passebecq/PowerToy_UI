@@ -722,6 +722,24 @@ Test("Report cards sign in to a basic-auth Mongoku and explain each 401 (fake se
     var oidc = ReportCards.FetchAsync(card, new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("""{"message":"Session expired"}""") }), good).GetAwaiter().GetResult();
     Check(oidc.Error!.Contains("OIDC"), "Mongoku web sign-in is recognised");
 });
+Test("Source inventory report: new states and per-source resolution are understood", () =>
+{
+    const string inventory = """
+    {"reportId":"SOURCE_INVENTORY","title":"Source inventory","readOnly":true,"sections":[
+      {"sourceId":"DATAPROJECTS_GLOBAL","trace":{"resolved":true,"operation":"inventory"},"meta":{"state":"OK","returnedRows":7}},
+      {"sourceId":"FOIL_FABRIC","trace":{"resolved":true},"meta":{"state":"EMPTY","returnedRows":0}},
+      {"sourceId":"FOIL_FRONT","trace":{"resolved":false},"meta":{"state":"REGISTERED_UNBOUND","returnedRows":0}},
+      {"sourceId":"FOIL_CORE","trace":{"resolved":true},"meta":{"state":"SOURCE_ERROR","returnedRows":0}},
+      {"label":"No trace","meta":{"state":"OK","returnedRows":1}}]}
+    """;
+    var s = ReportCards.Parse(inventory, DateTimeOffset.Now);
+    Check(s.Sections[0].Label == "DATAPROJECTS_GLOBAL", "sourceId used when a section has no label");
+    Check(s.Sections[1].Health == SectionHealth.Ok && s.Sections[1].Explanation.Contains("nothing to list"), "EMPTY is healthy");
+    Check(s.Sections[2].Health == SectionHealth.Unavailable && s.Sections[2].Explanation.Contains("registered"), "REGISTERED_UNBOUND");
+    Check(s.Sections[3].Health == SectionHealth.Unavailable && s.Sections[3].Explanation.Contains("error"), "SOURCE_ERROR");
+    Check(s.Sections.Count(x => x.Resolved == true) == 3 && s.Sections.Count(x => x.Resolved is not null) == 4 && s.Sections[4].Resolved is null);
+    Check(s.Overall == SectionHealth.Unavailable);
+});
 int failures = 0;
 foreach (var test in tests)
 {

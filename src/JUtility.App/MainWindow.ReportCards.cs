@@ -135,6 +135,20 @@ public partial class MainWindow
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
             });
+            // Federation-style reports (e.g. SOURCE_INVENTORY) say per section whether its source resolved.
+            List<ReportSectionSummary> traced = summary.Sections.Where(x => x.Resolved is not null).ToList();
+            if (traced.Count > 0)
+            {
+                int resolved = traced.Count(x => x.Resolved == true);
+                body.Children.Add(new TextBlock
+                {
+                    Text = $"Sources resolved: {resolved}/{traced.Count}",
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = resolved == traced.Count ? Brushes.SeaGreen : Brushes.Firebrick,
+                    Margin = new Thickness(0, 2, 0, 0),
+                });
+            }
+
             foreach (ReportSectionSummary section in summary.Sections.Take(8))
             {
                 string rows = section.ReturnedRows is int n ? $"{n} row{(n == 1 ? "" : "s")}" : "rows unknown";
@@ -164,7 +178,7 @@ public partial class MainWindow
         buttons.Children.Add(refresh);
         buttons.Children.Add(open);
         body.Children.Add(buttons);
-        var border = new Border { Child = body, Background = Brushes.White, BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4) };
+        var border = new ReportCardBorder { Child = body, Background = Brushes.White, BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4) };
         AutomationProperties.SetName(border, $"{spoken} report card");
         AutomationProperties.SetHelpText(border, status);
         return border;
@@ -444,4 +458,23 @@ public partial class MainWindow
             _viewModel.StatusText = $"Report cards saved ({working.Count})";
         }
     });
+}
+
+/// <summary>
+/// A plain Border has no UI Automation peer, so its name/help text never reach screen readers. This exposes each
+/// report card as a named group ("{title} report card", help text = its status) that assistive tech can navigate.
+/// </summary>
+internal sealed class ReportCardBorder : Border
+{
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+    private sealed class Peer(ReportCardBorder owner) : System.Windows.Automation.Peers.FrameworkElementAutomationPeer(owner)
+    {
+        protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() =>
+            System.Windows.Automation.Peers.AutomationControlType.Group;
+
+        protected override string GetClassNameCore() => "ReportCard";
+
+        protected override bool IsControlElementCore() => true;
+    }
 }

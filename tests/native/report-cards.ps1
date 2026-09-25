@@ -21,7 +21,8 @@ $mongokuApp = [guid]::NewGuid()
     @{ Id = [guid]::NewGuid(); Title = ''; SourceUrl = "$base/"; ReportId = 'FOIL_STATUS_NOW' },
     @{ Id = [guid]::NewGuid(); Title = 'Portfolio'; SourceUrl = "$base/"; ReportId = 'GLOBAL_PROJECTS' },
     @{ Id = [guid]::NewGuid(); Title = 'Unknown report'; SourceUrl = "$base/"; ReportId = 'NOPE_UNKNOWN_REPORT' },
-    @{ Id = [guid]::NewGuid(); Title = 'Stopped Mongoku'; SourceUrl = 'http://localhost:1/'; ReportId = 'FOIL_NEXT' }) } |
+    @{ Id = [guid]::NewGuid(); Title = 'Stopped Mongoku'; SourceUrl = 'http://localhost:1/'; ReportId = 'FOIL_NEXT' },
+    @{ Id = [guid]::NewGuid(); Title = 'Source inventory'; SourceUrl = "$base/"; ReportId = 'SOURCE_INVENTORY' }) } |
   ConvertTo-Json -Depth 4 | Set-Content (Join-Path $root 'report-cards.json') -Encoding utf8
 @{ Format = 'powerops-quick-actions'; SchemaVersion = 1; Mode = 'Off'; GlobalShortcutsEnabled = $false; GlobalShortcuts = @()
    Ring = @('capture.region'); Shelf = @('app.open'); ShelfOrientation = 'Horizontal'; ShelfAlwaysOnTop = $true; ShelfAutoHide = $false; WorkspaceOverrides = @()
@@ -44,7 +45,7 @@ try {
   Start-Sleep -Seconds 4
   $initial = Texts $p
   Rec 'launchpad: report section shown' ($initial -contains 'Mongoku reports')
-  Rec 'on demand: four cards, all "Not loaded yet"' (@($initial | Where-Object { $_ -eq 'Not loaded yet. Press Refresh.' }).Count -eq 4)
+  Rec 'on demand: five cards, all "Not loaded yet"' (@($initial | Where-Object { $_ -eq 'Not loaded yet. Press Refresh.' }).Count -eq 5)
   Rec 'on demand: no connection to Mongoku before Refresh' ((MongokuConnections $p) -eq 0)
 
   # FOIL status now vs API ground truth
@@ -76,6 +77,19 @@ try {
   Rec 'unknown report: Mongoku error shown' ([bool](Wait-Text $p { $_ -like '*Unknown report: NOPE_UNKNOWN_REPORT*' }))
   Invoke-Named $p 'Refresh Stopped Mongoku'
   Rec 'stopped Mongoku: "not reachable" shown' ([bool](Wait-Text $p { $_ -like 'Mongoku is not reachable at http://localhost:1*' }))
+
+  # Source inventory (federation check): resolved count and states match the API
+  $inv = Invoke-RestMethod "$base/api/datapass/reports/SOURCE_INVENTORY" -TimeoutSec 30
+  $traced = @($inv.sections | Where-Object { $null -ne $_.trace.resolved })
+  $expectedResolved = "Sources resolved: $(@($traced | Where-Object { $_.trace.resolved }).Count)/$($traced.Count)"
+  Invoke-Named $p 'Refresh Source inventory'
+  $card = $null; for ($i = 0; $i -lt 40 -and -not $card; $i++) { $card = $A::FromHandle($p.MainWindowHandle).FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, 'Source inventory report card'))); if (-not $card) { Start-Sleep -Milliseconds 250 } }
+  function CardTexts { @($card.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text))) | ForEach-Object { $_.Current.Name }) }
+  $got = $null; for ($i = 0; $i -lt 160 -and -not $got; $i++) { $card = $A::FromHandle($p.MainWindowHandle).FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, 'Source inventory report card'))); if ($card) { $got = CardTexts | Where-Object { $_ -like 'Sources resolved:*' } | Select-Object -First 1 }; if (-not $got) { Start-Sleep -Milliseconds 250 } }
+  Rec 'source inventory: resolved count matches the API' ($got -eq $expectedResolved) "$got (API: $expectedResolved)"
+  $bad = @($inv.sections | Where-Object { $_.meta.state -notin 'OK', 'EMPTY' }).Count
+  $all = CardTexts
+  Rec 'source inventory: overall state matches the API' ($(if ($bad -eq 0) { @($all | Where-Object { $_ -like "All $(@($inv.sections).Count) sections complete" }).Count -ge 1 } else { @($all | Where-Object { $_ -like "$bad unavailable*" }).Count -ge 1 })) "$bad section(s) not OK/EMPTY"
 
   # Open in Mongoku lands on the report page inside the embedded Mongoku tab
   Invoke-Named $p 'Open FOIL status now in Mongoku'

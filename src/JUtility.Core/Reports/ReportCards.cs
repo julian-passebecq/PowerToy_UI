@@ -37,7 +37,8 @@ public enum SectionHealth
     Unknown,
 }
 
-public sealed record ReportSectionSummary(string Label, string? Authority, string State, int? ReturnedRows, bool Truncated)
+/// <param name="Resolved">trace.resolved when the report says whether the section's source resolved (e.g. SOURCE_INVENTORY).</param>
+public sealed record ReportSectionSummary(string Label, string? Authority, string State, int? ReturnedRows, bool Truncated, bool? Resolved = null)
 {
     public SectionHealth Health => ReportCards.HealthOf(State);
     public string Explanation => ReportCards.Explain(State);
@@ -103,15 +104,19 @@ public static partial class ReportCards
 
     public static SectionHealth HealthOf(string? state) => state?.ToUpperInvariant() switch
     {
-        "OK" => SectionHealth.Ok,
+        "OK" or "EMPTY" => SectionHealth.Ok,
         "TRUNCATED" => SectionHealth.Partial,
-        "SOURCE_UNBOUND" or "SOURCE_UNAVAILABLE" or "REGISTRY_UNAVAILABLE" or "REGISTRY_AMBIGUOUS" or "NAMESPACE_UNRESOLVED" or "ERROR" or "FAILED" => SectionHealth.Unavailable,
+        "SOURCE_UNBOUND" or "REGISTERED_UNBOUND" or "SOURCE_UNAVAILABLE" or "SOURCE_ERROR" or "REGISTRY_UNAVAILABLE" or "REGISTRY_AMBIGUOUS"
+            or "NAMESPACE_UNRESOLVED" or "ERROR" or "FAILED" => SectionHealth.Unavailable,
         _ => SectionHealth.Unknown,
     };
 
     public static string Explain(string? state) => state?.ToUpperInvariant() switch
     {
         "OK" => "complete",
+        "EMPTY" => "reachable, nothing to list",
+        "REGISTERED_UNBOUND" => "registered in the resource registry but not bound in this Mongoku",
+        "SOURCE_ERROR" => "the source answered with an error",
         "TRUNCATED" => "more rows exist than the report limit",
         "SOURCE_UNBOUND" => "the source is not bound in this Mongoku (no data read)",
         "SOURCE_UNAVAILABLE" => "the source database was not reachable",
@@ -139,7 +144,12 @@ public static partial class ReportCards
                 int? rows = meta.ValueKind == JsonValueKind.Object && meta.TryGetProperty("returnedRows", out JsonElement r) && r.TryGetInt32(out int n) ? n : null;
                 bool truncated = meta.ValueKind == JsonValueKind.Object && meta.TryGetProperty("truncated", out JsonElement t) && t.ValueKind == JsonValueKind.True;
                 string state = (meta.ValueKind == JsonValueKind.Object ? Text(meta, "state") : null) ?? "";
-                sections.Add(new ReportSectionSummary(Text(section, "label") ?? Text(section, "id") ?? "Section", Text(section, "authority"), state, rows, truncated));
+                bool? resolved = section.TryGetProperty("trace", out JsonElement trace) && trace.ValueKind == JsonValueKind.Object
+                    && trace.TryGetProperty("resolved", out JsonElement res) && res.ValueKind is JsonValueKind.True or JsonValueKind.False
+                        ? res.GetBoolean()
+                        : null;
+                string label = Text(section, "label") ?? Text(section, "sourceId") ?? Text(section, "id") ?? "Section";
+                sections.Add(new ReportSectionSummary(label, Text(section, "authority"), state, rows, truncated, resolved));
             }
         }
 
