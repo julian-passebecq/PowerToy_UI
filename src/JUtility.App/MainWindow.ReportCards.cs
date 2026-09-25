@@ -85,6 +85,13 @@ public partial class MainWindow
         var header = new WrapPanel();
         header.Children.Add(new TextBlock { Text = "Mongoku reports", FontSize = 20, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
         header.Children.Add(SessionButton("Manage report cards...", ManageReportCards));
+        if (_reportSettings is { } current && !current.Cards.Any(x => MaintenanceReport.Is(x.ReportId)) && current.Cards.Count < ReportCards.MaxCards)
+        {
+            Button addMaintenance = SessionButton("+ Maintenance card", AddMaintenanceCard);
+            addMaintenance.ToolTip = "Adds Mongoku's read-only MAINTENANCE report (what needs attention across the portfolio). Nothing is fetched until you press Refresh.";
+            header.Children.Add(addMaintenance);
+        }
+
         _reportPanel.Children.Add(header);
 
         if (_reportSettings is null)
@@ -115,7 +122,9 @@ public partial class MainWindow
         bool loading = _reportLoading.Contains(card.Id);
         var body = new StackPanel { Width = 360, Margin = new Thickness(10) };
         string title = card.Title.Length > 0 ? card.Title : summary?.Title ?? card.ReportId;
-        body.Children.Add(new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(MaintenanceReport.Is(card.ReportId)
+            ? LinkText(title, ReportCards.DeepLink(card), card, new TextBlock { FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap })
+            : new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         body.Children.Add(new TextBlock { Text = $"{card.ReportId} · {new Uri(card.SourceUrl).Authority}", Foreground = Brushes.DimGray, FontSize = 11 });
         if (summary?.NonAuthoritative == true)
         {
@@ -151,9 +160,12 @@ public partial class MainWindow
             });
         }
 
+        bool maintenance = MaintenanceReport.Is(card.ReportId);
         (string status, Brush color) = loading ? ("Refreshing...", Brushes.DimGray)
             : result is null ? ("Not loaded yet. Press Refresh.", Brushes.DimGray)
+            : summary is null && maintenance ? ("Maintenance unavailable: " + (result.Error ?? "unknown error."), Brushes.Firebrick)
             : summary is null ? (result.Error ?? "Unknown error.", Brushes.Firebrick)
+            : summary.Maintenance is { } digest ? MaintenanceStatus(digest)
             : (Overall(summary), HealthBrush(summary.Overall));
         var statusText = new TextBlock { Text = status, Foreground = color, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 2) };
         body.Children.Add(statusText);
@@ -168,8 +180,13 @@ public partial class MainWindow
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
             });
+            if (summary.Maintenance is { } maintenanceDigest)
+            {
+                AddMaintenanceBody(body, card, maintenanceDigest);
+            }
+
             // Federation-style reports (e.g. SOURCE_INVENTORY) say per section whether its source resolved.
-            List<ReportSectionSummary> traced = summary.Sections.Where(x => x.Resolved is not null).ToList();
+            List<ReportSectionSummary> traced = summary.Maintenance is null ? summary.Sections.Where(x => x.Resolved is not null).ToList() : [];
             if (traced.Count > 0)
             {
                 int resolved = traced.Count(x => x.Resolved == true);
@@ -182,7 +199,7 @@ public partial class MainWindow
                 });
             }
 
-            foreach (ReportSectionSummary section in summary.Sections.Take(8))
+            foreach (ReportSectionSummary section in summary.Sections.Take(summary.Maintenance is null ? 8 : 0))
             {
                 string rows = section.ReturnedRows is int n ? $"{n} row{(n == 1 ? "" : "s")}" : "rows unknown";
                 body.Children.Add(new TextBlock
@@ -194,7 +211,7 @@ public partial class MainWindow
                 });
             }
 
-            if (summary.Sections.Count > 8)
+            if (summary.Maintenance is null && summary.Sections.Count > 8)
             {
                 body.Children.Add(new TextBlock { Text = $"+{summary.Sections.Count - 8} more sections in Mongoku", Foreground = Brushes.DimGray });
             }
@@ -206,7 +223,7 @@ public partial class MainWindow
         Button refresh = SessionButton("Refresh", () => RefreshReportCard(card));
         refresh.IsEnabled = !loading;
         AutomationProperties.SetName(refresh, $"Refresh {spoken}");
-        Button open = SessionButton("Open in Mongoku", () => OpenReportInMongoku(card));
+        Button open = SessionButton("Open in Mongoku", () => OpenInMongoku(card, ReportCards.DeepLink(card)));
         AutomationProperties.SetName(open, $"Open {spoken} in Mongoku");
         buttons.Children.Add(refresh);
         buttons.Children.Add(open);
@@ -235,6 +252,97 @@ public partial class MainWindow
             }.Where(x => x is not null)),
         };
     }
+
+    private static (string Text, Brush Color) MaintenanceStatus(MaintenanceDigest digest)
+    {
+        if (digest.SummaryUnavailable) return ("Maintenance summary unavailable (its source did not resolve in Mongoku).", Brushes.Firebrick);
+        int missing = digest.UnavailableSections.Count();
+        string line = digest.SummaryLine ?? "Mongoku returned no summary line.";
+        return missing > 0
+            ? ($"{line} ({missing} section{(missing == 1 ? "" : "s")} unavailable)", Brushes.DarkGoldenrod)
+            : (line, digest.Actions.Count == 0 ? Brushes.SeaGreen : Brushes.Black);
+    }
+
+    /// <summary>
+    /// MAINTENANCE: top next action, counts, unavailable sections and the rows that need something, each a link to its
+    /// Mongoku page. Read-only: links only open Mongoku; nothing here launches, schedules or changes anything.
+    /// </summary>
+    private void AddMaintenanceBody(StackPanel body, ReportCard card, MaintenanceDigest digest)
+    {
+        Uri page = ReportCards.DeepLink(card);
+        if (!digest.SummaryUnavailable && !string.IsNullOrWhiteSpace(digest.NextAction))
+        {
+            body.Children.Add(new TextBlock { Text = "Next: " + digest.NextAction, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+        }
+
+        body.Children.Add(new TextBlock { Text = MaintenanceReport.CountsLine(digest), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+
+        foreach (MaintenanceSection section in digest.UnavailableSections)
+        {
+            body.Children.Add(new TextBlock
+            {
+                Text = $"● {section.Label}: unavailable ({(section.State.Length > 0 ? ReportCards.Explain(section.State) : "source not resolved")}); nothing shown for it.",
+                Foreground = Brushes.Firebrick,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0),
+            });
+        }
+
+        const int shown = 6;
+        foreach (MaintenanceRow row in digest.Actions.Take(shown))
+        {
+            TextBlock link = LinkText($"▸ {row.Title}: {row.NextAction}", row.OpenUri ?? page, card, new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+            if (!string.IsNullOrWhiteSpace(row.Summary)) link.ToolTip = row.Summary;
+            body.Children.Add(link);
+        }
+
+        int total = digest.Sections.Sum(x => x.ActionRows);
+        if (total > shown)
+        {
+            body.Children.Add(LinkText($"+{total - shown} more to act on in Mongoku", page, card, new TextBlock { Foreground = Brushes.DimGray, Margin = new Thickness(0, 2, 0, 0) }));
+        }
+        else if (total == 0 && !digest.SummaryUnavailable && !digest.UnavailableSections.Any())
+        {
+            body.Children.Add(new TextBlock { Text = "Nothing to act on.", Foreground = Brushes.SeaGreen, Margin = new Thickness(0, 2, 0, 0) });
+        }
+    }
+
+    /// <summary>A text line whose content is a hyperlink to a Mongoku page (opened like "Open in Mongoku").</summary>
+    private TextBlock LinkText(string text, Uri target, ReportCard card, TextBlock host)
+    {
+        var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(text)) { NavigateUri = target };
+        link.RequestNavigate += (_, e) => { e.Handled = true; OpenInMongoku(card, target); };
+        AutomationProperties.SetName(link, text.Replace('_', ' '));
+        AutomationProperties.SetHelpText(link, target.AbsoluteUri);
+        host.Inlines.Add(link);
+        return host;
+    }
+
+    private void AddMaintenanceCard() => SessionAction(() =>
+    {
+        EnsureReportSettings();
+        if (_reportSettings is null || _reportStore is null) return;
+        string source = _quickActionSettings?.WebApps.FirstOrDefault(x => x.Name.Contains("Mongoku", StringComparison.OrdinalIgnoreCase))?.Url
+            ?? _reportSettings.Cards.FirstOrDefault()?.SourceUrl
+            ?? "http://localhost:3100/";
+        var candidate = new ReportCardSettings
+        {
+            Cards = [.. _reportSettings.Cards, new ReportCard { Title = "Maintenance", SourceUrl = source, ReportId = MaintenanceReport.ReportId }],
+        };
+        try
+        {
+            _reportStore.Save(candidate);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            ShowOwnedMessage(ex.Message, "Mongoku report cards", MessageBoxImage.Warning);
+            return;
+        }
+
+        _reportSettings = candidate;
+        FillReportPanel();
+        _viewModel.StatusText = "Maintenance card added (press Refresh to load it)";
+    });
 
     private static Brush HealthBrush(SectionHealth health) => health switch
     {
@@ -266,9 +374,8 @@ public partial class MainWindow
         }
     }
 
-    private void OpenReportInMongoku(ReportCard card)
+    private void OpenInMongoku(ReportCard card, Uri page)
     {
-        Uri page = ReportCards.DeepLink(card);
         string origin = new Uri(card.SourceUrl).GetLeftPart(UriPartial.Authority);
         WebAppEntry? app = _quickActionSettings?.WebApps.FirstOrDefault(x =>
             Uri.TryCreate(x.Url, UriKind.Absolute, out Uri? uri) && uri.GetLeftPart(UriPartial.Authority).Equals(origin, StringComparison.OrdinalIgnoreCase));
