@@ -17,7 +17,7 @@ public static string User(string t) { IntPtr p; if (!CredRead(t, 1, 0, out p)) r
 public static bool Write(string t, string user, string pass) { byte[] b = System.Text.Encoding.Unicode.GetBytes(pass); IntPtr m = Marshal.AllocHGlobal(b.Length); try { Marshal.Copy(b, 0, m, b.Length); var c = new CRED { Type = 1, TargetName = t, UserName = user, Blob = m, BlobSize = (uint)b.Length, Persist = 2 }; return CredWrite(ref c, 0); } finally { Marshal.FreeHGlobal(m); } }
 "@
 $A = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Automation.TreeScope]
-$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe'
+$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 $root = Join-Path $env:TEMP ("powerops-auth-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8)); New-Item -ItemType Directory $root | Out-Null
 $r = [ordered]@{}
 function Rec($name, $ok, $detail = '') { $r[$name] = $(if ($ok) { 'PASS' } else { 'FAIL' }) + $(if ($detail) { "  ($detail)" } else { '' }) }

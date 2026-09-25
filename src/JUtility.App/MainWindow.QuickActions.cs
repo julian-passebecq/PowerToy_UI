@@ -63,6 +63,7 @@ public partial class MainWindow
         Register(QuickActionCatalog.TabPrevious, () => CycleSessionTab(-1), TabCycleUnavailable);
         Register(QuickActionCatalog.ShelfToggle, ToggleQuickShelf, ShelfUnavailable);
         Register(QuickActionCatalog.RingShow, ToggleQuickRing, RingUnavailable);
+        InitializeFileTray(Register);
 
         // Leave the WM_HOTKEY callback before running: actions may open windows or message boxes.
         _hotkeys.Pressed += (_, hotkey) => Dispatcher.BeginInvoke(
@@ -279,6 +280,8 @@ public partial class MainWindow
 
         _actionsMenu.Items.Clear();
         bool webSeparator = false;
+        // File tray actions are grouped in a submenu; from a menu they act on the newest tray file.
+        var tray = new MenuItem { Header = "File tray" };
         foreach (QuickActionDefinition action in _quickActions.Definitions.Where(x => _quickActions.IsRegistered(x.Id)))
         {
             if (!webSeparator && QuickWebApps.IsWebActionId(action.Id))
@@ -296,7 +299,15 @@ public partial class MainWindow
             };
             string id = action.Id;
             item.Click += (_, _) => RunQuickAction(id, ActionSurface.FullUi);
-            _actionsMenu.Items.Add(item);
+            if (action.Category == "File tray")
+            {
+                if (tray.Items.Count == 0) _actionsMenu.Items.Add(tray);
+                tray.Items.Add(item);
+            }
+            else
+            {
+                _actionsMenu.Items.Add(item);
+            }
         }
 
         _actionsMenu.Items.Add(new Separator());

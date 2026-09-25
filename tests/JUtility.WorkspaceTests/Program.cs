@@ -7,6 +7,7 @@ using JUtility.Core.Reports;
 using JUtility.Core.Workspaces;
 using JUtility.Core.Capture;
 using JUtility.Core.Credentials;
+using JUtility.Core.Files;
 
 var tests = new List<(string Name, Action Test)>();
 void Test(string name, Action test) => tests.Add((name, test));
@@ -1058,6 +1059,253 @@ Test("Maintenance card: Mongoku down is a readable failure, never an exception (
     var ok = ReportCards.FetchAsync(card, new FakeHandler(r => { seen = r; return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(MaintenanceSample) }; })).GetAwaiter().GetResult();
     Check(ok.Summary!.Maintenance!.Actions[0].OpenUri!.AbsoluteUri == "http://localhost:3100/?project=atlas", "links resolved against the card's address");
     Check(seen!.Method == HttpMethod.Get && seen.RequestUri!.AbsolutePath == "/api/datapass/reports/MAINTENANCE" && seen.Headers.Authorization is null, "read-only GET, no credential");
+});
+// ---- V2.3 File tray: recently received files for AI chats ----
+var trayEpoch = new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero);
+FileTrayEntry TrayEntry(string name, int minutesAgo, long length = 100, string folder = "C:\\Tray", int writeMinutesAgo = -1) =>
+    new(Path.Combine(folder, name), folder, "Downloads", FileTrayFilter.KindOf(name) ?? FileTrayKind.Text, length,
+        trayEpoch.AddMinutes(-(writeMinutesAgo < 0 ? minutesAgo : writeMinutesAgo)), trayEpoch.AddMinutes(-minutesAgo));
+bool WaitFor(Func<bool> condition, int milliseconds = 6000)
+{
+    var clock = System.Diagnostics.Stopwatch.StartNew();
+    while (clock.ElapsedMilliseconds < milliseconds) { if (condition()) return true; Thread.Sleep(50); }
+    return condition();
+}
+void Write(string path, string text, DateTime? writeUtc = null)
+{
+    File.WriteAllText(path, text);
+    if (writeUtc is DateTime time) { File.SetCreationTimeUtc(path, time); File.SetLastWriteTimeUtc(path, time); }
+}
+Test("File tray filter keeps chat file types and ignores partial downloads", () =>
+{
+    foreach (string name in new[] { "a.pdf", "B.PNG", "c.jpg", "d.JPEG", "e.webp", "f.gif", "IMG_1.HEIC", "g.docx", "h.txt", "WhatsApp Image 2026-09-25 at 10.02.11.jpeg" })
+        Check(FileTrayFilter.IsCandidate(name), name);
+    foreach (string name in new[] { "a.pdf.crdownload", "Unconfirmed 123456.crdownload", "b.pdf.part", "c.jpg.partial", "d.tmp", "e.pdf.download", "f.opdownload",
+        "~$report.docx", ".~lock.report.docx#", "setup.exe", "archive.zip", "notes.md", "photo.jpg.exe", "noextension", "g.doc" })
+        Check(!FileTrayFilter.IsCandidate(name), name);
+    Check(FileTrayFilter.IsPartial("x.pdf.crdownload") && FileTrayFilter.IsPartial("~$x.docx") && !FileTrayFilter.IsPartial("x.pdf"));
+    Check(FileTrayFilter.KindOf("x.pdf") == FileTrayKind.Pdf && FileTrayFilter.KindOf("x.heic") == FileTrayKind.Image
+        && FileTrayFilter.KindOf("x.docx") == FileTrayKind.Document && FileTrayFilter.KindOf("x.txt") == FileTrayKind.Text && FileTrayFilter.KindOf("x.zip") is null);
+});
+Test("File tray orders newest arrival first, one entry per file, bounded to N", () =>
+{
+    var list = new FileTrayList(3);
+    Check(list.Upsert(TrayEntry("old.pdf", 30)) && list.Upsert(TrayEntry("new.png", 1)) && list.Upsert(TrayEntry("mid.txt", 10)));
+    Check(string.Join(",", list.Items.Select(x => x.Name)) == "new.png,mid.txt,old.pdf");
+    Check(list.Upsert(TrayEntry("newest.docx", 0)), "a newer file enters");
+    Check(list.Items.Count == 3 && list.Items[0].Name == "newest.docx" && list.Items.All(x => x.Name != "old.pdf"), "oldest trimmed");
+    Check(!list.Upsert(TrayEntry("ancient.pdf", 500)), "older than everything kept: not added");
+    Check(!list.Upsert(TrayEntry("x.zip", 0)) && !list.Upsert(TrayEntry("y.pdf.crdownload", 0)) && !list.Upsert(TrayEntry("empty.pdf", 0, length: 0)), "never unsupported, partial or empty");
+    Check(list.Latest!.Name == "newest.docx");
+    // Same arrival time: newer write time first, then name.
+    var ties = new FileTrayList();
+    ties.Upsert(TrayEntry("b.pdf", 5, writeMinutesAgo: 9)); ties.Upsert(TrayEntry("a.pdf", 5, writeMinutesAgo: 9)); ties.Upsert(TrayEntry("c.pdf", 5, writeMinutesAgo: 2));
+    Check(string.Join(",", ties.Items.Select(x => x.Name)) == "c.pdf,a.pdf,b.pdf");
+    Reject(() => new FileTrayList(0)); Reject(() => new FileTrayList(101));
+    Check(list.SetCapacity(1) && list.Items.Count == 1 && list.Items[0].Name == "newest.docx");
+});
+Test("File tray dedupe: repeated events and path spellings stay one entry; unchanged files keep their place", () =>
+{
+    var list = new FileTrayList();
+    list.Upsert(TrayEntry("report.pdf", 20)); list.Upsert(TrayEntry("photo.jpg", 5));
+    var again = TrayEntry("report.pdf", 0, folder: "c:\\tray\\sub\\..") with { LastWriteUtc = trayEpoch.AddMinutes(-20) };
+    Check(!list.Upsert(again), "same size and write time: a spurious event does not move it");
+    Check(list.Items.Count == 2 && list.Items[0].Name == "photo.jpg");
+    Check(list.Upsert(TrayEntry("REPORT.PDF", 0, length: 200)), "rewritten file moves to the top");
+    Check(list.Items.Count == 2 && list.Items[0].Name == "REPORT.PDF" && list.Items.Count(x => x.Key == FileTrayFilter.Key("C:\\Tray\\report.pdf")) == 1);
+    Check(list.Dismiss("c:\\TRAY\\report.pdf") && list.Items.Count == 1, "dismiss by any spelling");
+    Check(!list.Upsert(TrayEntry("REPORT.PDF", 0, length: 200)), "dismissed stays hidden while unchanged");
+    Check(list.Upsert(TrayEntry("REPORT.PDF", 0, length: 300)), "comes back when written again");
+    Check(list.Dismiss("C:\\Tray\\photo.jpg") && !new FileTrayList(20, list.DismissedKeys).Upsert(TrayEntry("photo.jpg", 5)), "dismissals survive a watcher rebuild");
+    Check(list.Relocate("C:\\Tray\\REPORT.PDF", "D:\\Projects\\Foil\\REPORT.PDF", "Moved to Foil") && list.Items[0].SourceLabel == "Moved to Foil"
+        && list.Items[0].Path == "D:\\Projects\\Foil\\REPORT.PDF" && list.Items[0].ArrivedUtc == trayEpoch, "moved file keeps its place");
+    Check(!list.Relocate("C:\\Tray\\missing.pdf", "D:\\x.pdf", "x") && !list.Remove("C:\\Tray\\missing.pdf"));
+    Check(list.Prune(_ => false) && list.Items.Count == 0);
+});
+Test("File readiness waits for locked and empty files with a bounded one-shot schedule", () =>
+{
+    Temporary(dir =>
+    {
+        string file = Path.Combine(dir, "incoming.pdf");
+        Check(FileTrayReadiness.Probe(file) == FileReadiness.Missing);
+        File.WriteAllBytes(file, []);
+        Check(FileTrayReadiness.Probe(file) == FileReadiness.Empty, "Firefox-style placeholder");
+        using (var writer = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.Read))
+        {
+            writer.WriteByte(1); writer.Flush();
+            Check(FileTrayReadiness.Probe(file) == FileReadiness.Locked, "still being written");
+        }
+        Check(FileTrayReadiness.Probe(file) == FileReadiness.Ready);
+        Check(FileTrayReadiness.Probe(Path.Combine(dir, "x.pdf.crdownload")) == FileReadiness.NotCandidate);
+    });
+    Check(FileTrayReadiness.RetryDelay(0) == TimeSpan.FromMilliseconds(250) && FileTrayReadiness.RetryDelay(1) == TimeSpan.FromMilliseconds(500));
+    double total = 0; int attempts = 0;
+    for (int i = 0; FileTrayReadiness.RetryDelay(i) is TimeSpan delay; i++) { Check(delay <= TimeSpan.FromSeconds(8)); total += delay.TotalSeconds; attempts++; }
+    Check(total <= 120 && total > 100 && attempts < 25, $"gives up after about two minutes ({total} s, {attempts} checks)");
+});
+Test("File tray watcher: new file appears, partial download only after rename, locked file after unlock, delete disappears", () =>
+{
+    Temporary(dir =>
+    {
+        Write(Path.Combine(dir, "old.txt"), "old", DateTime.UtcNow.AddDays(-2));
+        using var service = new FileTrayService([new WatchedFolder(dir, "Test")], 3);
+        int changes = 0; service.Changed += (_, _) => Interlocked.Increment(ref changes);
+        Check(!service.IsStarted && service.Items.Count == 0, "nothing runs before first use");
+        service.Start();
+        Check(service.Items.Count == 1 && service.Items[0].Name == "old.txt" && service.PendingCount == 0);
+
+        Write(Path.Combine(dir, "invoice.pdf"), "%PDF-1.4 fake");
+        Check(WaitFor(() => service.Latest?.Name == "invoice.pdf"), "dropped file appears on top");
+        Check(service.Items[0].SourceLabel == "Test" && service.Items[0].Kind == FileTrayKind.Pdf);
+
+        string partial = Path.Combine(dir, "scan.pdf.crdownload");
+        Write(partial, "downloading");
+        Thread.Sleep(800);
+        Check(service.Items.All(x => !x.Name.Contains("crdownload") && x.Name != "scan.pdf") && service.PendingCount == 0, "partial download ignored without disk access");
+        File.Move(partial, Path.Combine(dir, "scan.pdf"));
+        Check(WaitFor(() => service.Latest?.Name == "scan.pdf"), "appears after the browser renames it");
+
+        // Firefox: empty placeholder, then the .part file replaces it.
+        File.WriteAllBytes(Path.Combine(dir, "ff.png"), []);
+        Write(Path.Combine(dir, "ff.png.part"), "pixels");
+        Thread.Sleep(600);
+        Check(service.Items.All(x => x.Name != "ff.png"), "empty placeholder not shown");
+        File.Move(Path.Combine(dir, "ff.png.part"), Path.Combine(dir, "ff.png"), overwrite: true);
+        Check(WaitFor(() => service.Latest?.Name == "ff.png"), "Firefox-style download appears after the rename");
+
+        string locked = Path.Combine(dir, "voice-note.txt");
+        using (var writer = new FileStream(locked, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+        {
+            writer.Write(new byte[] { 65, 66, 67 }); writer.Flush();
+            Thread.Sleep(1200);
+            Check(service.Items.All(x => x.Name != "voice-note.txt") && service.PendingCount == 1, "not shown while another app is writing it");
+        }
+        Check(WaitFor(() => service.Latest?.Name == "voice-note.txt"), "shown once the writer lets go");
+        Check(service.Items.Count == 3 && service.Items.All(x => x.Name != "old.txt"), "bounded to N");
+
+        File.Delete(Path.Combine(dir, "scan.pdf"));
+        Check(WaitFor(() => service.Items.All(x => x.Name != "scan.pdf")), "deleted file leaves the tray");
+        Check(WaitFor(() => service.PendingCount == 0), "nothing pending when idle");
+        Check(Volatile.Read(ref changes) >= 4);
+    });
+});
+Test("File tray first scan: newest N per folder, skips hidden, empty, partial and unsupported files, dedupes folders", () =>
+{
+    Temporary(dir =>
+    {
+        string a = Directory.CreateDirectory(Path.Combine(dir, "Downloads")).FullName, b = Directory.CreateDirectory(Path.Combine(dir, "WhatsApp")).FullName;
+        for (int i = 0; i < 5; i++) Write(Path.Combine(a, $"d{i}.pdf"), "x", DateTime.UtcNow.AddHours(-10 - i));
+        Write(Path.Combine(b, "wa.jpeg"), "x", DateTime.UtcNow.AddHours(-1));
+        Write(Path.Combine(a, "hidden.pdf"), "x"); File.SetAttributes(Path.Combine(a, "hidden.pdf"), FileAttributes.Hidden);
+        File.WriteAllBytes(Path.Combine(a, "empty.pdf"), []);
+        Write(Path.Combine(a, "tool.exe"), "x"); Write(Path.Combine(a, "big.pdf.crdownload"), "x");
+        Directory.CreateDirectory(Path.Combine(a, "sub")); Write(Path.Combine(a, "sub", "nested.pdf"), "x");
+        var settings = new FileTraySettings { MaxItems = 3, ExtraFolders = [new FileTrayFolder { Path = b, Label = "WhatsApp" }, new FileTrayFolder { Path = a + Path.DirectorySeparatorChar, Label = "again" }] };
+        var folders = settings.ResolveFolders(a);
+        Check(folders.Count == 2 && folders[0].Label == "Downloads" && folders[1].Label == "WhatsApp", "Downloads listed once even when added again");
+        using var service = new FileTrayService(folders, settings.MaxItems);
+        service.Start();
+        Check(string.Join(",", service.Items.Select(x => x.Name)) == "wa.jpeg,d0.pdf,d1.pdf", string.Join(",", service.Items.Select(x => x.Name)));
+        Check(service.Items[0].SourceLabel == "WhatsApp" && service.Problems.Count == 0);
+        using var missing = new FileTrayService([new WatchedFolder(Path.Combine(dir, "gone"), "Gone")], 5);
+        missing.Start();
+        Check(missing.Items.Count == 0 && missing.Problems.Single().Contains("not found"), "a missing folder is reported, not thrown");
+    });
+});
+Test("File tray settings: defaults, bounds, folder validation, fail closed without overwriting", () =>
+{
+    Temporary(dir =>
+    {
+        var store = new FileTraySettingsStore(dir);
+        var loaded = store.Load();
+        Check(!File.Exists(store.FilePath), "loading never writes");
+        Check(loaded.Enabled && loaded.WatchDownloads && loaded.MaxItems == 20 && loaded.ExtraFolders.Count == 0);
+        loaded.ExtraFolders.Add(new FileTrayFolder { Path = dir, Label = "WhatsApp" });
+        loaded.RememberProjectFolder(Guid.NewGuid(), dir);
+        store.Save(loaded);
+        var round = store.Load();
+        Check(round.ExtraFolders.Single().Label == "WhatsApp" && round.ProjectFolders.Count == 1);
+        string json = File.ReadAllText(store.FilePath);
+        Check(json.Contains("powerops-file-tray") && !json.Contains("\"Items\"") && !json.Contains(".pdf"), "settings only, no file list");
+        foreach (int bad in new[] { 0, 101 }) { var s = FileTraySettingsStore.Copy(round); s.MaxItems = bad; Reject(() => FileTraySettings.Validate(s)); }
+        var dup = FileTraySettingsStore.Copy(round); dup.ExtraFolders.Add(new FileTrayFolder { Path = dir.ToUpperInvariant() + Path.DirectorySeparatorChar }); Reject(() => FileTraySettings.Validate(dup));
+        foreach (string bad in new[] { "relative\\folder", "https://example.com/files", "", "   " })
+        { var s = FileTraySettingsStore.Copy(round); s.ExtraFolders = [new FileTrayFolder { Path = bad }]; Reject(() => FileTraySettings.Validate(s)); }
+        var many = FileTraySettingsStore.Copy(round); many.ExtraFolders = Enumerable.Range(0, 9).Select(i => new FileTrayFolder { Path = Path.Combine(dir, "f" + i) }).ToList(); Reject(() => FileTraySettings.Validate(many));
+        File.WriteAllText(store.FilePath, "{ \"Format\": \"powerops-file-tray\", \"SchemaVersion\": 2 }");
+        byte[] future = File.ReadAllBytes(store.FilePath);
+        Reject(() => store.Load());
+        Reject(() => store.Save(new FileTraySettings()));
+        Check(File.ReadAllBytes(store.FilePath).SequenceEqual(future), "future/corrupt bytes preserved");
+    });
+});
+Test("File tray text: Word paragraphs, tabs and breaks; plain text encodings; truncation; no DTD", () =>
+{
+    Temporary(dir =>
+    {
+        string docx = Path.Combine(dir, "brief.docx");
+        using (var zip = System.IO.Compression.ZipFile.Open(docx, System.IO.Compression.ZipArchiveMode.Create))
+        using (var writer = new StreamWriter(zip.CreateEntry("word/document.xml").Open()))
+            writer.Write("<?xml version=\"1.0\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>"
+                + "<w:p><w:r><w:t>Invoice</w:t><w:tab/><w:t xml:space=\"preserve\">42 </w:t></w:r></w:p>"
+                + "<w:p><w:r><w:t>Line one</w:t><w:br/><w:t>Line two</w:t></w:r></w:p><w:p/><w:p/>"
+                + "<w:p><w:r><w:t>Caf\u00e9 &amp; end</w:t></w:r></w:p></w:body></w:document>");
+        string text = FileTrayText.ExtractDocx(docx);
+        Check(text == "Invoice\t42\nLine one\nLine two\n\nCaf\u00e9 & end", text.Replace("\n", "\\n").Replace("\t", "\\t"));
+        string dtd = Path.Combine(dir, "dtd.docx");
+        using (var zip = System.IO.Compression.ZipFile.Open(dtd, System.IO.Compression.ZipArchiveMode.Create))
+        using (var writer = new StreamWriter(zip.CreateEntry("word/document.xml").Open()))
+            writer.Write("<?xml version=\"1.0\"?><!DOCTYPE d [<!ENTITY e \"boom\">]><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:t>&e;</w:t></w:p></w:document>");
+        bool refused = false;
+        try { FileTrayText.ExtractDocx(dtd); } catch (System.Xml.XmlException) { refused = true; }
+        Check(refused, "DTDs are refused");
+        string utf16 = Path.Combine(dir, "u16.txt"); File.WriteAllText(utf16, "h\u00e9llo  \r\n\r\n\r\nworld", System.Text.Encoding.Unicode);
+        Check(FileTrayText.ReadPlainText(utf16) == "h\u00e9llo\n\nworld");
+        string utf8 = Path.Combine(dir, "u8.txt"); File.WriteAllText(utf8, new string('x', 40));
+        Check(FileTrayText.ReadPlainText(utf8, 10) == new string('x', 10) + "\n\n[... truncated by Power Ops]");
+        Check(FileTrayText.HasText("Invoice number 4821") && !FileTrayText.HasText("  a b \n c  "), "scanned-PDF threshold");
+    });
+});
+Test("Prompt Builder {{file}} and {{file_text}} use the chosen tray file; unknown values stay visible", () =>
+{
+    var modules = new List<PromptModuleEntry> { new() { Title = "Attach", Body = "Summarize {{file}}:\n{{file_text}}" } };
+    Check(FileTrayPrompt.NeedsText(modules) && FileTrayPrompt.UsesFile(modules));
+    Check(!FileTrayPrompt.NeedsText([new PromptModuleEntry { Body = "About {{ file }}" }]) && FileTrayPrompt.UsesFile([new PromptModuleEntry { Body = "About {{ file }}" }]));
+    var entry = TrayEntry("contract.pdf", 1);
+    string composed = PromptComposer.Compose(modules, variables: FileTrayPrompt.Variables(entry, "Party A pays Party B."));
+    Check(composed == "Summarize contract.pdf:\nParty A pays Party B.", composed);
+    Check(PromptComposer.Compose(modules, variables: FileTrayPrompt.Variables(null, null)).Contains("{{file}}"), "no tray file: placeholder kept");
+    Check(FileTrayPrompt.Placeholder(FileTrayPrompt.TextVariable) == "{{file_text}}");
+});
+Test("File tray is a registered module, never exported, and older shell files still load", () =>
+{
+    Check(ModuleCatalog.Get("tray").Header == "File tray");
+    var older = WorkspaceSessions.Defaults();
+    foreach (var profile in older.Workspaces) profile.VisibleModules.Remove("tray");
+    WorkspaceSessions.Validate(older);
+    WorkspaceSessions.Active(older).VisibleModules.Add("tray"); WorkspaceSessions.AddTab(WorkspaceSessions.Active(older), "tray");
+    WorkspaceSessions.Validate(older);
+    string export = PortableExport.Create(new WorkspaceState(), older, ModuleCatalog.All.Select(x => x.Id), includeLocalDetails: true, includeShell: true);
+    var tray = JsonNode.Parse(export)!["modules"]!["tray"]!;
+    Check(tray.ToJsonString().Contains("never exported") && tray.AsObject().Count == 1, "only an observation");
+    Check(!export.Contains("file-tray") && !export.Contains("ExtraFolders") && !export.Contains("ProjectFolders"), "tray settings are not in any export");
+});
+Test("File tray actions share the dispatcher and can go on the Shelf, the Ring and a global shortcut", () =>
+{
+    string[] tray = [QuickActionCatalog.TrayShow, QuickActionCatalog.TrayCopyLatest, QuickActionCatalog.TrayCopyFile, QuickActionCatalog.TrayCopyText,
+        QuickActionCatalog.TrayCopyImage, QuickActionCatalog.TrayOpen, QuickActionCatalog.TrayReveal, QuickActionCatalog.TrayMove, QuickActionCatalog.TrayRemove];
+    foreach (string id in tray)
+    {
+        var action = QuickActionCatalog.Get(id);
+        Check(action.GlobalAllowed && action.Risk == ActionRisk.Safe && action.Category == "File tray", id);
+    }
+    Check(QuickActionCatalog.Get(QuickActionCatalog.TrayRemove).Description.Contains("never deleted"), "remove is not delete");
+    QuickActionLayouts.ValidateLayout([QuickActionCatalog.TrayShow, QuickActionCatalog.TrayCopyLatest], ActionSurface.QuickShelf);
+    QuickActionLayouts.ValidateLayout([QuickActionCatalog.TrayShow, QuickActionCatalog.TrayCopyText], ActionSurface.QuickRing);
+    QuickActionLayouts.ValidateGlobalShortcuts([new ShortcutBinding { Gesture = "Ctrl+Alt+Shift+F", ActionId = QuickActionCatalog.TrayCopyLatest }]);
+    Check(QuickActionLayouts.DefaultShelf.Contains(QuickActionCatalog.TrayShow) && QuickActionLayouts.DefaultShelf.Count <= QuickActionLayouts.MaxShelf, "the tray is a default Shelf entry");
+    var runs = new Dictionary<string, int>(); var d = CountingDispatcher(runs, new());
+    Check(d.Invoke(QuickActionCatalog.TrayCopyLatest, ActionSurface.GlobalShortcut).Succeeded && runs[QuickActionCatalog.TrayCopyLatest] == 1);
 });
 Test("Claude Control is off by default and adds nothing", () =>
 {

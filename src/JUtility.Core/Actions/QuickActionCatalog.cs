@@ -40,6 +40,11 @@ public static class QuickActionCatalog
     public const string FolderDownloads = "folder.downloads", FolderExplorer = "folder.explorer", TerminalOpen = "terminal.open";
     public const string WorkspaceResume = "workspace.resume", WorkspaceNext = "workspace.next", WorkspacePrevious = "workspace.previous";
     public const string TabNext = "tab.next", TabPrevious = "tab.previous";
+    // File tray (V2.3). Item actions act on the tray row they were started from; from a global shortcut, the
+    // Quick Shelf or the Quick Ring they act on the newest file.
+    public const string TrayShow = "tray.show", TrayCopyLatest = "tray.copyLatest";
+    public const string TrayCopyFile = "tray.copyFile", TrayCopyText = "tray.copyText", TrayCopyImage = "tray.copyImage";
+    public const string TrayOpen = "tray.open", TrayReveal = "tray.reveal", TrayMove = "tray.move", TrayRemove = "tray.remove";
 
     // IDs are persisted in quick-actions.json and referenced by external mappings: never rename, only add.
     // Deliberately absent from this slice: mail.latestCode and other provider-backed actions (later opt-in adapters).
@@ -60,6 +65,15 @@ public static class QuickActionCatalog
         new QuickActionDefinition(WorkspacePrevious, "Previous workspace", "Workspace", "Switch to the previous saved workspace view.", "E892", null, true, ActionRisk.Safe),
         new QuickActionDefinition(TabNext, "Next tab", "Workspace", "Activate the next tab when Power Ops is focused.", "E72A", "Ctrl+Tab", false, ActionRisk.Safe),
         new QuickActionDefinition(TabPrevious, "Previous tab", "Workspace", "Activate the previous tab when Power Ops is focused.", "E72B", "Ctrl+Shift+Tab", false, ActionRisk.Safe),
+        new QuickActionDefinition(TrayShow, "File tray", "File tray", "Show recently received files (Downloads and chosen folders) to drag or paste into a chat.", "E7B8", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayCopyLatest, "Copy last received file", "File tray", "Put the newest tray file on the clipboard as a file, ready for Ctrl+V.", "E7C3", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayCopyFile, "Copy as file", "File tray", "Copy the tray file as a file (the newest one outside the tray), ready for Ctrl+V.", "E8C8", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayCopyText, "Copy text", "File tray", "Copy the file's text: PDF text, Word or text files, or offline Windows OCR for images and scanned PDFs.", "E8D2", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayCopyImage, "Copy as image", "File tray", "Copy an image, or page 1 of a PDF, as a picture for chats that do not take PDFs.", "EB9F", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayOpen, "Open file", "File tray", "Open the tray file with its default app.", "E8E5", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayReveal, "Show in folder", "File tray", "Show the tray file in Explorer.", "E838", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayMove, "Move to project folder", "File tray", "Move the tray file into a Repository Hub project's folder (you pick the project and confirm).", "E8DE", null, true, ActionRisk.Safe),
+        new QuickActionDefinition(TrayRemove, "Remove from tray", "File tray", "Hide the file from the tray for this session. The file itself is never deleted.", "E711", null, true, ActionRisk.Safe),
     });
 
     public static QuickActionDefinition? Find(string? id) => All.FirstOrDefault(x => x.Id == id);

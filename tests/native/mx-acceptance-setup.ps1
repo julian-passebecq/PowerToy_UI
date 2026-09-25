@@ -8,7 +8,7 @@ Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type -Namespace MXS -Name K -MemberDefinition '[DllImport("user32.dll", SetLastError=true)] public static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk); [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr h, int id);'
 $A = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Automation.TreeScope]
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$exe = Join-Path $repo 'src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe'
+$exe = Join-Path $repo 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 if (-not (Test-Path $exe)) { throw "Build first: .\scripts\build.ps1" }
 
 $busy = @(foreach ($k in @(@('R', 0x52), @('P', 0x50), @('N', 0x4E), @('V', 0x56))) { if ([MXS.K]::RegisterHotKey([IntPtr]::Zero, 0x7102, 0x4007, $k[1])) { [void][MXS.K]::UnregisterHotKey([IntPtr]::Zero, 0x7102) } else { "Ctrl+Alt+Shift+$($k[0])" } })

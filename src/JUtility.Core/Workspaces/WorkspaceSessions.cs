@@ -20,6 +20,7 @@ public static class ModuleCatalog
         new ModuleDefinition("web", "Web apps", "Web", "Projects & tools", "Web apps marked Embedded (e.g. Mongoku) inside Power Ops; WebView2 starts on first use only."),
         new ModuleDefinition("capture", "Capture", "Capture", "Knowledge & capture", "Local inbox, tasks, notes, bookmarks and transcripts."),
         new ModuleDefinition("clipboard", "Clipboard Library", "Clipboard", "Knowledge & capture", "Reusable text, screenshots and short clips."),
+        new ModuleDefinition("tray", "File tray", "File tray", "Knowledge & capture", "Recently received files from Downloads and chosen folders, ready to drag or paste into an AI chat. Watching starts on first use."),
         new ModuleDefinition("prompts", "Prompt Builder", "Prompt Builder", "Knowledge & capture", "Reusable instruction modules and project variables."),
         new ModuleDefinition("inventory", "Environment inventory", "Environment inventory", "Device & settings", "On-demand local PATH and file-version inventory. No programs executed."),
         new ModuleDefinition("system", "System / Cheat Sheet", "System", "Device & settings", "Existing architecture facts and Windows configuration shortcuts."),
@@ -101,7 +102,7 @@ public static class WorkspaceSessions
                 NewProfile("General"),
                 NewProfile("Datapass", "repositories", "tools", "resources", "clipboard", "prompts", "inventory"),
                 NewProfile("Foil", "repositories", "portals", "resources", "capture", "prompts"),
-                NewProfile("Knowledge", "resources", "capture", "clipboard", "prompts"),
+                NewProfile("Knowledge", "resources", "capture", "clipboard", "tray", "prompts"),
                 NewProfile("Device & settings", "inventory", "system", "features", "tools")
             ]
         };

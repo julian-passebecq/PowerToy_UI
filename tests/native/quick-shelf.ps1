@@ -39,7 +39,7 @@ public static class S {
 '@
 $A = [System.Windows.Automation.AutomationElement]
 $T = [System.Windows.Automation.TreeScope]
-$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows\JUtilityPalette.exe'
+$exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 $root = Join-Path $env:TEMP ("powerops-shelf-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force $root | Out-Null
 $r = [ordered]@{}

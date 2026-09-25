@@ -600,3 +600,74 @@ Requested from the Mongoku session after Mongoku PR #12 added the global read-on
 - Run 2: **PASS 10/10** in 25.3 s.
 - **No 30-90 s hang** in either run. Memory: 224 MB idle, 679 MB with Mongoku open (6 WebView2 processes, 467 MB), 216 MB after closing.
 - Cold Mongoku: the first MAINTENANCE API call after `vite dev` started took 11.2 s (on-demand compile), and later calls took about 3 s, within the 15 s card timeout.
+
+## V2.3 - File tray, slice 1 (received files → AI chats)
+
+Date: 2026-09-25. Author: Claude Code (Windows laptop). Branch `claude/file-tray` → `codex/power-ops-v2-workspaces`. Tested revision: `f0c6313` (the feature merged with #12 Claude Control).
+
+WhatsApp Desktop, Messenger and mail clients have no personal API, but they all save attachments to Downloads or a chosen folder. The tray watches those folders and puts the newest files one drag or one Ctrl+V away from ChatGPT, Claude or Gemini. No integration with those apps, no WebView2, no credentials.
+
+### Changed
+
+- **Core `Files/`** (package-free, unit-tested):
+  - `FileTrayFilter`: pdf, png, jpg/jpeg, webp, gif, heic, docx, txt. Unfinished downloads (`.crdownload`, `.part`, `.partial`, `.tmp`, `.download`, `.opdownload`) and Office lock files are never shown; hidden, system and empty files are skipped.
+  - `FileTrayList`: newest arrival first, one entry per file (case-insensitive full path), bounded to N (default 20, 1-100). A repeated event for an unchanged file keeps its place; "Remove" hides a file for the session until it is written again; a moved file keeps its place.
+  - `FileTrayReadiness`: a file is ready only when it is non-empty and no other process has it open for writing. Re-checks are one-shot at 0.25 s doubling to 8 s, and stop after about 2 minutes (a later rename or write starts again).
+  - `FileTrayService`: one `FileSystemWatcher` per folder (top level only). Events are filtered by name before any disk access, so a download in progress costs a string check. One one-shot timer exists only while a file is pending; a watcher overflow triggers one rescan. Watchers start first, then one scan of the newest files.
+  - `FileTraySettings` + store: separate `file-tray.json` (format `powerops-file-tray` v1, 64 KiB cap): on/off, watch Downloads, up to 8 extra folders with labels, N, and the remembered folder per Repository Hub project. Missing file = defaults, nothing written; malformed or future files fail closed and are never overwritten. **No file names, contents or thumbnails are saved.** Business schema v7 and shell schema 1 are unchanged.
+  - `FileTrayText` (txt with BOM detection; docx paragraph text, DTDs refused) and `FileTrayPrompt` (`{{file}}`, `{{file_text}}`).
+- **Lazy by default:** nothing is watched until a tray surface is shown or a tray action runs in the session. The settings can turn the tray off entirely (no watcher, no timer).
+- **Three surfaces, one list:** the **File tray** module (Knowledge & capture; filters by folder and type, search), a **File tray** section at the top of the **Sidebar** (5 newest), and a flyout opened by the new **`tray.show` Quick Shelf entry** (8 newest). The flyout is a no-activate tool window like the Shelf, so Copy then Ctrl+V works without clicking back into the browser.
+- Each row shows an Explorer thumbnail (`IShellItemImageFactory`: the file-type icon when no thumbnail handler exists, e.g. PDFs without a PDF previewer), name, source folder, age, type and size. Thumbnails are made only for rows being shown, on a short-lived STA thread that exits when done, and kept in memory while the file stays in the tray.
+- **Actions, all catalog IDs run through `QuickActionDispatcher`** (the row is the target; from a shortcut, the Shelf, the Ring or the Actions → File tray submenu they act on the newest file). All are `Safe` and `GlobalAllowed`:
+  - `tray.copyFile` / `tray.copyLatest` "Copy last received file": CF_HDROP plus `Preferred DropEffect = Copy` (pasting in Explorer copies; the file never leaves Downloads).
+  - `tray.copyText`: PDF text layer (PdfPig); **Windows OCR** (`Windows.Media.Ocr`, offline, the user's Windows languages) for images and for PDFs without a text layer (first 10 pages); docx and txt in Core. Runs only on click; the text goes to the clipboard and is never stored.
+  - `tray.copyImage`: image files, or PDF page 1 rendered by `Windows.Data.Pdf`. Publishes exactly `PNG` + one 32-bit `CF_DIB`. (`DataObject.SetImage` published several full-size formats that the process keeps while they are on the clipboard: **+370 MB** for one page, now **+49 MB**, released when the clipboard changes.) HEIC falls back to Windows imaging and explains the HEIF extension when missing.
+  - `tray.open`, `tray.reveal` (Explorer `/select`), `tray.move` (pick a Repository Hub project; its folder is chosen once and remembered in `file-tray.json`; moves, never overwrites: `name (2).ext`), `tray.remove` (hides; **never deletes a file**), `tray.show`.
+  - **Drag-out** is a direct gesture on the row (WPF `DoDragDrop` with a FileDrop), not a catalog action, because it cannot run from a shortcut.
+- **Prompt Builder:** `{{file}}` (name) and `{{file_text}}` (text, read on Preview/Copy only when a module uses it), a "Tray file" picker (default: newest), Insert buttons, and "Use in Prompt Builder" on each row.
+- **Export:** the `tray` module exports one observation ("never exported"); `file-tray.json` is in no export, even with local details.
+- `tray.show` is in the **default** Shelf layout (new `quick-actions.json` files only; existing layouts are unchanged). `tray.copyLatest` can be bound in Actions → Global shortcuts (global shortcuts stay off by default).
+- **Build:** the app now targets `net8.0-windows10.0.19041.0` for the Windows SDK projection (OCR, PDF rendering). The output folder moved to `bin\Release\net8.0-windows10.0.19041.0\`; every native script and `MX_MANUAL_ACCEPTANCE.md` were updated. The CsWinRT AOT optimizer is disabled because its module initializer loaded `WinRT.Runtime` at startup. Second NuGet dependency: `PdfPig` 0.1.16 (Apache-2.0, no dependencies on net8.0). Output size: +23.6 MB (SDK projection) and +5.5 MB (PdfPig), loaded only on first use.
+- Accessibility: rows are UI Automation groups named "file, source, age"; buttons are named "Action: file"; status lines are live regions and keep their text as their accessible name.
+
+### Evidence (tested revision `f0c6313`)
+
+- `.\scripts\build.ps1`: **PASS**. Release build 0 warnings, 0 errors; smoke tests all passed; WorkspaceTests **102/102** (11 new tray tests + 5 from #12). The tray tests cover the type filter and partial downloads, ordering and bounds, dedupe and dismiss, readiness and the retry schedule, a real `FileSystemWatcher` on a temporary folder (drop, `.crdownload` rename, Firefox `.part` rename, locked file, delete, nothing pending when idle), the first scan (hidden/empty/partial/unsupported/subfolders skipped, folders deduped), settings validation and fail-closed storage, docx/txt text, prompt placeholders, export exclusion and old shell files, and the dispatcher/Shelf/Ring/shortcut rules.
+- Mutation check: disabling the partial-download filter, the unchanged-file rule or the lock check each made the expected tests fail; restored code passes.
+- `tests/native/file-tray.ps1` (Windows 11 Pro 10.0.26200, 150% scaling; isolated `--data-dir`; a temporary watched folder with **Downloads watching turned off**; synthetic fixtures generated by the script): **PASS 34/34** on `f0c6313`. The four runs before the merge, on the same tray code, also passed every app check; one of them hit a test-side false positive (the digits `5519` inside a timestamp), since fixed. Input is UI Automation plus two global shortcuts. It observed:
+  - no OCR, PDF or WinRT component loaded at startup; the first scan lists an existing file in about 1.5-2.4 s from opening the module;
+  - dropped files appear newest first; a `.crdownload` is not listed until renamed; a file held open for writing appears only after its writer closes it; N=6 drops the oldest;
+  - Copy as file: CF_HDROP with the exact path and DropEffect Copy;
+  - Copy text: PDF text layer (0.6-1.7 s, no OCR loaded), Word (0.4-1.0 s), PNG by Windows OCR ("RECEIPT NUMBER 5519", 0.5-1.9 s, OCR loaded only now), scanned PDF by OCR fallback (0.6-1.8 s);
+  - Copy as image: page 1 as PNG + DIB (1680x2174);
+  - the global shortcut copies the newest file; Remove hides a file and keeps it on disk;
+  - the Shelf's File tray button opens the flyout **without taking focus**, and the flyout's Copy works; Prompt Builder fills `{{file}}` and `{{file_text}}`; the Sidebar shows the newest files;
+  - no fixture name or content in any data file; clean exits;
+  - after a restart, still lazy; Move to project folder uses the remembered folder, moves without overwriting, and keeps the row as "Moved to CloudArchi".
+- Idle cost (30 s windows, same run, desktop in use; compare slice 3: Off 0 ms / 246.9 MB, Shelf visible 0 ms / 247.6 MB):
+
+  | State | CPU / 30 s | Working set | Private |
+  | --- | --- | --- | --- |
+  | Shelf visible, tray never opened | 0-62 ms | 201-215 MB | 196-228 MB |
+  | Tray open, watching, 6 files, before any OCR | 0-16 ms | 220-226 MB | 187-198 MB |
+  | After OCR, PDF text and a PDF page image | 0-62 ms (one 531 ms burst in one run) | 305-365 MB | 298-385 MB (the upper values are from runs before the clipboard-format fix) |
+
+  A 90 s sample after OCR + page image read 0, 0, 0, 31, 16, 16, 16, 0, 16 ms per 10 s: isolated timer ticks, no continuous work. Per step (`memdiag`): opening the tray +5 MB working set; PdfPig about +3 MB; the first Windows OCR **+85 MB private**, which stays for the session (the OCR engine) but does not grow on reuse; a page image on the clipboard +49 MB until the clipboard changes. This is a sanity check, not a benchmark.
+- Regression re-runs after the TFM change:
+  - `web-embedded.ps1` (stand-in page): every WebView2 check passed (lazy start, load, persisted localStorage, processes end on Close web view, lazy after restart). "open: Power Ops in front" failed in both runs, and **failed the same way on the base build `0d717a7` minutes later**: foreground lock while the desktop was in use, not a regression. Not re-confirmed on an idle desktop.
+  - `interaction.ps1`: failed the ring-shortcut check once (another Power Ops instance was running with its own Quick Ring window and bindings), then **PASS**. The base build also passed.
+  - Not re-run: `quick-shelf`, `quick-ring`, `quick-actions-hotkeys`, `web-apps` (synthesized focus and input; the desktop was in use), `report-cards`, `report-auth`, `maintenance-card`, `claude-control` (live services). Their code is unchanged apart from the executable path.
+
+### NOT RUN (physical or user-assisted)
+
+1. **Drag-out into a real chat** (ChatGPT, Claude, Gemini upload zones) and **Ctrl+V of a copied file** in those sites: needs the user's signed-in browser. Whether a site accepts a pasted CF_HDROP file is up to the site.
+2. The scripted drag (`file-tray.ps1 -Drag`, onto a throwaway drop-target window): the safety guard refused on every attempt because another application's window covered Power Ops. Run it on an idle desktop.
+3. Real WhatsApp Desktop and Messenger saves, and the real Downloads folder (the test turns Downloads off on purpose).
+4. HEIC (depends on the Windows HEIF extension), WebP/GIF thumbnails and OCR in languages other than the user's profile languages.
+5. The folder pickers (Settings → Add folder, Move → Choose folder): the Windows folder dialog is not scripted. The move test seeded the remembered folder instead.
+6. Pasting a copied file in Explorer; screen-reader walkthrough; flyout placement on multiple monitors or mixed DPI; flyout keyboard use (it is no-activate, so it has none: use the module or the Sidebar).
+
+### Not in this slice
+
+Email/OTP codes (planned slice 2: read-only Gmail IMAP IDLE with an app password in Windows Credential Manager, codes in memory only, expiring after about 2 minutes, excluded from clipboard history). Embedding Gmail or WhatsApp in WebView2 was rejected (+400-700 MB while open, and it conflicts with the Web tab hardening).
