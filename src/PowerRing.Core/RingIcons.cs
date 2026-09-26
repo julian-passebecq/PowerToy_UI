@@ -10,7 +10,7 @@ public static class RingIcons
         ["code"] = "E943", ["copy"] = "E8C8", ["database"] = "E8F1", ["desktop"] = "E8FC", ["dev"] = "EC7A", ["document"] = "E8A5",
         ["download"] = "E896", ["downloads"] = "E896", ["edit"] = "E70F", ["explorer"] = "EC50", ["favorite"] = "E734",
         ["folder"] = "E8B7", ["game"] = "E7FC", ["globe"] = "E774", ["heart"] = "EB51", ["home"] = "E80F", ["keyboard"] = "E765",
-        ["link"] = "E71B", ["lock"] = "E72E", ["mail"] = "E715", ["map"] = "E707", ["music"] = "E8D6", ["note"] = "E70B",
+        ["link"] = "E71B", ["lock"] = "E72E", ["mail"] = "E715", ["moon"] = "E708", ["battery"] = "E83F", ["timer"] = "E916", ["map"] = "E707", ["music"] = "E8D6", ["note"] = "E70B",
         ["person"] = "E77B", ["phone"] = "E717", ["photo"] = "EB9F", ["pin"] = "E718", ["play"] = "E768", ["power"] = "E7E8",
         ["powerops"] = "E80F", ["refresh"] = "E72C", ["screen"] = "E7F4", ["screenshot"] = "E7A8", ["search"] = "E721",
         ["settings"] = "E713", ["share"] = "E72D", ["shop"] = "E719", ["snap-left"] = "E76B", ["snap-right"] = "E76C",
@@ -51,6 +51,8 @@ public static class RingIcons
         RingActions.Text => "text",
         RingActions.Screenshot => "screenshot",
         RingActions.ScreenToClipboard => "screen",
+        RingActions.PowerMode => "power",
+        RingActions.CloseApps => "moon",
         RingActions.PowerOps => "powerops",
         _ => (item.Target ?? "").ToLowerInvariant() switch
         {

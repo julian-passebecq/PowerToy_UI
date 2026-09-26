@@ -117,6 +117,20 @@ Test("Every action validates its target", () =>
     Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "ring-settings", "target": "delete" }""")));
     Rejected(() => RingConfigs.Parse(One("""{ "label": "", "action": "screenshot" }""")));
 });
+Test("Night mode actions: power mode, close-apps list with protected names, screen delay", () =>
+{
+    RingConfigs.Parse(One("""{ "label": "a", "action": "power-mode", "target": "efficiency" }"""));
+    RingConfigs.Parse(One("""{ "label": "a", "action": "close-apps", "target": "chrome, msedge.exe; opera" }"""));
+    RingConfigs.Parse(One("""{ "label": "a", "action": "screen-to-clipboard", "delay": 3 }"""));
+    Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "power-mode", "target": "turbo" }""")));
+    Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "close-apps" }""")));
+    string claude = Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "close-apps", "target": "chrome, Claude.exe" }""")));
+    Check(claude.Contains("never closed"), claude);
+    Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "close-apps", "target": "explorer" }""")));
+    Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "screen-to-clipboard", "delay": 30 }""")));
+    Rejected(() => RingConfigs.Parse(One("""{ "label": "a", "action": "screenshot", "delay": 3 }""")));
+    Check(RingActions.ProcessNames("chrome, msedge.exe; ,opera, chrome").SequenceEqual(new[] { "chrome", "msedge", "opera" }));
+});
 Test("Boards and galleries are validated", () =>
 {
     string Board(string tables) => $$"""{ "version": 1, "profiles": [ { "id": "a", "name": "A", "items": [ { "label": "x", "action": "screenshot" } ] }, { "id": "b", "name": "B", "kind": "board", "tables": [ {{tables}} ] } ] }""";

@@ -50,6 +50,8 @@ internal sealed class RingWindow : Window
     private Button _center = null!;
     private TextBlock? _caption;
     private TextBox? _noteBox;
+    // Board/gallery home button: the panel is placed so that it sits under the pointer (no mouse move to go back).
+    private Button? _home;
     private IntPtr _previous;
     private bool _busy;
 
@@ -110,6 +112,22 @@ internal sealed class RingWindow : Window
         if (IsVisible && _nav.Profile.IsBoard && _noteBox?.IsKeyboardFocused != true) Render(animate: false);
     }
 
+    /// <summary>Draws one workspace into a PNG without showing anything (visual checks that need no free desktop).</summary>
+    public void Snapshot(int profileIndex, string path)
+    {
+        _nav.SetProfile(profileIndex);
+        Render(animate: false);
+        _root.Measure(new Size(Width, Height));
+        _root.Arrange(new Rect(0, 0, Width, Height));
+        _root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(Width * 1.5), (int)Math.Ceiling(Height * 1.5), 144, 144, PixelFormats.Pbgra32);
+        bitmap.Render(_root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var file = File.Create(path);
+        encoder.Save(file);
+    }
+
     public void Toggle()
     {
         if (IsVisible) { Dismiss(restoreFocus: true); return; }
@@ -150,8 +168,17 @@ internal sealed class RingWindow : Window
         Native.SetWindowPos(handle, IntPtr.Zero, (bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2, 0, 0, 0x0001 | 0x0004 | 0x0010);
         double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
         int w = (int)Math.Round(Width * scale), h = (int)Math.Round(Height * scale);
-        int x = Math.Clamp(pointer.X - w / 2, work.Left, Math.Max(work.Left, work.Right - w));
-        int y = Math.Clamp(pointer.Y - h / 2, work.Top, Math.Max(work.Top, work.Bottom - h));
+        // Ring: its centre under the pointer. Panel: its home button under the pointer.
+        Point anchor = new(Width / 2, Height / 2);
+        if (_home is not null)
+        {
+            _root.Measure(new Size(Width, Height));
+            _root.Arrange(new Rect(0, 0, Width, Height));
+            _root.UpdateLayout();
+            anchor = _home.TranslatePoint(new Point(_home.ActualWidth / 2, _home.ActualHeight / 2), _root);
+        }
+        int x = Math.Clamp(pointer.X - (int)Math.Round(anchor.X * scale), work.Left, Math.Max(work.Left, work.Right - w));
+        int y = Math.Clamp(pointer.Y - (int)Math.Round(anchor.Y * scale), work.Top, Math.Max(work.Top, work.Bottom - h));
         Native.SetWindowPos(handle, new IntPtr(-1), x, y, w, h, 0x0010);
     }
 
@@ -166,6 +193,7 @@ internal sealed class RingWindow : Window
         _cells.Clear();
         _noteBox = null;
         _caption = null;
+        _home = null;
         if (_nav.Profile.IsBoard) RenderBoard();
         else if (_nav.Profile.IsGallery) RenderGallery();
         else RenderRing();
@@ -264,16 +292,16 @@ internal sealed class RingWindow : Window
     private void RenderCenter(double cx, double cy, double size)
     {
         RingAppearance a = _config.Appearance;
-        string name = _nav.AtRoot ? _nav.Profile.Name : "Back";
+        string name = !_nav.AtRoot ? "Back" : BoardIndex() is int board ? $"{_nav.Profile.Name} (click: {_nav.Profiles[board].Name})" : _nav.Profile.Name;
         _center = Round(size, Glyph(_nav.AtRoot ? _nav.Profile.Icon ?? "home" : "back", a.IconSize * a.Scale + 2), _theme.Slot, _theme.Accent, name);
-        _center.Click += (_, _) => { if (_nav.AtRoot) Dismiss(restoreFocus: true); else GoBack(); };
+        _center.Click += (_, _) => { if (!_nav.AtRoot) GoBack(); else if (BoardIndex() is int board) SwitchProfile(board); else Dismiss(restoreFocus: true); };
         Put(_center, cx, cy, size);
         _root.Children.Add(_center);
         int count = _nav.Profiles.Count;
         if (count < 2) return;
 
         // Small switchers on the centre's sides: previous workspace on the left, next on the right.
-        double mini = Math.Max(18, size * 0.32);
+        double mini = Math.Max(20, size * 0.36);
         foreach (int delta in new[] { -1, 1 })
         {
             int index = ((_nav.ProfileIndex + delta) % count + count) % count;
@@ -403,24 +431,39 @@ internal sealed class RingWindow : Window
         AddFooter(grid, k);
     }
 
-    /// <summary>Footer of a panel: every workspace; the current one highlighted.</summary>
+    /// <summary>
+    /// Footer of a panel, like the ring's centre: a home button (back to the first workspace, where the pointer already
+    /// is) between the previous and next workspaces, so switching never needs a mouse move.
+    /// </summary>
     private void AddFooter(Grid grid, double k)
     {
         var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8 * k, 0, 0) };
-        for (int p = 0; p < _nav.Profiles.Count; p++)
+        int count = _nav.Profiles.Count;
+        RingProfile first = _nav.Profiles[0];
+        void Add(int index, double size, string name, string icon, bool strong)
         {
-            RingProfile other = _nav.Profiles[p];
-            bool active = p == _nav.ProfileIndex;
-            Color tint = RingTheme.Parse(other.Accent) ?? _theme.Accent;
-            Button switcher = Round(30 * k, Glyph(other.Icon ?? "apps", 14 * k), active ? tint : _theme.Slot, tint, $"Workspace: {other.Name}" + (active ? " (active)" : ""));
-            if (active) switcher.Foreground = RingTheme.Brush(RingTheme.OnColor(tint));
-            switcher.Margin = new Thickness(4, 0, 4, 0);
-            int target = p;
-            switcher.Click += (_, _) => SwitchProfile(target);
-            footer.Children.Add(switcher);
+            RingProfile target = _nav.Profiles[index];
+            Color tint = RingTheme.Parse(target.Accent) ?? _theme.Accent;
+            Button button = Round(size, Glyph(icon, size * 0.45), strong ? _theme.Slot : Lighter(_theme.Slot, _theme.Dark ? 0.1 : -0.05), tint, name);
+            button.Margin = new Thickness(5 * k, 0, 5 * k, 0);
+            button.VerticalAlignment = VerticalAlignment.Center;
+            button.Click += (_, _) => SwitchProfile(index);
+            footer.Children.Add(button);
+            if (strong) _home = button;
         }
+        int previous = ((_nav.ProfileIndex - 1) % count + count) % count, next = (_nav.ProfileIndex + 1) % count;
+        if (previous != 0) Add(previous, 30 * k, $"Workspace: {_nav.Profiles[previous].Name}", _nav.Profiles[previous].Icon ?? "apps", false);
+        Add(0, 40 * k, $"Home: {first.Name}", first.Icon ?? "home", true);
+        if (next != 0 && next != previous) Add(next, 30 * k, $"Workspace: {_nav.Profiles[next].Name}", _nav.Profiles[next].Icon ?? "apps", false);
         Grid.SetRow(footer, 2);
         grid.Children.Add(footer);
+    }
+
+    /// <summary>The first board workspace (the clipboard), opened by the ring's centre.</summary>
+    private int? BoardIndex()
+    {
+        for (int i = 0; i < _nav.Profiles.Count; i++) if (_nav.Profiles[i].IsBoard && i != _nav.ProfileIndex) return i;
+        return null;
     }
 
     /// <summary>A gallery: titled sections of app tiles in rows (like an app library), all visible at once.</summary>

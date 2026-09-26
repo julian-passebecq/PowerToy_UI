@@ -33,7 +33,7 @@ public static class RingLayout
         }
 
         // Circle 2: children packed along the circle right behind circle 1.
-        List<RingNode> level2 = showSecond ? Pack(level1, r1 + s1 / 2 + gap * 0.7 + s2 / 2, s2, a.SatelliteIconSize * k, gap * 0.6, 2) : [];
+        List<RingNode> level2 = showSecond ? Pack(level1, r1 + s1 / 2 + gap * 0.7 + s2 / 2, s2, a.SatelliteIconSize * k, gap, 2) : [];
         double r2 = level2.Count > 0 ? Radius(level2[0]) : r1 + s1 / 2 + gap + s2 / 2;
 
         // Circle 3: the same for the children's children.

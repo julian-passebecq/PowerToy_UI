@@ -59,6 +59,7 @@
             "app",
             "apps",
             "back",
+            "battery",
             "bolt",
             "book",
             "bug",
@@ -88,6 +89,7 @@
             "lock",
             "mail",
             "map",
+            "moon",
             "music",
             "note",
             "person",
@@ -110,6 +112,7 @@
             "task-view",
             "terminal",
             "text",
+            "timer",
             "tools",
             "video",
             "volume",
@@ -408,9 +411,11 @@
             "screen-to-clipboard",
             "powerops",
             "ring-settings",
+            "power-mode",
+            "close-apps",
             "group"
           ],
-          "description": "run: start a program (target = command or .exe, args optional). url: open an http(s), mailto: or ms-settings: address. folder: open a folder (path, or downloads/desktop/documents/pictures/videos/music/home). keys: press a key combination in the window that was in front (\"Win+Tab\"). text: copy target text. screenshot: Windows region snip. screen-to-clipboard: whole screen under the pointer to the clipboard. powerops: show Power Ops (target = its .exe). ring-settings: Power Ring's own settings (target edit, folder, reload or guide). group: omit the action and give items: a sub-circle that opens."
+          "description": "run: start a program (target = command or .exe, args optional). url: open an http(s), mailto: or ms-settings: address. folder: open a folder (path, or downloads/desktop/documents/pictures/videos/music/home). keys: press a key combination in the window that was in front (\"Win+Tab\"). text: copy target text. screenshot: Windows region snip. screen-to-clipboard: whole screen under the pointer to the clipboard. powerops: show Power Ops (target = its .exe). ring-settings: Power Ring's own settings (target edit, folder, reload or guide). group: omit the action and give items: a sub-circle that opens. power-mode: Windows power mode (target efficiency, balanced or performance). close-apps: asks the listed programs to close, like clicking their X (target \"chrome, msedge, opera\"; Power Ring, Explorer and Claude are never closed)."
         },
         "target": {
           "type": "string",
@@ -432,6 +437,12 @@
             "$ref": "#/definitions/item"
           },
           "description": "Children, shown right behind this button on the next circle (up to 4 visible; 3 circles in total). With an action: click the button runs it, click a child runs the child. Without an action: a group whose full circle opens on click."
+        },
+        "delay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "screen-to-clipboard only: seconds to wait first, with a countdown."
         }
       }
     },
