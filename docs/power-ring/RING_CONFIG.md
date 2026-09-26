@@ -63,9 +63,11 @@ A button **without** an action but with `items` is a group: its first children s
 | `keys` | key combination sent to the window that was in front | `"Win+Tab"`, `"Win+D"`, `"Win+Left"`, `"Win+Shift+R"` |
 | `text` | text copied to the clipboard | `"target": "julian@example.com"` |
 | `screenshot` | none: Windows region snip | |
-| `screen-to-clipboard` | none: the whole screen under the pointer, copied | |
+| `screen-to-clipboard` | none: the whole screen under the pointer, copied; `"delay": 3` waits 3 s first (countdown) | |
 | `powerops` | path to `JUtilityPalette.exe` | shows Power Ops |
 | `ring-settings` | `edit`, `folder`, `reload` or `guide` | Power Ring's own settings, from the ring |
+| `power-mode` | `efficiency`, `balanced` or `performance` | Windows power mode (Settings > System > Power) |
+| `close-apps` | program names, comma separated | `"chrome, msedge, opera"`: each is asked to close like clicking its X, so it can still ask to save; Power Ring, Explorer and Claude are never closed |
 | `group` | none: give `items` | sub-circle |
 
 Keys: letters, digits, F1-F24, Tab, Esc, Enter, Space, Backspace, Delete, Insert, Home, End, PageUp, PageDown, Left, Right, Up, Down, PrintScreen, VolumeUp, VolumeDown, VolumeMute, MediaPlayPause, MediaNext, MediaPrevious, with Ctrl, Alt, Shift, Win.
@@ -74,7 +76,7 @@ Keys: letters, digits, F1-F24, Tab, Esc, Enter, Space, Backspace, Delete, Insert
 
 Without an `"icon"`, programs and folders show their real Windows icon and web sites their own icon (fetched once from the site, cached in the `icons` folder; `"webIcons": false` turns this off). Otherwise `"icon"` is:
 
-- a name: app, back, bolt, book, bug, calendar, camera, chat, clipboard, cloud, code, copy, database, desktop, dev, document, download, edit, explorer, favorite, folder, game, globe, heart, home, keyboard, link, lock, mail, map, music, note, person, phone, photo, pin, play, power, powerops, refresh, screen, screenshot, search, settings, share, shop, snap-left, snap-right, star, task-view, terminal, text, tools, video, volume, web, windows, work;
+- a name: app, back, bolt, book, bug, calendar, camera, chat, clipboard, cloud, code, copy, database, desktop, dev, document, download, edit, explorer, favorite, folder, game, globe, heart, home, keyboard, link, lock, mail, map, moon, battery, timer, music, note, person, phone, photo, pin, play, power, powerops, refresh, screen, screenshot, search, settings, share, shop, snap-left, snap-right, star, task-view, terminal, text, tools, video, volume, web, windows, work;
 - a Segoe Fluent Icons code such as `"E943"`;
 - a path: `.png`, `.ico`, `.jpg`, an `.exe`, or any file or folder (its Windows icon).
 

@@ -130,6 +130,8 @@ public sealed class RingItem
     public string? Target { get; set; }
     public string? Args { get; set; }
     public string? WorkingDirectory { get; set; }
+    /// <summary>screen-to-clipboard: seconds to wait first (0-10), with a countdown, e.g. 3 to open a menu.</summary>
+    public int? Delay { get; set; }
     /// <summary>
     /// Children. With an action: up to 4 "satellites", small buttons shown next to this one (VS Code > its projects).
     /// Without an action (a group): a sub-circle it opens; its first children are shown as satellites too. Up to 3 levels.
@@ -143,8 +145,21 @@ public static class RingActions
 {
     public const string Run = "run", Url = "url", Folder = "folder", Keys = "keys", Text = "text", Screenshot = "screenshot";
     public const string ScreenToClipboard = "screen-to-clipboard", PowerOps = "powerops", Group = "group", RingSettings = "ring-settings";
+    public const string PowerMode = "power-mode", CloseApps = "close-apps";
 
-    public static readonly IReadOnlyList<string> All = [Run, Url, Folder, Keys, Text, Screenshot, ScreenToClipboard, PowerOps, RingSettings, Group];
+    public static readonly IReadOnlyList<string> All = [Run, Url, Folder, Keys, Text, Screenshot, ScreenToClipboard, PowerOps, RingSettings, PowerMode, CloseApps, Group];
+
+    /// <summary>power-mode targets: the Windows power mode (Settings > System > Power).</summary>
+    public static readonly IReadOnlyList<string> PowerModes = ["efficiency", "balanced", "performance"];
+
+    /// <summary>close-apps never closes these, whatever the list says (Power Ring itself, the shell, Claude).</summary>
+    public static readonly IReadOnlyList<string> NeverClose = ["powerring", "explorer", "claude", "claude-desktop", "dwm", "csrss", "winlogon", "svchost", "system", "idle"];
+
+    /// <summary>Process names of a close-apps target: "chrome, msedge, opera" (".exe" optional).</summary>
+    public static IReadOnlyList<string> ProcessNames(string? target) =>
+        (target ?? "").Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? x[..^4] : x)
+            .Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     /// <summary>ring-settings targets: edit ring.json, open its folder, reload it, or open the guide.</summary>
     public static readonly IReadOnlyList<string> SettingsTargets = ["edit", "folder", "reload", "guide"];
@@ -329,7 +344,20 @@ public static partial class RingConfigs
                 if (target is not null && !RingActions.SettingsTargets.Contains(target.ToLowerInvariant()))
                     throw Error(at + ".target", $"use one of: {string.Join(", ", RingActions.SettingsTargets)}.");
                 break;
+            case RingActions.PowerMode:
+                if (target is null || !RingActions.PowerModes.Contains(target.ToLowerInvariant()))
+                    throw Error(at + ".target", $"use one of: {string.Join(", ", RingActions.PowerModes)}.");
+                break;
+            case RingActions.CloseApps:
+                IReadOnlyList<string> names = RingActions.ProcessNames(target);
+                if (names.Count is < 1 or > 40 || names.Any(n => n.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
+                    throw Error(at + ".target", "list 1 to 40 program names separated by commas, for example \"chrome, msedge, opera\".");
+                if (names.FirstOrDefault(n => RingActions.NeverClose.Contains(n, StringComparer.OrdinalIgnoreCase)) is string protectedName)
+                    throw Error(at + ".target", $"\"{protectedName}\" is never closed by Power Ring; remove it from the list.");
+                break;
         }
+        if (item.Delay is int delay && (delay is < 0 or > 10 || action != RingActions.ScreenToClipboard))
+            throw Error(at + ".delay", "only screen-to-clipboard takes a delay, 0 to 10 seconds.");
         // An action with children: they are shown on the next circle, right behind it (up to 3 circles in total).
         if (item.Items is not null)
         {

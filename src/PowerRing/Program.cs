@@ -16,6 +16,7 @@ internal static class Program
     {
         string configPath = RingConfigStore.DefaultPath();
         bool show = false, exit = false;
+        string? snapshot = null;
         int? profile = null;
         for (int i = 0; i < args.Length; i++)
         {
@@ -24,9 +25,12 @@ internal static class Program
                 case "--config" when i + 1 < args.Length: configPath = Path.GetFullPath(args[++i]); break;
                 case "--show": show = true; break;
                 case "--exit": exit = true; break;
+                case "--snapshot" when i + 1 < args.Length: snapshot = Path.GetFullPath(args[++i]); break;
                 case "--profile" when i + 1 < args.Length && int.TryParse(args[i + 1], out int p): profile = p - 1; i++; break;
             }
         }
+
+        if (snapshot is not null) return Snapshot(configPath, profile ?? 0, snapshot);
 
         string key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(configPath.ToLowerInvariant())))[..16];
         using var mutex = new Mutex(true, $@"Local\PowerRing-{key}", out bool first);
@@ -72,6 +76,37 @@ internal static class Program
         };
         app.Exit += (_, _) => host?.Dispose();
         return app.Run();
+    }
+
+    /// <summary>--snapshot out.png [--profile N]: renders that workspace to a PNG and exits (no window, no hotkey, no tray).</summary>
+    private static int Snapshot(string configPath, int profile, string output)
+    {
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        int code = 0;
+        app.Startup += (_, _) =>
+        {
+            try
+            {
+                var store = new RingConfigStore(configPath);
+                RingConfig config = store.Load();
+                WebIcons.Initialize(store.Directory, app.Dispatcher);
+                var ring = new RingWindow(config, new SnapshotBoard(store.Directory));
+                ring.Snapshot(profile, output);
+            }
+            catch (Exception ex) { Console.Error.WriteLine(ex.Message); code = 1; }
+            app.Shutdown(code);
+        };
+        return app.Run();
+    }
+
+    private sealed class SnapshotBoard(string directory) : IBoardSource
+    {
+        public IReadOnlyList<ClipText> Texts { get; } = [new("Example copied text", DateTimeOffset.Now)];
+        public IReadOnlyList<ClipImage> Images { get; } = [];
+        public RingNotesStore Notes { get; } = new(directory);
+        public void CopyText(string text) { }
+        public void CopyImage(ClipImage image) { }
     }
 
     private static string? ReadQuietly(string path)

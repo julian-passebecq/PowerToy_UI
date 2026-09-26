@@ -66,9 +66,10 @@ public static class RingDefaults
           { "label": "Desktop", "action": "folder", "target": "desktop" },
           { "label": "Documents", "action": "folder", "target": "documents" }
         ] },
-        { "label": "Screenshot", "action": "screenshot", "items": [
-          { "label": "Whole screen", "action": "screen-to-clipboard" },
-          { "label": "Video", "icon": "video", "action": "keys", "target": "Win+Shift+R" }
+        { "label": "Snipping Tool", "icon": "screenshot", "action": "run", "target": "explorer.exe", "args": "shell:AppsFolder\\Microsoft.ScreenSketch_8wekyb3d8bbwe!App", "items": [
+          { "label": "Selection to clipboard", "icon": "screenshot", "action": "screenshot" },
+          { "label": "Whole screen to clipboard", "action": "screen-to-clipboard" },
+          { "label": "Whole screen in 3 s", "icon": "timer", "action": "screen-to-clipboard", "delay": 3 }
         ] }
       ]
     },
@@ -114,6 +115,11 @@ public static class RingDefaults
         ] },
         { "label": "Environment variables", "icon": "keyboard", "action": "run", "target": "rundll32.exe", "args": "sysdm.cpl,EditEnvironmentVariables" },
         { "label": "Clipboard history", "icon": "clipboard", "action": "keys", "target": "Win+V" },
+        { "label": "Night mode", "icon": "moon", "action": "close-apps", "target": "chrome, msedge, opera, firefox, spotify, discord, ms-teams, Teams", "items": [
+          { "label": "Power: efficiency", "icon": "battery", "action": "power-mode", "target": "efficiency" },
+          { "label": "Power: balanced", "icon": "power", "action": "power-mode", "target": "balanced" },
+          { "label": "Power: performance", "icon": "bolt", "action": "power-mode", "target": "performance" }
+        ] },
         { "label": "Windows settings", "icon": "settings", "action": "url", "target": "ms-settings:" },
         { "label": "Power Ring settings", "icon": "edit", "action": "ring-settings", "target": "edit", "items": [
           { "label": "Settings folder", "icon": "folder", "action": "ring-settings", "target": "folder" },

@@ -56,12 +56,26 @@ internal static class ActionRunner
                     Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true });
                     break;
                 case RingActions.ScreenToClipboard:
-                    Delay(dispatcher, 180, () =>
+                    int seconds = item.Delay ?? 0;
+                    for (int left = seconds; left > 0; left--)
+                    {
+                        int shown = left;
+                        Delay(dispatcher, (seconds - left) * 1000 + 60, () => Toast.Show($"Screen capture in {shown}…", 700));
+                    }
+                    // After the countdown toasts are gone (they would be in the picture).
+                    Delay(dispatcher, seconds > 0 ? seconds * 1000 + 250 : 180, () =>
                     {
                         BitmapSource image = CaptureScreenUnderPointer();
                         SetClipboard(() => Clipboard.SetImage(image));
                         Toast.Show($"Screen copied ({image.PixelWidth}×{image.PixelHeight}): Ctrl+V to paste");
                     });
+                    break;
+                case RingActions.PowerMode:
+                    SetPowerMode(target);
+                    Toast.Show(item.Label + ": power mode set");
+                    break;
+                case RingActions.CloseApps:
+                    Toast.Show(CloseApps(target), 3500);
                     break;
                 case RingActions.PowerOps:
                     ShowPowerOps(target);
@@ -73,6 +87,54 @@ internal static class ActionRunner
             Toast.Show($"{item.Label}: {ex.Message}");
         }
     }
+
+    // Windows 11 power mode overlays (Settings > System > Power > Power mode).
+    private static readonly Dictionary<string, Guid> PowerOverlays = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["efficiency"] = new("961cc777-2547-4f9d-8174-7d86181b8a7a"),
+        ["balanced"] = Guid.Empty,
+        ["performance"] = new("ded574b5-45a0-4f42-8737-46345c09c238"),
+    };
+
+    private static void SetPowerMode(string target)
+    {
+        if (!PowerOverlays.TryGetValue(target, out Guid overlay)) throw new ArgumentException($"Unknown power mode {target}.");
+        int result = PowerSetActiveOverlayScheme(ref overlay);
+        if (result != 0) throw new InvalidOperationException($"Windows refused the power mode change (code {result}).");
+    }
+
+    /// <summary>
+    /// Asks each listed program to close, exactly like clicking its X (so it can still ask to save). Never kills,
+    /// never touches Power Ring, Explorer or Claude.
+    /// </summary>
+    private static string CloseApps(string target)
+    {
+        int asked = 0;
+        var names = new List<string>();
+        foreach (string name in RingActions.ProcessNames(target))
+        {
+            if (RingActions.NeverClose.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;
+            foreach (Process process in Process.GetProcessesByName(name))
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (process.MainWindowHandle != IntPtr.Zero && process.CloseMainWindow())
+                        {
+                            asked++;
+                            if (!names.Contains(name, StringComparer.OrdinalIgnoreCase)) names.Add(name);
+                        }
+                    }
+                    catch (InvalidOperationException) { }
+                }
+            }
+        }
+        return asked == 0 ? "Night mode: none of the listed programs was open." : $"Night mode: asked {string.Join(", ", names)} to close ({asked} window{(asked > 1 ? "s" : "")}).";
+    }
+
+    [System.Runtime.InteropServices.DllImport("powrprof.dll")]
+    private static extern int PowerSetActiveOverlayScheme(ref Guid overlay);
 
     /// <summary>Starting Power Ops again activates the running instance (its own single-instance rule).</summary>
     public static void ShowPowerOps(string target)
