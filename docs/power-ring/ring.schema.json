@@ -160,7 +160,7 @@
           "type": "number",
           "minimum": 28,
           "maximum": 200,
-          "default": 60,
+          "default": 50,
           "description": "Centre button (workspace / back)."
         },
         "slotRadius": {
@@ -199,7 +199,7 @@
         },
         "slotHover": {
           "$ref": "#/definitions/color",
-          "description": "Button colour under the pointer. Omit to use the accent."
+          "description": "Button colour under the pointer. Omit for a soft tint of the accent."
         },
         "icon": {
           "$ref": "#/definitions/color",

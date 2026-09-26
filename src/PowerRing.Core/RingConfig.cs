@@ -30,7 +30,7 @@ public sealed class RingAppearance
     /// <summary>Disc diameter. Null = just big enough for every circle.</summary>
     public double? RingSize { get; set; }
     public double SlotSize { get; set; } = 42;
-    public double CenterSize { get; set; } = 60;
+    public double CenterSize { get; set; } = 50;
     /// <summary>Small buttons shown next to an item that has children (its "satellites").</summary>
     public double SatelliteSize { get; set; } = 34;
     /// <summary>Buttons of the optional third circle (children of children).</summary>

@@ -30,12 +30,16 @@ internal sealed class RingTheme
             Background = background,
             Border = Parse(a.Border) ?? (dark ? Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x30, 0x00, 0x00, 0x00)),
             Slot = Parse(a.Slot) ?? (dark ? Color.FromRgb(0x2E, 0x30, 0x36) : Color.FromRgb(0xFF, 0xFF, 0xFF)),
-            SlotHover = Parse(a.SlotHover) ?? accent,
+            // A soft tint of the accent: readable on hover without a heavy block of colour.
+            SlotHover = Parse(a.SlotHover) ?? Mix(dark ? Color.FromRgb(0x2E, 0x30, 0x36) : Colors.White, accent, dark ? 0.45 : 0.28),
             Icon = Parse(a.Icon) ?? (dark ? Color.FromRgb(0xF3, 0xF4, 0xF6) : Color.FromRgb(0x1F, 0x23, 0x2B)),
             Text = Parse(a.Text) ?? (dark ? Color.FromRgb(0xE5, 0xE7, 0xEB) : Color.FromRgb(0x33, 0x38, 0x42)),
             Muted = dark ? Color.FromRgb(0x9C, 0xA3, 0xAF) : Color.FromRgb(0x6B, 0x72, 0x80),
         };
     }
+
+    private static Color Mix(Color a, Color b, double t) => Color.FromRgb(
+        (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
     /// <summary>White or near-black, whichever reads better on <paramref name="background"/>.</summary>
     public static Color OnColor(Color background) =>

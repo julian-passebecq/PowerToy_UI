@@ -87,7 +87,7 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 | `scale` | 1.0 | everything bigger (1.2) or smaller (0.85): the easiest knob |
 | `spacing` | 6 | gap between the centre, the circles and the buttons |
 | `slotSize`, `satelliteSize`, `thirdSize` | 42, 34, 24 | button size on circles 1, 2 and 3 |
-| `centerSize` | 60 | centre button |
+| `centerSize` | 50 | centre button |
 | `iconSize`, `satelliteIconSize`, `thirdIconSize` | 20, 18, 12 | |
 | `showSatellites`, `showThirdRing` | true | show circles 2 and 3 |
 | `ringSize` | computed | disc diameter |

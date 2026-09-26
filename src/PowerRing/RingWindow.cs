@@ -294,14 +294,17 @@ internal sealed class RingWindow : Window
     {
         RingAppearance a = _config.Appearance;
         string name = _nav.AtRoot ? _nav.Profile.Name : "Back";
-        _center = Round(size, Glyph(_nav.AtRoot ? _nav.Profile.Icon ?? "home" : "back", a.IconSize * a.Scale + 2), _theme.Slot, _theme.Accent, name);
+        _center = Round(size, Glyph(_nav.AtRoot ? _nav.Profile.Icon ?? "home" : "back", a.IconSize * a.Scale + 2), _theme.Slot, _theme.SlotHover, name);
         _center.Click += (_, _) => { if (!_nav.AtRoot) GoBack(); else CenterClick(); };
         Put(_center, cx, cy, size);
         _root.Children.Add(_center);
 
         // Up to 4 small workspace buttons on the centre's rim (diagonals): the next workspaces in order, the previous one last.
         int count = _nav.Profiles.Count;
-        var others = Enumerable.Range(1, count - 1).Select(d => (_nav.ProfileIndex + d) % count).Take(Math.Max(0, a.WorkspaceButtons)).ToList();
+        bool centreOpensBoard = a.CenterClick.ToLowerInvariant() is "board" or "toggle";
+        var others = Enumerable.Range(1, count - 1).Select(d => (_nav.ProfileIndex + d) % count)
+            .Where(i => !(centreOpensBoard && _nav.Profiles[i].IsBoard))
+            .Take(Math.Max(0, a.WorkspaceButtons)).ToList();
         if (others.Count == 0) return;
         double mini = Math.Max(20, size * 0.36);
         double[] angles = [-45, 45, 135, 225];

@@ -24,7 +24,7 @@ public static class RingDefaults
     "slotSize": 42,      // circle 1
     "satelliteSize": 34, // circle 2
     "thirdSize": 24,     // circle 3
-    "centerSize": 60,
+    "centerSize": 50,
     "iconSize": 20,
     "satelliteIconSize": 18,
     "showSatellites": true,
