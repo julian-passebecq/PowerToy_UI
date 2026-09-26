@@ -19,6 +19,7 @@ You are asked to change Julian's Power Ring, a radial launcher for Windows. Ever
 - Unknown fields are ignored by the program (the schema flags them). Do not invent fields: if it is not in this page, it does not exist.
 - To see the result without opening the ring, render a workspace to a PNG:
   `PowerRing.exe --config "<path>\ring.json" --snapshot out.png --profile 2` (profile number starts at 1; no window, no hotkey, exits afterwards).
+- Julian may paste this page with his ring.json from the settings window ("Pour l'IA" > Exporter). Answer with the **complete** ring.json in one ```json block: he imports it there, it is validated and previewed before he saves.
 - To keep the user's version, work on a copy in `layouts\` and let the user switch to it from the tray icon > Layouts.
 
 ## 2. Julian's mental model (keep it)
@@ -130,13 +131,24 @@ Sizes are Windows display units (scaled with the monitor). **To make everything 
 | `boardWidth`, `boardHeight` | 560, 420 | 300-1400, 200-1000 | size of boards and galleries |
 | `animationMs` | 120 | 0-1000 | 0 = no animation |
 | `webIcons` | true | | web buttons fetch the site's icon once |
-| `theme` | `system` | `system`, `dark`, `light` | follows the Windows app theme by default |
+| `satelliteGap` | 0.7 × `spacing` | 0-60 | gap between circle 1 and circle 2 only (bring circle 2 closer without touching other gaps) |
+| `workspaceButtonSize` | computed (36% of the centre, min 20) | 16-80 | diameter of the small rim buttons (workspaces and `quickButtons`) |
+| `rimIconSize` | half of the rim button | 6-48 | icon inside the rim buttons |
+| `theme` | `system` | `system`, `dark`, `light`, `fluent` | `system` follows the Windows app theme; `fluent` = neutral Windows 11 look (light grey disc, white buttons, dark icons, Windows accent) |
 | `opacity` | 1 | 0.3-1 | disc background opacity |
 | `shadow` | true | | |
 | `accent` | Windows accent | colour | hover colour; a workspace `accent` wins |
 | `background`, `border`, `slot`, `slotHover`, `icon`, `text` | from theme | colour | disc, outline, buttons, hovered button, icons, labels |
 
 Colours are `"#RRGGBB"` or `"#AARRGGBB"` (AA = opacity). Nothing else (no names, no `rgb()`). Prefer leaving colours to the theme, so dark and light mode both work; set a workspace `accent` to tell workspaces apart.
+
+### Quick buttons (`quickButtons`, top level)
+
+```jsonc
+"quickButtons": [ { "label": "ChatGPT", "action": "url", "target": "https://chatgpt.com/" } ]
+```
+
+0-4 direct buttons on the centre's rim, placed **after** the workspace buttons. The rim holds **4 buttons in total**: with `workspaceButtons: 4` and 4 other ring workspaces there is no room left, so lower `workspaceButtons` (for example 3) to make room. Any action from section 5 except `group`; no `items`. Same look as the workspace buttons; the `label` shows on hover.
 
 ## 5. Actions
 
@@ -150,7 +162,7 @@ Colours are `"#RRGGBB"` or `"#AARRGGBB"` (AA = opacity). Nothing else (no names,
 | `screenshot` | none | Windows region snip |
 | `screen-to-clipboard` | none | whole screen under the pointer; `"delay": 3` counts down first |
 | `powerops` | path to `JUtilityPalette.exe` | shows Power Ops |
-| `ring-settings` | `edit`, `folder`, `reload` or `guide` | the ring's own settings |
+| `ring-settings` | `open`, `edit`, `folder`, `reload` or `guide` | the ring's own settings; `open` = the settings window (sliders, live preview) |
 | `power-mode` | `efficiency`, `balanced` or `performance` | Windows power mode |
 | `close-apps` | 1-40 program names, comma separated (`"chrome, msedge"`) | asks each to close like clicking its X (it may still ask to save). Power Ring, Explorer and Claude are never closed, and listing them is refused |
 | `group` | none | give `items` (a sub-circle) |
@@ -181,7 +193,9 @@ Omit `icon` whenever possible: programs, files and folders show their real Windo
 Do not promise these; they are fixed in the program:
 
 - More than 6 workspaces, 10 buttons per circle, 4 children per action button, or 3 circles.
-- The geometry: circle 1 starts at the top and goes clockwise; children sit behind their parent; the 4 workspace buttons sit on the centre's diagonals.
+- The geometry: circle 1 starts at the top and goes clockwise; children sit behind their parent; the rim buttons (workspaces, then `quickButtons`, 4 at most) sit on the centre's diagonals. Only the gap between circles 1 and 2 has its own setting (`satelliteGap`).
+- More than 4 rim buttons, quick buttons with children, or quick buttons that open a sub-circle.
+- The settings window (tray > Réglages…) itself: it edits the same fields as this page and writes ring.json the same way (validated, ring.json.bak kept).
 - Per-button size or font; fonts (Segoe UI Variable / Segoe Fluent Icons); per-workspace colours other than `accent`.
 - Keyboard and mouse handling inside the ring (1-9, arrows, Enter, Tab, Ctrl+1-6, F1-F6, wheel, Esc/Backspace/right click, Back/Forward).
 - The tray menu, the notice for invalid files, the layout switcher.

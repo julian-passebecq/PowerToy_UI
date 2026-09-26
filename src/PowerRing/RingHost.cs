@@ -33,6 +33,7 @@ internal sealed class RingHost : IDisposable, IBoardSource
     private DispatcherTimer? _reloadDelay;
     private RingConfig _config;
     private RingWindow _ring;
+    private SettingsWindow? _settings;
     private string _hotkeyStatus = "";
 
     public RingHost(RingConfigStore store, Dispatcher dispatcher)
@@ -86,11 +87,23 @@ internal sealed class RingHost : IDisposable, IBoardSource
     {
         switch (target?.Trim().ToLowerInvariant())
         {
+            case "open": OpenSettings(); break;
             case "folder": Open(_store.Directory, edit: false); break;
             case "reload": Reload(); break;
             case "guide": Open(Path.Combine(_store.Directory, RingConfigStore.GuideFileName), edit: true); break;
             default: Open(_store.FilePath, edit: true); break;
         }
+    }
+
+    /// <summary>"Réglages Power Ring": one window at a time, editing a copy of the current config with a live preview.</summary>
+    public void OpenSettings()
+    {
+        if (_settings is not null) { _settings.Activate(); return; }
+        _ring.Dismiss(restoreFocus: false);
+        _settings = new SettingsWindow(_config, _store, this, () => Reload(announce: false));
+        _settings.Closed += (_, _) => _settings = null;
+        _settings.Show();
+        _settings.Activate();
     }
 
     /// <summary>Tray menu edits (show/hide a workspace, add a preset) go through validation and keep ring.json.bak.</summary>
@@ -264,6 +277,7 @@ internal sealed class RingHost : IDisposable, IBoardSource
         var menu = _tray.ContextMenuStrip!;
         menu.Items.Clear();
         menu.Items.Add("Open ring", null, (_, _) => _dispatcher.BeginInvoke(ShowRing));
+        menu.Items.Add("Réglages…", null, (_, _) => _dispatcher.BeginInvoke(OpenSettings));
         var profiles = new System.Windows.Forms.ToolStripMenuItem("Profile");
         for (int i = 0; i < _ring.Navigator.Profiles.Count; i++)
         {
@@ -368,6 +382,7 @@ internal sealed class RingHost : IDisposable, IBoardSource
         _messages.Dispose();
         _tray.Visible = false;
         _tray.Dispose();
+        _settings?.Close();
         _ring.Close();
     }
 }

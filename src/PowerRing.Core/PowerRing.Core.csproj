@@ -8,5 +8,6 @@
     <!-- Single source for the schema and the guide: written next to ring.json at startup. -->
     <EmbeddedResource Include="../../docs/power-ring/ring.schema.json" LogicalName="ring.schema.json" />
     <EmbeddedResource Include="../../docs/power-ring/RING_CONFIG.md" LogicalName="RING_CONFIG.md" />
+    <EmbeddedResource Include="../../docs/power-ring/AI_TUTORIAL.md" LogicalName="AI_TUTORIAL.md" />
   </ItemGroup>
 </Project>

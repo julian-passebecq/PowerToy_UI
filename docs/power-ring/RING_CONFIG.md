@@ -65,7 +65,7 @@ A button **without** an action but with `items` is a group: its first children s
 | `screenshot` | none: Windows region snip | |
 | `screen-to-clipboard` | none: the whole screen under the pointer, copied; `"delay": 3` waits 3 s first (countdown) | |
 | `powerops` | path to `JUtilityPalette.exe` | shows Power Ops |
-| `ring-settings` | `edit`, `folder`, `reload` or `guide` | Power Ring's own settings, from the ring |
+| `ring-settings` | `open` (settings window), `edit`, `folder`, `reload` or `guide` | Power Ring's own settings, from the ring |
 | `power-mode` | `efficiency`, `balanced` or `performance` | Windows power mode (Settings > System > Power) |
 | `close-apps` | program names, comma separated | `"chrome, msedge, opera"`: each is asked to close like clicking its X, so it can still ask to save; Power Ring, Explorer and Claude are never closed |
 | `group` | none: give `items` | sub-circle |
@@ -92,7 +92,9 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 | `showSatellites`, `showThirdRing` | true | show circles 2 and 3 |
 | `ringSize` | computed | disc diameter |
 | `slotRadius` | computed | minimum distance of circle 1 |
-| `theme` | `system` | `system`, `dark` or `light` |
+| `satelliteGap` | 0.7 × spacing | gap between circle 1 and circle 2 only (0-60): lower it to bring circle 2 closer |
+| `workspaceButtonSize`, `rimIconSize` | computed | small buttons on the centre's rim (16-80) and their icon (6-48) |
+| `theme` | `system` | `system`, `dark`, `light` or `fluent` (neutral Windows 11 look: light grey disc, white buttons, dark icons, Windows accent) |
 | `accent` | Windows accent | hover colour; a workspace's `accent` wins |
 | `background`, `border`, `slot`, `slotHover`, `icon`, `text` | theme | `#RRGGBB` or `#AARRGGBB` |
 | `opacity` | 1 | disc background opacity (0.3-1) |
@@ -106,6 +108,18 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 
 A button can have its own `"color"` (background).
 
+## Quick buttons
+
+`quickButtons` (top level, next to `profiles`) puts 0-4 direct buttons on the centre's rim, after the workspace buttons; the rim holds 4 buttons in total. Any action except `group`, no children. For example, with `"workspaceButtons": 3`, a ChatGPT button takes the 4th place:
+
+```jsonc
+"quickButtons": [ { "label": "ChatGPT", "action": "url", "target": "https://chatgpt.com/" } ]
+```
+
+## Settings window
+
+Tray icon > Réglages… (or a button with `"action": "ring-settings", "target": "open"`) opens **Réglages Power Ring**: sliders for every size, theme, accent, the order of the workspaces and of the buttons, with a live preview of the ring beside it. Nothing is written until Enregistrer (checked first; the previous file is kept as `ring.json.bak`). "Pour l'IA" copies a ready prompt (instruction + `AI_TUTORIAL.md` + your ring.json) for ChatGPT or Claude, and imports the JSON it answers (checked and previewed before you save).
+
 ## Layouts
 
 Put complete alternative `ring.json` files in `layouts\` next to this guide. Tray icon > Layouts makes one active (it is checked first; the current `ring.json` is kept as `ring.json.bak`). Useful to compare versions.
@@ -116,5 +130,5 @@ Put complete alternative `ring.json` files in `layouts\` next to this guide. Tra
 - Workspaces: the small icons beside the centre, Tab / Shift+Tab, Ctrl+1-6, F1-F6 or the mouse wheel.
 - Esc, Backspace or a right click go back; Esc on the first circle, the centre, or a click outside close the ring.
 - Board: ‹ › or Left/Right change table, click copies (or opens a link), 1-9 pick a card.
-- Tray icon: open the ring, pick the workspace, show/hide workspaces, add a preset, switch layout, edit ring.json, reload, start with Windows, exit.
+- Tray icon: open the ring, Réglages…, pick the workspace, show/hide workspaces, add a preset, switch layout, edit ring.json, reload, start with Windows, exit.
 - `PowerRing.exe --show` opens the ring (for tools that cannot send a hotkey), `--profile N` picks a workspace, `--exit` closes it.
