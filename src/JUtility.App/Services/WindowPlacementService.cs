@@ -48,6 +48,36 @@ internal static class WindowPlacementService
             SwpNoZOrder | SwpNoActivate);
     }
 
+    /// <summary>Centres the (already created, possibly hidden) window on the pointer inside that monitor's work area.</summary>
+    public static void CenterOnCursor(Window window)
+    {
+        IntPtr handle = new WindowInteropHelper(window).EnsureHandle();
+        if (!GetCursorPos(out Point cursor) || !GetWindowRect(handle, out Rect windowRect))
+        {
+            return;
+        }
+
+        IntPtr monitor = MonitorFromPoint(cursor, MonitorDefaultToNearest);
+        MonitorInfo monitorInfo = new() { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref monitorInfo))
+        {
+            return;
+        }
+
+        NativeRect work = monitorInfo.WorkArea;
+        WindowBounds target = WindowPlacementMath.CenterOn(
+            cursor.X,
+            cursor.Y,
+            windowRect.Right - windowRect.Left,
+            windowRect.Bottom - windowRect.Top,
+            work.Left,
+            work.Top,
+            work.Right,
+            work.Bottom);
+
+        SetWindowPos(handle, IntPtr.Zero, target.Left, target.Top, target.Width, target.Height, SwpNoZOrder | SwpNoActivate);
+    }
+
     public static void EnsureVisible(Window window)
     {
         IntPtr handle = new WindowInteropHelper(window).Handle;
