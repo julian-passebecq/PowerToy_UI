@@ -124,7 +124,7 @@ Rec 'idle: no CPU' ($cpu -lt 30) "$([Math]::Round($cpu,1)) ms in 5 s"
 $t0 = [Diagnostics.Stopwatch]::StartNew(); Show-Ring; $first = $t0.ElapsedMilliseconds
 Rec 'hotkey: ring shows, focused' ([PR]::Pid([PR]::GetForegroundWindow()) -eq $p.Id) "$first ms incl. wait"
 $names = (Buttons) -split '\|'
-Rec 'first circle: buttons, children behind them, centre, workspace switchers' ((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1 (click: T3)', 'Workspace: T3', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) (Buttons)
+Rec 'first circle: buttons, children behind them, centre, workspace switchers' ((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T3', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) (Buttons)
 $rect = New-Object PR+RECT; [void][PR]::GetWindowRect((RingHandle), [ref]$rect)
 Rec 'placement: horizontally centred on the pointer' ([Math]::Abs(($rect.L + $rect.R) / 2 - 800) -le 3) "window $($rect.L)..$($rect.R)"
 

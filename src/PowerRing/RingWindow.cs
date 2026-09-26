@@ -169,7 +169,7 @@ internal sealed class RingWindow : Window
         double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
         int w = (int)Math.Round(Width * scale), h = (int)Math.Round(Height * scale);
         // Ring: its centre under the pointer. Panel: its home button under the pointer.
-        Point anchor = new(Width / 2, Height / 2);
+        Point anchor = new(Width / 2, _nav.Profile.IsPanel ? Height / 2 : Width / 2);
         if (_home is not null)
         {
             _root.Measure(new Size(Width, Height));
@@ -206,7 +206,8 @@ internal sealed class RingWindow : Window
         RingAppearance a = _config.Appearance;
         RingLayout.Result layout = RingLayout.Compute(_nav.Items, a);
         double disc = layout.DiscSize;
-        Width = Height = disc + 2 * Pad;
+        Width = disc + 2 * Pad;
+        Height = Width + 22 * a.Scale; // room for the caption under the disc
         _root.Width = Width;
         _root.Height = Height;
         double c = Width / 2;
@@ -278,12 +279,12 @@ internal sealed class RingWindow : Window
         RenderCenter(c, c, layout.CenterSize);
         _caption = Text("", a.FontSize * a.Scale, _theme.Text);
         _caption.FontWeight = FontWeights.SemiBold;
-        _caption.Width = layout.CenterSize * 2.2;
+        _caption.Width = disc * 0.8;
         _caption.TextAlignment = TextAlignment.Center;
         _caption.TextTrimming = TextTrimming.CharacterEllipsis;
         _caption.Visibility = a.ShowLabels ? Visibility.Visible : Visibility.Collapsed;
-        Canvas.SetLeft(_caption, c - layout.CenterSize * 1.1);
-        Canvas.SetTop(_caption, c + layout.CenterSize / 2 + 3);
+        Canvas.SetLeft(_caption, c - disc * 0.4);
+        Canvas.SetTop(_caption, c + disc / 2 + 2);
         _root.Children.Add(_caption);
         Caption(_nav.AtRoot ? _nav.Profile.Name : _nav.Breadcrumb);
     }
@@ -292,25 +293,52 @@ internal sealed class RingWindow : Window
     private void RenderCenter(double cx, double cy, double size)
     {
         RingAppearance a = _config.Appearance;
-        string name = !_nav.AtRoot ? "Back" : BoardIndex() is int board ? $"{_nav.Profile.Name} (click: {_nav.Profiles[board].Name})" : _nav.Profile.Name;
-        _center = Round(size, Glyph(_nav.AtRoot ? _nav.Profile.Icon ?? "home" : "back", a.IconSize * a.Scale + 2), _theme.Slot, _theme.Accent, name);
-        _center.Click += (_, _) => { if (!_nav.AtRoot) GoBack(); else if (BoardIndex() is int board) SwitchProfile(board); else Dismiss(restoreFocus: true); };
+        string name = _nav.AtRoot ? _nav.Profile.Name : "Back";
+        _center = Round(size, Glyph(_nav.AtRoot ? _nav.Profile.Icon ?? "home" : "back", a.IconSize * a.Scale + 2), _theme.Slot, _theme.SlotHover, name);
+        _center.Click += (_, _) => { if (!_nav.AtRoot) GoBack(); else CenterClick(); };
         Put(_center, cx, cy, size);
         _root.Children.Add(_center);
-        int count = _nav.Profiles.Count;
-        if (count < 2) return;
 
-        // Small switchers on the centre's sides: previous workspace on the left, next on the right.
+        // Up to 4 small workspace buttons on the centre's rim (diagonals): the next workspaces in order, the previous one last.
+        int count = _nav.Profiles.Count;
+        bool centreOpensBoard = a.CenterClick.ToLowerInvariant() is "board" or "toggle";
+        var others = Enumerable.Range(1, count - 1).Select(d => (_nav.ProfileIndex + d) % count)
+            .Where(i => !(centreOpensBoard && _nav.Profiles[i].IsBoard))
+            .Take(Math.Max(0, a.WorkspaceButtons)).ToList();
+        if (others.Count == 0) return;
         double mini = Math.Max(20, size * 0.36);
-        foreach (int delta in new[] { -1, 1 })
+        double[] angles = [-45, 45, 135, 225];
+        for (int i = 0; i < others.Count; i++)
         {
-            int index = ((_nav.ProfileIndex + delta) % count + count) % count;
+            int index = others[i];
             RingProfile other = _nav.Profiles[index];
             Color tint = RingTheme.Parse(other.Accent) ?? _theme.Accent;
             Button switcher = Round(mini, Glyph(other.Icon ?? "apps", mini * 0.5), Lighter(_theme.Slot, _theme.Dark ? 0.1 : -0.05), tint, $"Workspace: {other.Name}");
             switcher.Click += (_, _) => SwitchProfile(index);
-            Put(switcher, cx + delta * (size / 2 + mini * 0.05), cy, mini);
+            double angle = angles[i] * Math.PI / 180, r = size / 2 + mini * 0.12;
+            Put(switcher, cx + r * Math.Cos(angle), cy + r * Math.Sin(angle), mini);
             _root.Children.Add(switcher);
+        }
+    }
+
+    /// <summary>appearance.centerClick on the first circle: open the clipboard board, go home, toggle between them, or close.</summary>
+    private void CenterClick()
+    {
+        switch (_config.Appearance.CenterClick.ToLowerInvariant())
+        {
+            case "home":
+                if (_nav.ProfileIndex != 0) SwitchProfile(0); else Dismiss(restoreFocus: true);
+                break;
+            case "toggle":
+                if (_nav.ProfileIndex != 0) SwitchProfile(0);
+                else if (BoardIndex() is int toggleBoard) SwitchProfile(toggleBoard);
+                break;
+            case "close":
+                Dismiss(restoreFocus: true);
+                break;
+            default:
+                if (BoardIndex() is int board) SwitchProfile(board); else Dismiss(restoreFocus: true);
+                break;
         }
     }
 

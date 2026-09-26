@@ -87,7 +87,7 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 | `scale` | 1.0 | everything bigger (1.2) or smaller (0.85): the easiest knob |
 | `spacing` | 6 | gap between the centre, the circles and the buttons |
 | `slotSize`, `satelliteSize`, `thirdSize` | 42, 34, 24 | button size on circles 1, 2 and 3 |
-| `centerSize` | 60 | centre button |
+| `centerSize` | 50 | centre button |
 | `iconSize`, `satelliteIconSize`, `thirdIconSize` | 20, 18, 12 | |
 | `showSatellites`, `showThirdRing` | true | show circles 2 and 3 |
 | `ringSize` | computed | disc diameter |
@@ -98,6 +98,8 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 | `opacity` | 1 | disc background opacity (0.3-1) |
 | `shadow`, `showLabels` | true | |
 | `showNumbers` | false | small numbers next to the main buttons |
+| `workspaceButtons` | 4 | small workspace buttons around the centre (0-4) |
+| `centerClick` | `board` | click on the centre: `board` (clipboard board), `home` (first workspace), `toggle` (home and board in turn), `close` |
 | `webIcons` | true | site icons for web buttons |
 | `boardWidth`, `boardHeight` | 560, 420 | size of board and gallery workspaces |
 | `animationMs` | 120 | 0 turns animations off |
