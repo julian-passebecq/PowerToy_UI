@@ -98,6 +98,8 @@ Without an `"icon"`, programs and folders show their real Windows icon and web s
 | `opacity` | 1 | disc background opacity (0.3-1) |
 | `shadow`, `showLabels` | true | |
 | `showNumbers` | false | small numbers next to the main buttons |
+| `workspaceButtons` | 4 | small workspace buttons around the centre (0-4) |
+| `centerClick` | `board` | click on the centre: `board` (clipboard board), `home` (first workspace), `toggle` (home and board in turn), `close` |
 | `webIcons` | true | site icons for web buttons |
 | `boardWidth`, `boardHeight` | 560, 420 | size of board and gallery workspaces |
 | `animationMs` | 120 | 0 turns animations off |

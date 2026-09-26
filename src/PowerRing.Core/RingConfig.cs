@@ -58,6 +58,10 @@ public sealed class RingAppearance
     public bool ShowSatellites { get; set; } = true;
     /// <summary>Show the third circle (children of children).</summary>
     public bool ShowThirdRing { get; set; } = true;
+    /// <summary>Small workspace buttons around the centre (0-4): the other workspaces, one click away.</summary>
+    public int WorkspaceButtons { get; set; } = 4;
+    /// <summary>What a click on the centre does on the first circle: "board" (open the clipboard board), "home" (first workspace), "toggle" (home ⇄ board), "close".</summary>
+    public string CenterClick { get; set; } = "board";
     /// <summary>Web buttons show the site's own icon, downloaded once from that site and cached next to ring.json.</summary>
     public bool WebIcons { get; set; } = true;
     /// <summary>Size of a "board" workspace (tables of clipboard, notes, links).</summary>
@@ -296,6 +300,9 @@ public static partial class RingConfigs
         Range(a.FontSize, 8, 32, "appearance.fontSize");
         Range(a.Opacity, 0.3, 1, "appearance.opacity");
         Range(a.AnimationMs, 0, 1000, "appearance.animationMs");
+        Range(a.WorkspaceButtons, 0, 4, "appearance.workspaceButtons");
+        if (a.CenterClick?.ToLowerInvariant() is not ("board" or "home" or "toggle" or "close"))
+            throw Error("appearance.centerClick", "use \"board\", \"home\", \"toggle\" or \"close\".");
         if (a.RingSize is double size && a.SlotSize >= size / 2) throw Error("appearance.slotSize", "must be smaller than half of ringSize.");
         foreach (var (value, name) in new[] { (a.Accent, "accent"), (a.Background, "background"), (a.Border, "border"), (a.Slot, "slot"), (a.SlotHover, "slotHover"), (a.Icon, "icon"), (a.Text, "text") })
             ValidateColor(value, "appearance." + name);

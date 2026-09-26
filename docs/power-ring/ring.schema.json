@@ -305,6 +305,23 @@
           "maximum": 1000,
           "default": 420,
           "description": "Height of board and gallery workspaces."
+        },
+        "workspaceButtons": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4,
+          "default": 4,
+          "description": "Small workspace buttons around the centre (0-4)."
+        },
+        "centerClick": {
+          "enum": [
+            "board",
+            "home",
+            "toggle",
+            "close"
+          ],
+          "default": "board",
+          "description": "Click on the centre (first circle): board = open the clipboard board, home = first workspace, toggle = home and board in turn, close = close the ring."
         }
       }
     },
