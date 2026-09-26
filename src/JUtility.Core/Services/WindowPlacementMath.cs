@@ -24,6 +24,18 @@ public static class WindowPlacementMath
         return new WindowBounds(safeLeft, safeTop, safeWidth, safeHeight);
     }
 
+    /// <summary>Centres a window on a point (e.g. the pointer for the Quick Ring), then keeps it inside the work area.</summary>
+    public static WindowBounds CenterOn(
+        int x,
+        int y,
+        int width,
+        int height,
+        int workLeft,
+        int workTop,
+        int workRight,
+        int workBottom) =>
+        ClampToWorkArea(x - width / 2, y - height / 2, width, height, workLeft, workTop, workRight, workBottom);
+
     public static WindowBounds PlaceNearCursor(
         int cursorX,
         int cursorY,

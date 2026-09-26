@@ -1,0 +1,23 @@
+flowchart TB
+  User[User selects project and workspace] --> Shell[One native WPF shell]
+  Shell --> Views[Workspace views / tabs / bookmarks]
+  Views --> UI[Left groups / optional filters / center / optional companion]
+  UI --> Registry[Module and typed action catalog]
+  Registry --> Local[Shared local business data]
+  Registry --> Gate[Permission and lifecycle gate]
+  Gate --> Schedule[On-demand scheduler / shared cache / cancellation]
+  Schedule --> Git[Local Git and GitHub adapter]
+  Schedule --> Agent[Codex and Claude event adapters]
+  Schedule --> Inventory[Runtime / environment / extension adapters]
+  Schedule --> Cloud[Cloud usage / Grafana summaries]
+  Schedule --> Device[Optional CPU / RAM / battery / usage]
+  Schedule --> Knowledge[AtlasNote and Mongoku read-only bridges]
+  Local --> Files[workspace.json / media]
+  Views --> State[shell-workspaces.json]
+  Gate --> Vault[Secret references to OS or external vault]
+  Registry --> Launch[Explicit external app or browser launch]
+  Launch --> Tools[VS Code / Mosaic / GitHub Desktop / Terminal / PowerToys]
+  Files --> Export[Scoped review JSON or separate full backup]
+  State --> Export
+  Schedule --> Evidence[Source / scope / observed time / unknown or stale status]
+  Evidence --> UI
