@@ -54,13 +54,18 @@ internal sealed class RingWindow : Window
     private Button? _home;
     private IntPtr _previous;
     private bool _busy;
+    // Settings preview: shown beside the settings window, never activated, never dismissed by a click elsewhere.
+    private readonly bool _preview;
+    private Point _previewAnchor;
 
-    public RingWindow(RingConfig config, IBoardSource board)
+    public RingWindow(RingConfig config, IBoardSource board, bool preview = false)
     {
         _config = config;
         _board = board;
+        _preview = preview;
         _nav = new RingNavigator(config);
-        Title = "Power Ring";
+        Title = preview ? "Power Ring aperçu" : "Power Ring";
+        ShowActivated = !preview;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -83,7 +88,7 @@ internal sealed class RingWindow : Window
             e.Handled = true;
             SwitchProfile(_nav.ProfileIndex + (e.Delta < 0 ? 1 : -1));
         };
-        Deactivated += (_, _) => { if (IsVisible && !_busy) Dismiss(restoreFocus: false); };
+        Deactivated += (_, _) => { if (IsVisible && !_busy && !_preview) Dismiss(restoreFocus: false); };
         WebIcons.Arrived += (_, _) => { if (IsVisible && _noteBox?.IsKeyboardFocused != true) Render(animate: false); };
         SourceInitialized += (_, _) => Native.AddExStyle(new WindowInteropHelper(this).Handle, Native.WsExToolWindow);
     }
@@ -98,6 +103,20 @@ internal sealed class RingWindow : Window
         _config = config;
         _nav.Reload(config);
         if (IsVisible) Render(animate: false);
+    }
+
+    /// <summary>Settings preview: renders <paramref name="config"/> on workspace <paramref name="profileId"/>, its top-right corner at <paramref name="topRight"/>.</summary>
+    public void ShowPreview(RingConfig config, string? profileId, Point topRight)
+    {
+        _config = config;
+        _nav.Reload(config);
+        int index = _nav.Profiles.ToList().FindIndex(p => p.Id == profileId);
+        if (index >= 0) _nav.SetProfile(index);
+        _previewAnchor = topRight;
+        Render(animate: false);
+        Opacity = 1;
+        if (!IsVisible) Show();
+        Place(IntPtr.Zero);
     }
 
     public void SetProfile(int index)
@@ -151,7 +170,7 @@ internal sealed class RingWindow : Window
 
     public void Dismiss(bool restoreFocus)
     {
-        if (!IsVisible) return;
+        if (!IsVisible || _preview) return;
         _busy = true;
         try
         {
@@ -163,6 +182,7 @@ internal sealed class RingWindow : Window
 
     private void Place(IntPtr handle)
     {
+        if (_preview) { Left = _previewAnchor.X - Width; Top = _previewAnchor.Y; return; }
         var (work, bounds, _, pointer) = Native.PointerMonitor();
         // Move onto the pointer's monitor first so WPF adopts that monitor's DPI, then size and centre in physical pixels.
         Native.SetWindowPos(handle, IntPtr.Zero, (bounds.Left + bounds.Right) / 2, (bounds.Top + bounds.Bottom) / 2, 0, 0, 0x0001 | 0x0004 | 0x0010);
@@ -305,19 +325,30 @@ internal sealed class RingWindow : Window
         var others = Enumerable.Range(1, count - 1).Select(d => (_nav.ProfileIndex + d) % count)
             .Where(i => !(centreOpensBoard && _nav.Profiles[i].IsBoard))
             .Take(Math.Max(0, a.WorkspaceButtons)).ToList();
-        if (others.Count == 0) return;
-        double mini = Math.Max(20, size * 0.36);
+        List<RingItem> quick = (_config.QuickButtons ?? []).Take(RingConfigs.MaxRimButtons - others.Count).ToList();
+        double mini = a.WorkspaceButtonSize is double rim ? rim * a.Scale : Math.Max(20, size * 0.36);
+        double glyph = a.RimIconSize is double rimIcon ? rimIcon * a.Scale : mini * 0.5, r = size / 2 + mini * 0.12;
         double[] angles = [-45, 45, 135, 225];
         for (int i = 0; i < others.Count; i++)
         {
             int index = others[i];
             RingProfile other = _nav.Profiles[index];
             Color tint = RingTheme.Parse(other.Accent) ?? _theme.Accent;
-            Button switcher = Round(mini, Glyph(other.Icon ?? "apps", mini * 0.5), Lighter(_theme.Slot, _theme.Dark ? 0.1 : -0.05), tint, $"Workspace: {other.Name}");
+            Button switcher = Round(mini, Glyph(other.Icon ?? "apps", glyph), Lighter(_theme.Slot, _theme.Dark ? 0.1 : -0.05), tint, $"Workspace: {other.Name}");
             switcher.Click += (_, _) => SwitchProfile(index);
-            double angle = angles[i] * Math.PI / 180, r = size / 2 + mini * 0.12;
+            double angle = angles[i] * Math.PI / 180;
             Put(switcher, cx + r * Math.Cos(angle), cy + r * Math.Sin(angle), mini);
             _root.Children.Add(switcher);
+        }
+        // Quick buttons (top-level quickButtons) take the free rim places, with the same look.
+        for (int q = 0; q < quick.Count; q++)
+        {
+            RingItem item = quick[q];
+            Button button = Round(mini, ItemIcon(item, glyph), Lighter(_theme.Slot, _theme.Dark ? 0.1 : -0.05), RingTheme.Parse(item.Color) ?? _theme.Accent, item.Label);
+            button.Click += (_, _) => Fire(item);
+            double angle = angles[others.Count + q] * Math.PI / 180;
+            Put(button, cx + r * Math.Cos(angle), cy + r * Math.Sin(angle), mini);
+            _root.Children.Add(button);
         }
     }
 
@@ -782,6 +813,7 @@ internal sealed class RingWindow : Window
 
     private void Fire(RingItem item)
     {
+        if (_preview) return;
         Dismiss(restoreFocus: true);
         Invoked?.Invoke(this, item);
     }

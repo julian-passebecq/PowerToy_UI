@@ -3,12 +3,12 @@ using System.Reflection;
 namespace PowerRing.Core;
 
 /// <summary>
-/// ring.json in its folder, plus ring.schema.json and RING_CONFIG.md written next to it (always refreshed, they are ours)
+/// ring.json in its folder, plus ring.schema.json, RING_CONFIG.md and AI_TUTORIAL.md written next to it (always refreshed, they are ours)
 /// so VS Code and any AI assistant can edit the file with the exact list of fields, actions and icon names.
 /// </summary>
 public sealed class RingConfigStore
 {
-    public const string FileName = "ring.json", SchemaFileName = "ring.schema.json", GuideFileName = "RING_CONFIG.md";
+    public const string FileName = "ring.json", SchemaFileName = "ring.schema.json", GuideFileName = "RING_CONFIG.md", TutorialFileName = "AI_TUTORIAL.md";
     public const int MaxBytes = 512 * 1024;
 
     public RingConfigStore(string configPath) => FilePath = Path.GetFullPath(configPath);
@@ -26,6 +26,7 @@ public sealed class RingConfigStore
         if (!File.Exists(FilePath)) File.WriteAllText(FilePath, RingDefaults.Json);
         WriteIfChanged(Path.Combine(Directory, SchemaFileName), Resource(SchemaFileName));
         WriteIfChanged(Path.Combine(Directory, GuideFileName), Resource(GuideFileName));
+        WriteIfChanged(Path.Combine(Directory, TutorialFileName), Resource(TutorialFileName));
     }
 
     public RingConfig Load()

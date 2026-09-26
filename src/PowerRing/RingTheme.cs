@@ -19,6 +19,7 @@ internal sealed class RingTheme
 
     public static RingTheme Resolve(RingAppearance a, RingProfile profile)
     {
+        if (a.Theme.Equals("fluent", StringComparison.OrdinalIgnoreCase)) return Fluent(a, profile);
         bool dark = a.Theme.ToLowerInvariant() switch { "dark" => true, "light" => false, _ => !WindowsUsesLightTheme() };
         Color accent = Parse(profile.Accent) ?? Parse(a.Accent) ?? WindowsAccent() ?? Color.FromRgb(0x3B, 0x82, 0xF6);
         Color background = Parse(a.Background) ?? (dark ? Color.FromRgb(0x20, 0x20, 0x24) : Color.FromRgb(0xF7, 0xF7, 0xF9));
@@ -35,6 +36,26 @@ internal sealed class RingTheme
             Icon = Parse(a.Icon) ?? (dark ? Color.FromRgb(0xF3, 0xF4, 0xF6) : Color.FromRgb(0x1F, 0x23, 0x2B)),
             Text = Parse(a.Text) ?? (dark ? Color.FromRgb(0xE5, 0xE7, 0xEB) : Color.FromRgb(0x33, 0x38, 0x42)),
             Muted = dark ? Color.FromRgb(0x9C, 0xA3, 0xAF) : Color.FromRgb(0x6B, 0x72, 0x80),
+        };
+    }
+
+    /// <summary>Neutral Windows 11 look: Mica-like grey disc, white buttons, hairline borders, dark icons, Windows accent.</summary>
+    private static RingTheme Fluent(RingAppearance a, RingProfile profile)
+    {
+        Color accent = Parse(profile.Accent) ?? Parse(a.Accent) ?? WindowsAccent() ?? Color.FromRgb(0x00, 0x78, 0xD4);
+        Color background = Parse(a.Background) ?? Color.FromRgb(0xF3, 0xF3, 0xF3);
+        background.A = (byte)Math.Round(background.A * a.Opacity);
+        return new RingTheme
+        {
+            Dark = false,
+            Accent = accent,
+            Background = background,
+            Border = Parse(a.Border) ?? Color.FromRgb(0xE5, 0xE5, 0xE5),
+            Slot = Parse(a.Slot) ?? Colors.White,
+            SlotHover = Parse(a.SlotHover) ?? Mix(Colors.White, accent, 0.18),
+            Icon = Parse(a.Icon) ?? Color.FromRgb(0x1A, 0x1A, 0x1A),
+            Text = Parse(a.Text) ?? Color.FromRgb(0x1A, 0x1A, 0x1A),
+            Muted = Color.FromRgb(0x5F, 0x5F, 0x5F),
         };
     }
 
@@ -64,7 +85,7 @@ internal sealed class RingTheme
         return key?.GetValue("AppsUseLightTheme") is int value && value != 0;
     }
 
-    private static Color? WindowsAccent()
+    public static Color? WindowsAccent()
     {
         using RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
         if (key?.GetValue("AccentColor") is not int abgr) return null;

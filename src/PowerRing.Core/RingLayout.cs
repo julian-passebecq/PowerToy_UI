@@ -16,7 +16,7 @@ public static class RingLayout
 
     public static Result Compute(IReadOnlyList<RingItem> items, RingAppearance a)
     {
-        double k = a.Scale, gap = a.Spacing * k;
+        double k = a.Scale, gap = a.Spacing * k, satGap = (a.SatelliteGap ?? a.Spacing * 0.7) * k;
         double center = a.CenterSize * k, s1 = a.SlotSize * k, s2 = a.SatelliteSize * k, s3 = a.ThirdSize * k;
         int n = Math.Max(1, items.Count);
         bool showSecond = a.ShowSatellites, showThird = a.ShowSatellites && a.ShowThirdRing;
@@ -33,8 +33,8 @@ public static class RingLayout
         }
 
         // Circle 2: children packed along the circle right behind circle 1.
-        List<RingNode> level2 = showSecond ? Pack(level1, r1 + s1 / 2 + gap * 0.7 + s2 / 2, s2, a.SatelliteIconSize * k, gap, 2) : [];
-        double r2 = level2.Count > 0 ? Radius(level2[0]) : r1 + s1 / 2 + gap + s2 / 2;
+        List<RingNode> level2 = showSecond ? Pack(level1, r1 + s1 / 2 + satGap + s2 / 2, s2, a.SatelliteIconSize * k, gap, 2) : [];
+        double r2 = level2.Count > 0 ? Radius(level2[0]) : r1 + s1 / 2 + satGap + s2 / 2;
 
         // Circle 3: the same for the children's children.
         List<RingNode> level3 = showThird && level2.Count > 0 ? Pack(level2, r2 + s2 / 2 + gap * 0.6 + s3 / 2, s3, a.ThirdIconSize * k, gap * 0.4, 3) : [];

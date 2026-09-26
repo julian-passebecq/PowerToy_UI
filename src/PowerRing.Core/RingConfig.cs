@@ -17,11 +17,13 @@ public sealed class RingConfig
     /// <summary>Profile shown first (id). Null = the first profile.</summary>
     public string? StartProfile { get; set; }
     public List<RingProfile> Profiles { get; set; } = [];
+    /// <summary>0-4 direct buttons on the centre's rim, after the workspace buttons (4 rim buttons in total). No children.</summary>
+    public List<RingItem>? QuickButtons { get; set; }
 }
 
 public sealed class RingAppearance
 {
-    /// <summary>"system" (follows the Windows app theme), "dark" or "light". Colours below override the theme.</summary>
+    /// <summary>"system" (follows the Windows app theme), "dark", "light" or "fluent" (neutral Windows 11 look). Colours below override the theme.</summary>
     public string Theme { get; set; } = "system";
     /// <summary>Multiplies every size below: 0.8 = smaller ring, 1.2 = bigger. The easiest knob.</summary>
     public double Scale { get; set; } = 1;
@@ -60,6 +62,12 @@ public sealed class RingAppearance
     public bool ShowThirdRing { get; set; } = true;
     /// <summary>Small workspace buttons around the centre (0-4): the other workspaces, one click away.</summary>
     public int WorkspaceButtons { get; set; } = 4;
+    /// <summary>Diameter of the rim buttons (workspaces and quick buttons). Null = 36% of the centre, at least 20.</summary>
+    public double? WorkspaceButtonSize { get; set; }
+    /// <summary>Icon size inside the rim buttons. Null = half the button.</summary>
+    public double? RimIconSize { get; set; }
+    /// <summary>Gap between circle 1 and circle 2. Null = 0.7 × spacing (the other gaps keep spacing).</summary>
+    public double? SatelliteGap { get; set; }
     /// <summary>What a click on the centre does on the first circle: "board" (open the clipboard board), "home" (first workspace), "toggle" (home ⇄ board), "close".</summary>
     public string CenterClick { get; set; } = "board";
     /// <summary>Web buttons show the site's own icon, downloaded once from that site and cached next to ring.json.</summary>
@@ -165,8 +173,8 @@ public static class RingActions
             .Select(x => x.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? x[..^4] : x)
             .Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-    /// <summary>ring-settings targets: edit ring.json, open its folder, reload it, or open the guide.</summary>
-    public static readonly IReadOnlyList<string> SettingsTargets = ["edit", "folder", "reload", "guide"];
+    /// <summary>ring-settings targets: open the settings window, edit ring.json, open its folder, reload it, or open the guide.</summary>
+    public static readonly IReadOnlyList<string> SettingsTargets = ["open", "edit", "folder", "reload", "guide"];
 
     public static readonly IReadOnlyList<string> SpecialFolders = ["downloads", "desktop", "documents", "pictures", "videos", "music", "home"];
 
@@ -178,7 +186,7 @@ public sealed class RingConfigException(string message) : Exception(message);
 
 public static partial class RingConfigs
 {
-    public const int MaxProfiles = 6, MaxItems = 10, MaxDepth = 3, MaxSatellites = 4, MaxTables = 8, MaxTableItems = 60, MaxSections = 6, MaxSectionItems = 24;
+    public const int MaxRimButtons = 4, MaxProfiles = 6, MaxItems = 10, MaxDepth = 3, MaxSatellites = 4, MaxTables = 8, MaxTableItems = 60, MaxSections = 6, MaxSectionItems = 24;
 
     public static readonly JsonSerializerOptions Json = new()
     {
@@ -236,6 +244,16 @@ public static partial class RingConfigs
         if (config.StartProfile is not null && !ids.Contains(config.StartProfile))
             throw Error("startProfile", $"\"{config.StartProfile}\" is not the id of a profile.");
         if (!config.Profiles.Any(x => x.Enabled)) throw Error("profiles", "at least one workspace must be enabled.");
+        if (config.QuickButtons is { } quick)
+        {
+            if (quick.Count > MaxRimButtons) throw Error("quickButtons", $"0 to {MaxRimButtons} buttons (they share the centre's rim with the workspace buttons).");
+            for (int i = 0; i < quick.Count; i++)
+            {
+                if (quick[i]?.Items is not null) throw Error($"quickButtons[{i}].items", "quick buttons cannot have children.");
+                if (quick[i] is { } q && RingActions.Of(q) == RingActions.Group) throw Error($"quickButtons[{i}].action", "a quick button cannot be a group.");
+                ValidateItem(quick[i], $"quickButtons[{i}]", MaxDepth);
+            }
+        }
     }
 
     private static void ValidateSections(List<RingSection>? sections, string path)
@@ -283,7 +301,7 @@ public static partial class RingConfigs
 
     private static void ValidateAppearance(RingAppearance a)
     {
-        if (a.Theme?.ToLowerInvariant() is not ("system" or "dark" or "light")) throw Error("appearance.theme", "use \"system\", \"dark\" or \"light\".");
+        if (a.Theme?.ToLowerInvariant() is not ("system" or "dark" or "light" or "fluent")) throw Error("appearance.theme", "use \"system\", \"dark\", \"light\" or \"fluent\".");
         if (a.RingSize is double ring) Range(ring, 200, 900, "appearance.ringSize");
         Range(a.SlotSize, 28, 160, "appearance.slotSize");
         Range(a.CenterSize, 28, 200, "appearance.centerSize");
@@ -301,6 +319,9 @@ public static partial class RingConfigs
         Range(a.Opacity, 0.3, 1, "appearance.opacity");
         Range(a.AnimationMs, 0, 1000, "appearance.animationMs");
         Range(a.WorkspaceButtons, 0, 4, "appearance.workspaceButtons");
+        if (a.WorkspaceButtonSize is double rim) Range(rim, 16, 80, "appearance.workspaceButtonSize");
+        if (a.RimIconSize is double rimIcon) Range(rimIcon, 6, 48, "appearance.rimIconSize");
+        if (a.SatelliteGap is double satGap) Range(satGap, 0, 60, "appearance.satelliteGap");
         if (a.CenterClick?.ToLowerInvariant() is not ("board" or "home" or "toggle" or "close"))
             throw Error("appearance.centerClick", "use \"board\", \"home\", \"toggle\" or \"close\".");
         if (a.RingSize is double size && a.SlotSize >= size / 2) throw Error("appearance.slotSize", "must be smaller than half of ringSize.");

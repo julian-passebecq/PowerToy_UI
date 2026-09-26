@@ -1,9 +1,10 @@
-# Native Windows check for Power Ring (the separate light launcher). Isolated ring.json in a temp folder, hotkey
+﻿# Native Windows check for Power Ring (the separate light launcher). Isolated ring.json in a temp folder, hotkey
 # Ctrl+Alt+Shift+F9 (checked free first), a throwaway localhost page as the observable "url" action.
 # Leave the desktop idle while it runs. Keys are only sent while the Power Ring process owns the foreground.
-# NOTE: the "text" check replaces the clipboard content.
+# NOTE: the "text" check replaces the clipboard content. -SnapshotDir saves a PNG of the settings window and its preview.
+param([string]$SnapshotDir = '')
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, PresentationCore
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, PresentationCore, System.Drawing
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -68,6 +69,7 @@ function Config($label) { @"
   // test ring
   "version": 1, "hotkey": "Ctrl+Alt+Shift+F9", "startProfile": "t1",
   "appearance": { "animationMs": 0 },
+  "quickButtons": [ { "label": "Quick", "action": "text", "target": "quick" } ],
   "profiles": [
     { "id": "t1", "name": "T1", "icon": "code", "items": [
       { "label": "$label", "action": "url", "target": "http://localhost:$port/" },
@@ -76,6 +78,7 @@ function Config($label) { @"
         { "label": "Deep", "items": [ { "label": "Leaf", "action": "text", "target": "leaf" } ] }
       ] },
       { "label": "Shot", "action": "screenshot" },
+      { "label": "Settings", "action": "ring-settings", "target": "open" },
     ] },
     { "id": "t2", "name": "T2", "items": [ { "label": "Only", "action": "text", "target": "only" } ] },
     { "id": "t3", "name": "T3", "kind": "board", "tables": [
@@ -125,7 +128,7 @@ $t0 = [Diagnostics.Stopwatch]::StartNew(); Show-Ring; $first = $t0.ElapsedMillis
 Rec 'hotkey: ring shows, focused' ([PR]::Pid([PR]::GetForegroundWindow()) -eq $p.Id) "$first ms incl. wait"
 $names = (Buttons) -split '\|'
 # The board (T3) is reached through the centre, so it has no small workspace button of its own (centerClick = board).
-Rec 'first circle: buttons, children behind them, centre, workspace switchers' (((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) -and ($names -notcontains 'Workspace: T3')) (Buttons)
+Rec 'first circle: buttons, children behind them, centre, workspace switchers' (((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T2', 'Quick') | Where-Object { $names -notcontains $_ }).Count -eq 0) -and ($names -notcontains 'Workspace: T3')) (Buttons)
 $rect = New-Object PR+RECT; [void][PR]::GetWindowRect((RingHandle), [ref]$rect)
 # Read the pointer back: with display scaling, this script's coordinates may differ from the 800 it asked for.
 $ptr = New-Object PR+POINT; [void][PR]::GetCursorPos([ref]$ptr)
@@ -193,6 +196,34 @@ Start-Sleep -Milliseconds 500
 Show-Ring
 Rec 'reload: last good ring still active' ((Buttons) -like '*Renamed page*')
 Safe-Key 0x1B
+
+# 5b. Settings window (ring-settings open): live preview beside it, a slider re-renders it, Annuler writes nothing.
+function Find-Named($root, $name) { return $root.FindFirst($T::Descendants, (New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, $name))) }
+function Find-Slider($el, $name) { return $el.FindFirst($T::Descendants, (New-Object System.Windows.Automation.AndCondition((New-Object System.Windows.Automation.PropertyCondition($A::NameProperty, $name)), (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Slider))))) }
+function Width-Of($h) { $rc = New-Object PR+RECT; [void][PR]::GetWindowRect($h, [ref]$rc); return $rc.R - $rc.L }
+$hash = (Get-FileHash $cfg).Hash
+Show-Ring
+(Find-Named $A::FromHandle((RingHandle)) 'Settings').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+$sw2 = [IntPtr]::Zero; $pv = [IntPtr]::Zero
+for ($i = 0; $i -lt 60 -and ($sw2 -eq [IntPtr]::Zero -or $pv -eq [IntPtr]::Zero); $i++) { Start-Sleep -Milliseconds 100; $sw2 = [PR]::FindWindow([NullString]::Value, 'Réglages Power Ring'); $pv = [PR]::FindWindow([NullString]::Value, 'Power Ring aperçu') }
+Start-Sleep -Milliseconds 400
+Rec 'settings: ring-settings open shows the window and the preview' (($sw2 -ne [IntPtr]::Zero) -and ($pv -ne [IntPtr]::Zero) -and [PR]::IsWindowVisible($pv))
+$settingsUi = $A::FromHandle($sw2)
+$w0 = Width-Of $pv
+(Find-Slider $settingsUi 'Échelle').GetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern).SetValue(1.5)
+Start-Sleep -Milliseconds 500
+$w1 = Width-Of $pv
+Rec 'settings: a slider change re-renders the preview' ($w1 -gt $w0 * 1.3) "width $w0 -> $w1"
+if ($SnapshotDir) {
+  New-Item -ItemType Directory $SnapshotDir -Force | Out-Null
+  $a1 = New-Object PR+RECT; $a2 = New-Object PR+RECT; [void][PR]::GetWindowRect($sw2, [ref]$a1); [void][PR]::GetWindowRect($pv, [ref]$a2)
+  $L = [Math]::Min($a1.L, $a2.L); $Tp = [Math]::Min($a1.T, $a2.T); $W = [Math]::Max($a1.R, $a2.R) - $L; $H = [Math]::Max($a1.B, $a2.B) - $Tp
+  $bmp = New-Object System.Drawing.Bitmap $W, $H; $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($L, $Tp, 0, 0, $bmp.Size)
+  $bmp.Save((Join-Path $SnapshotDir 'settings-preview.png')); $g.Dispose(); $bmp.Dispose()
+}
+(Find-Named $settingsUi 'Annuler').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+Start-Sleep -Milliseconds 500
+Rec 'settings: Annuler closes both, ring.json untouched' ([PR]::FindWindow([NullString]::Value, 'Réglages Power Ring') -eq [IntPtr]::Zero -and -not [PR]::IsWindowVisible([PR]::FindWindow([NullString]::Value, 'Power Ring aperçu')) -and (Get-FileHash $cfg).Hash -eq $hash)
 
 # 6. Second start: --profile and --show go to the running instance; --exit closes it.
 Set-Content $cfg (Config 'Test page') -Encoding utf8; Start-Sleep -Milliseconds 1200

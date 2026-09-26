@@ -296,6 +296,53 @@ Test("Store: first start writes ring.json, schema and guide; tray saves and layo
     store.EnsureFiles();
     Check(File.ReadAllText(store.FilePath) == "{ broken", "user file kept");
 }));
+Test("Settings fields: fluent theme, rim sizes, satellite gap, quick buttons, ring-settings open", () =>
+{
+    RingConfig config = RingConfigs.Parse(WithChange(root =>
+    {
+        root["appearance"] = JsonNode.Parse("""{ "theme": "fluent", "workspaceButtonSize": 30, "rimIconSize": 14, "satelliteGap": 2, "workspaceButtons": 3 }""");
+        root["quickButtons"] = JsonNode.Parse("""[ { "label": "ChatGPT", "action": "url", "target": "https://chatgpt.com/" }, { "label": "Réglages", "action": "ring-settings", "target": "open" } ]""");
+    }));
+    Check(config.Appearance.Theme == "fluent" && config.Appearance.WorkspaceButtonSize == 30 && config.Appearance.RimIconSize == 14 && config.Appearance.SatelliteGap == 2);
+    Check(config.QuickButtons!.Count == 2 && RingConfigs.Parse(RingConfigs.Serialize(config)).QuickButtons![0].Label == "ChatGPT", "round trip");
+    Check(RingConfigs.Parse(RingDefaults.Json).QuickButtons is null && !RingConfigs.Serialize(RingConfigs.Parse(RingDefaults.Json)).Contains("satelliteGap"), "absent by default");
+    string Bad(string appearance) => Rejected(() => RingConfigs.Parse(WithChange(r => r["appearance"] = JsonNode.Parse(appearance))));
+    Check(Bad("""{ "theme": "neon" }""").Contains("fluent"));
+    Check(Bad("""{ "workspaceButtonSize": 90 }""").StartsWith("appearance.workspaceButtonSize"));
+    Check(Bad("""{ "workspaceButtonSize": 10 }""").StartsWith("appearance.workspaceButtonSize"));
+    Check(Bad("""{ "rimIconSize": 60 }""").StartsWith("appearance.rimIconSize"));
+    Check(Bad("""{ "satelliteGap": -1 }""").StartsWith("appearance.satelliteGap"));
+    string Quick(string items) => Rejected(() => RingConfigs.Parse(WithChange(r => r["quickButtons"] = JsonNode.Parse(items))));
+    string one = """{ "label": "Q", "action": "text", "target": "q" }""";
+    Check(Quick($"[{one},{one},{one},{one},{one}]").StartsWith("quickButtons:"), "at most 4");
+    Check(Quick("""[ { "label": "G", "items": [ { "label": "x", "action": "screenshot" } ] } ]""").StartsWith("quickButtons[0].items"), "no children");
+    Check(Quick("""[ { "label": "G", "action": "group" } ]""").StartsWith("quickButtons[0].action"), "no group");
+    Check(Quick("""[ { "label": "U", "action": "url", "target": "nope" } ]""").StartsWith("quickButtons[0].target"), "targets validated");
+    RingConfigs.Parse(One("""{ "label": "S", "action": "ring-settings", "target": "open" }"""));
+});
+Test("satelliteGap moves circle 2 only; null keeps today's layout", () =>
+{
+    var items = new List<RingItem> { new() { Label = "P", Action = "screenshot", Items = [new() { Label = "c", Action = "screenshot" }] }, new() { Label = "Q", Action = "screenshot" } };
+    var a = new RingAppearance();
+    RingLayout.Result before = RingLayout.Compute(items, a);
+    a.SatelliteGap = a.Spacing * 0.7;
+    RingLayout.Result same = RingLayout.Compute(items, a);
+    Check(Math.Abs(before.Radii[1] - same.Radii[1]) < 1e-9 && Math.Abs(before.DiscSize - same.DiscSize) < 1e-9, "default = 0.7 × spacing");
+    a.SatelliteGap = 0;
+    RingLayout.Result closer = RingLayout.Compute(items, a);
+    Check(closer.Radii[0] == before.Radii[0] && closer.Radii[1] < before.Radii[1], $"circle 2 closer: {closer.Radii[1]} < {before.Radii[1]}");
+});
+Test("AI tutorial ships next to ring.json and documents the new fields", () => Temp(dir =>
+{
+    var store = new RingConfigStore(Path.Combine(dir, "ring.json"));
+    store.EnsureFiles();
+    string tutorial = File.ReadAllText(Path.Combine(dir, RingConfigStore.TutorialFileName));
+    Check(new[] { "quickButtons", "satelliteGap", "workspaceButtonSize", "rimIconSize", "fluent" }.All(tutorial.Contains), "tutorial fields");
+    string guide = RingConfigStore.Resource(RingConfigStore.GuideFileName);
+    Check(new[] { "quickButtons", "satelliteGap", "fluent", "Réglages" }.All(guide.Contains), "guide fields");
+    var schema = JsonNode.Parse(RingConfigStore.Resource(RingConfigStore.SchemaFileName))!;
+    Check(schema["properties"]!["quickButtons"] is not null, "schema quickButtons");
+}));
 
 int failures = 0;
 foreach (var (name, test) in tests)
