@@ -124,9 +124,12 @@ Rec 'idle: no CPU' ($cpu -lt 30) "$([Math]::Round($cpu,1)) ms in 5 s"
 $t0 = [Diagnostics.Stopwatch]::StartNew(); Show-Ring; $first = $t0.ElapsedMilliseconds
 Rec 'hotkey: ring shows, focused' ([PR]::Pid([PR]::GetForegroundWindow()) -eq $p.Id) "$first ms incl. wait"
 $names = (Buttons) -split '\|'
-Rec 'first circle: buttons, children behind them, centre, workspace switchers' ((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T3', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) (Buttons)
+# The board (T3) is reached through the centre, so it has no small workspace button of its own (centerClick = board).
+Rec 'first circle: buttons, children behind them, centre, workspace switchers' (((@('Test page', 'Sub ›', 'Shot', 'Copy text', 'Deep ›', 'Leaf', 'T1', 'Workspace: T2') | Where-Object { $names -notcontains $_ }).Count -eq 0) -and ($names -notcontains 'Workspace: T3')) (Buttons)
 $rect = New-Object PR+RECT; [void][PR]::GetWindowRect((RingHandle), [ref]$rect)
-Rec 'placement: horizontally centred on the pointer' ([Math]::Abs(($rect.L + $rect.R) / 2 - 800) -le 3) "window $($rect.L)..$($rect.R)"
+# Read the pointer back: with display scaling, this script's coordinates may differ from the 800 it asked for.
+$ptr = New-Object PR+POINT; [void][PR]::GetCursorPos([ref]$ptr)
+Rec 'placement: horizontally centred on the pointer' ([Math]::Abs(($rect.L + $rect.R) / 2 - $ptr.X) -le 3) "window $($rect.L)..$($rect.R), pointer $($ptr.X)"
 
 # 2. Levels 2 and 3, then back.
 Safe-Key 0x32
