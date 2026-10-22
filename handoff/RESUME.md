@@ -14,7 +14,7 @@
 
 ## Left / next
 
-- Physical checks for Julian (one line each in `C:\Users\julia\.claude\effort-board\manual-checks.md`): mixed-DPI monitors (only two 144-dpi monitors were connected), MX Master / Logi Options+ acceptance.
+- Physical checks for Julian (one line each in the owner's effort-board `manual-checks.md`): mixed-DPI monitors (only two 144-dpi monitors were connected), MX Master / Logi Options+ acceptance.
 - Not in scope: email/OTP codes (planned slice 2), embedded Mongoku report cards against a live Mongoku (optional; `report-cards`, `report-auth`, `maintenance-card`, `web-embedded` suites need it running).
 - Known cosmetic gap: some code-built V2 panels (Quick Capture, Quick Shelf/Ring windows, report cards, File tray rows) still use fixed light colours in dark mode.
 - Next version: bump `<Version>` in `Directory.Build.props`; never reuse 2.0.0.
