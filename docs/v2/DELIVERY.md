@@ -718,6 +718,8 @@ User feedback that drove V2.4: the gestures are more useful as Windows commands 
 
 The physical MX Master 4 checks (Sense Panel click/moves with the new ring, C7-C11, D1-D3) are left for the user at the end of the next pass. Screen reader, mixed-DPI capture on the second monitor and the Options+ Windows-gesture mapping were not exercised.
 
+> **2026-10-22:** Power Ring was extracted to its own repository (`powertoy-ring`, 2.0.0) and removed from this repository. The Power Ring sections below are history; their files are no longer here.
+
 ## Power Ring 1.0: the separate light ring (2026-09-25)
 
 Direction from the user after the MX session: code the ring first, as a light app of its own with a PowerToys-like look, fully set in JSON (structure, sizes, colours, icons) so it can be edited by hand or by an AI. The big Power Ops app is frozen for now and is opened from the ring.
@@ -783,3 +785,7 @@ From the user's notes after trying V1:
 - The user's layouts (personal files) regenerated: V1 home lightened (VS Code, text editor, ChatGPT, Gmail, Explorer, capture, portfolio) with a new "Outils & news" workspace (Power Ops + DataGrip/PyCharm/Tabular Editor, formations, Edge perso/pro + Opera, BBC/CNN/NRK); circle 2 larger on V1 (37); the capture row and night mode applied to V1, V2 and V3.
 
 Evidence: `build.ps1` PASS (smoke, 111/111, Power Ring **19/19**, with the new night-mode validation test). Offscreen snapshots of the six V1 workspaces checked. `tests/native/power-ring.ps1`: every behaviour check passed in the first run, but "idle: no CPU" read 281 ms / 5 s (then 94 ms) while the user was using the PC (clipboard activity reaches the listener of the test's clipboard table), and the second run was interrupted by focus changes; to re-run on an idle desktop.
+
+## V2 release 2.0.0 (2026-10-22)
+
+V2 stack (#2 + #4) merged to `main` through PR #23 with current main, Power Ring removed, five native defects fixed, version frozen at 2.0.0, rollback installer. Native acceptance, package lifecycle and release receipt: [docs/evidence/2026-10-22/RECEIPT.md](../evidence/2026-10-22/RECEIPT.md).

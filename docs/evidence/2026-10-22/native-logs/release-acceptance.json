@@ -1,0 +1,146 @@
+{
+  "exe": "<repo>\\src\\JUtility.App\\bin\\Release\\net8.0-windows10.0.19041.0\\JUtilityPalette.exe",
+  "exeSha256": "0D2C02FA84DD03AB656DEB7C2B698C45A9D29BCC683A18738F6904E72E196D3C",
+  "checks": {
+    "startup: main window shown for the isolated data dir": {
+      "result": "PASS",
+      "detail": "J Utility Palette · Power Ops — powerops-release-test-51961dee"
+    },
+    "focus: new window owns the foreground at startup": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "storage: shell-workspaces.json written in the data dir": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Repository Hub: + Project adds a row": {
+      "result": "PASS",
+      "detail": "rows 2 -> 3"
+    },
+    "Repository Hub: search filters and clears": {
+      "result": "PASS",
+      "detail": "no-match=0 cleared=3"
+    },
+    "Portal Launcher: + Portal selects the new entry for editing": {
+      "result": "PASS",
+      "detail": "Synthetic portal powerops-release-401c9b8407"
+    },
+    "Capture: + Capture adds an entry": {
+      "result": "PASS",
+      "detail": "entries 1 -> 2"
+    },
+    "Clipboard: Copy now puts the snippet text on the clipboard": {
+      "result": "PASS",
+      "detail": "clipboard=powerops-release-401c9b8407"
+    },
+    "storage: capture, portal and snippet saved to workspace.json": {
+      "result": "PASS",
+      "detail": "file=20533 bytes"
+    },
+    "Launchpad: saved portal listed as a destination": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Quick actions: ribbon present": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "File tray: page opens from navigation": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Claude sessions: module reachable from V2 navigation": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Claude sessions: page shown": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Tabs: new / close / reopen saved": {
+      "result": "PASS",
+      "detail": "1 -> 3 -> 2 -> 3"
+    },
+    "Tabs: modules remembered per tab": {
+      "result": "PASS",
+      "detail": "sessions,capture,portals"
+    },
+    "Saved view: dialog opens": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "focus: closing a dialog returns the foreground to the main window": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Saved view: bookmark stored": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Workspaces: selector items are announced by name": {
+      "result": "PASS",
+      "detail": "General, Datapass, Foil, Knowledge, Device & settings"
+    },
+    "Workspaces: switching to Knowledge saved": {
+      "result": "PASS",
+      "detail": "Knowledge"
+    },
+    "focus: Ctrl+K moves keyboard focus to module search": {
+      "result": "PASS",
+      "detail": "Search current module"
+    },
+    "DPI: window is per-monitor aware (V2)": {
+      "result": "PASS",
+      "detail": "PerMonitorV2"
+    },
+    "DPI: window DPI follows each monitor, layout stays inside": {
+      "result": "PASS",
+      "detail": "mon 144dpi -> win 144dpi, 2220px, nav inside=True; mon 144dpi -> win 144dpi, 2220px, nav inside=True"
+    },
+    "theme: light chrome is light": {
+      "result": "PASS",
+      "detail": "luma=252"
+    },
+    "exit: run 1 closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "reopen: Knowledge workspace restored": {
+      "result": "PASS",
+      "detail": "Knowledge"
+    },
+    "reopen: General tabs restored (count and modules)": {
+      "result": "PASS",
+      "detail": "tabs=3 modules=sessions,capture,portals"
+    },
+    "reopen: capture still there": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "theme: dark chrome is dark": {
+      "result": "PASS",
+      "detail": "luma=35"
+    },
+    "exit: run 2 closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "idle: minimized with the real Claude home costs < 100 ms CPU in 20 s": {
+      "result": "PASS",
+      "detail": "0 ms"
+    },
+    "idle: restored window rescans sessions (badge/list live again)": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "exit: run 3 closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "isolation: default data folder untouched": {
+      "result": "PASS",
+      "detail": ""
+    }
+  }
+}

@@ -6,6 +6,18 @@ This repository is intentionally standalone. It is **not** a fork of Microsoft P
 
 > Current development direction: [Power Ops suite](docs/POWER_OPS_SUITE.md). The preserved September 11 handover remains available in [handover/README.md](handover/README.md), but its original compile blocker has now been fixed on the active Power Ops branch.
 
+## Install (2.0.0)
+
+Download `PowerOps-2.0.0-win-x64.zip` from the private draft release, check it against `PowerOps-2.0.0-win-x64.zip.sha256`, extract it and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1            # installs to %LOCALAPPDATA%\Programs\PowerOps
+%LOCALAPPDATA%\Programs\PowerOps\PowerOps.cmd                       # start (accepts --data-dir <folder>)
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Rollback  # back to the previously installed version
+```
+
+Every version keeps its own folder; user data (`%LOCALAPPDATA%\JUtilityPalette` or your `--data-dir`) is never touched by install, rollback or uninstall (delete the install folder). Build a package yourself with `.\scripts\publish.ps1`. Release evidence: [docs/evidence/2026-10-22](docs/evidence/2026-10-22/). Power Ring, the separate radial launcher, now lives in its own repository (`powertoy-ring`).
+
 ## Power Ops modules
 
 ### Dashboard

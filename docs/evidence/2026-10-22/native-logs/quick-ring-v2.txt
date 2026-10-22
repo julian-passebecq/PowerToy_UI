@@ -1,0 +1,14 @@
+ring: sub-ring slot is marked                  PASS  (Open Power Ops|Screenshot (whole screen)|Test apps >|Resume workspace)
+digit 2: sub-ring opens in the same window     PASS  (Power Ops Quick Ring - Test apps >)
+sub-ring: its actions, centre = back           PASS  (Back to the first ring|Sub-ring test page|Clipboard library)
+Esc in sub-ring: back to the first ring        PASS  (Power Ops Quick Ring)
+Esc on first ring: hidden                      PASS
+sub-ring digit 1: ring hidden, action ran      PASS  (requests=2)
+group shortcut: ring opens on the sub-ring     PASS  (Power Ops Quick Ring - Test apps >)
+whole screen: image on the clipboard           PASS
+whole screen: confirmation shown               PASS
+mouse Back/Forward: previous / next tab        PASS  (tabs 1 > 0 > 1)
+Esc: Power Ops minimized                       PASS
+exit: clean                                    PASS
+data root: %TEMP%\powerops-ring2-test-b9213f5f
+Quick Ring v2 native checks: PASS

@@ -1,0 +1,9 @@
+release-acceptance exit=0 secs=91
+interaction exit=0 secs=13
+quick-actions-hotkeys exit=0 secs=25
+quick-shelf exit=0 secs=28
+quick-ring exit=0 secs=35
+quick-ring-v2 exit=0 secs=30
+web-apps exit=0 secs=15
+claude-control exit=0 secs=46
+file-tray exit=0 secs=158

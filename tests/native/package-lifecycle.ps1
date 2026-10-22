@@ -41,7 +41,8 @@ function Invoke-El($e) { $e.GetCurrentPattern([System.Windows.Automation.InvokeP
 # Starts the CURRENT version through the installed PowerOps.cmd launcher and returns the process it started.
 function Start-Installed {
   $known = @(Get-Process JUtilityPalette -ErrorAction SilentlyContinue | ForEach-Object Id)
-  Start-Process cmd.exe -ArgumentList '/c', "`"$(Join-Path $installRoot 'PowerOps.cmd')`" --data-dir `"$dataDir`"" -WindowStyle Hidden
+  # cmd /c strips the outer quote pair when the line starts with a quote: wrap the whole command once more.
+  Start-Process cmd.exe -ArgumentList "/c `"`"$(Join-Path $installRoot 'PowerOps.cmd')`" --data-dir `"$dataDir`"`"" -WindowStyle Hidden
   $p = $null
   for ($i = 0; $i -lt 80 -and -not $p; $i++) { Start-Sleep -Milliseconds 250; $p = Get-Process JUtilityPalette -ErrorAction SilentlyContinue | Where-Object { $known -notcontains $_.Id -and $_.Path -like "$installRoot*" } | Select-Object -First 1 }
   if (-not $p) { throw 'installed Power Ops did not start' }

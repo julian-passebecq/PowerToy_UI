@@ -1,0 +1,96 @@
+{
+  "newPackage": "PowerOps-2.0.0-win-x64.zip",
+  "newSha256": "5E613DFE9AF216F66881BBADD565645C4CEED4AA29F931C1633F8A4C8CABD3E7",
+  "oldPackage": "PowerOps-1.0.0-prefix-win-x64.zip",
+  "oldSha256": "621CC81086B6FCB1B24AB679CDA8E71EA4563FF86C90AA82FE0FBD920CFB696A",
+  "checks": {
+    "packages: two distinct versions": {
+      "result": "PASS",
+      "detail": "old=1.0.0 new=2.0.0"
+    },
+    "install 1.0.0: current": {
+      "result": "PASS",
+      "detail": "Installed 1.0.0 in %TEMP%\\powerops-install-test-fd4d7376\\versions\\1.0.0 | Current: 1.0.0   Previous:  | Start: \"%TEMP%\\powerops-install-test-fd4d7376\\PowerOps.cmd\"   (user data stays in %LOCALAPPDATA%\\JUtilityPalette or your --data-dir)"
+    },
+    "run 1.0.0: started from the install folder": {
+      "result": "PASS",
+      "detail": "%TEMP%\\powerops-install-test-fd4d7376\\versions\\1.0.0\\JUtilityPalette.exe"
+    },
+    "run 1.0.0: closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "install 2.0.0: current, previous kept": {
+      "result": "PASS",
+      "detail": "Installed 2.0.0 in %TEMP%\\powerops-install-test-fd4d7376\\versions\\2.0.0 | Current: 2.0.0   Previous: 1.0.0 | Start: \"%TEMP%\\powerops-install-test-fd4d7376\\PowerOps.cmd\"   (user data stays in %LOCALAPPDATA%\\JUtilityPalette or your --data-dir)"
+    },
+    "install 2.0.0: user storage byte-identical": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "install 2.0.0: previous version folder unchanged": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "install 2.0.0: installed files equal the package": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "reopen 2.0.0: started from its version folder": {
+      "result": "PASS",
+      "detail": "%TEMP%\\powerops-install-test-fd4d7376\\versions\\2.0.0\\JUtilityPalette.exe"
+    },
+    "reopen 2.0.0: capture made by 1.0.0 is there": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "rollback while running: refused, nothing changed": {
+      "result": "PASS",
+      "detail": "Power Ops from %TEMP%\\powerops-install-test-fd4d7376 is running (pid 62288). Close it  | first; nothing changed. | At %TEMP%\\powerops-lifecycle-scratch-fd4d7376\\install.ps1:43 char:31 | + ... nt -gt 0) { throw \"Power Ops from $InstallRoot is running (pid $($run ... | +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |     + CategoryInfo          : OperationStopped: (Power Ops from ...othing changed.:String) [], RuntimeException |     + FullyQualifiedErrorId : Power Ops from %TEMP%\\powerops-install-test-fd4d7376 is runni  |    ng (pid 62288). Close it first; nothing changed. |  "
+    },
+    "reopen 2.0.0: closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "immutability: same version with other bytes refused": {
+      "result": "PASS",
+      "detail": "Version 2.0.0 is already installed with different files. Versions are immutable: build a new version number. Nothing  | changed. | At %TEMP%\\powerops-lifecycle-scratch-fd4d7376\\install.ps1:87 char:56 | + ... $Source)) { throw \"Version $version is already installed with differe ... | +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |     + CategoryInfo          : OperationStopped: (Version 2.0.0 i...othing changed.:String) [], RuntimeException |     + FullyQualifiedErrorId : Version 2.0.0 is already installed with different files. Versions are immutable: build a  |     new version number. Nothing changed. |  "
+    },
+    "idempotent: identical re-install changes nothing": {
+      "result": "PASS",
+      "detail": "Version 2.0.0 already installed (identical files). | Current: 2.0.0   Previous: 1.0.0 | Start: \"%TEMP%\\powerops-install-test-fd4d7376\\PowerOps.cmd\"   (user data stays in %LOCALAPPDATA%\\JUtilityPalette or your --data-dir)"
+    },
+    "rollback: 2.0.0 -> 1.0.0": {
+      "result": "PASS",
+      "detail": "Rolled back: 2.0.0 -> 1.0.0 (user data untouched)"
+    },
+    "rollback: user storage byte-identical": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "reopen after rollback: 1.0.0 running": {
+      "result": "PASS",
+      "detail": "%TEMP%\\powerops-install-test-fd4d7376\\versions\\1.0.0\\JUtilityPalette.exe"
+    },
+    "reopen after rollback: capture still there": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "reopen after rollback: closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "uninstall: user storage byte-identical": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "isolation: default data folder untouched": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "isolation: real install folder untouched": {
+      "result": "PASS",
+      "detail": "absent"
+    }
+  }
+}

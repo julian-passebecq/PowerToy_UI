@@ -1,0 +1,24 @@
+packages: two distinct versions                                PASS  (old=1.0.0 new=2.0.0)
+install 1.0.0: current                                         PASS  (Installed 1.0.0 in %TEMP%\powerops-install-test-fd4d7376\versions\1.0.0 | Current: 1.0.0   Previous:  | Start: "%TEMP%\powerops-install-test-fd4d7376\PowerOps.cmd"   (user data stays in %LOCALAPPDATA%\JUtilityPalette or your --data-dir))
+run 1.0.0: started from the install folder                     PASS  (%TEMP%\powerops-install-test-fd4d7376\versions\1.0.0\JUtilityPalette.exe)
+run 1.0.0: closed cleanly                                      PASS
+install 2.0.0: current, previous kept                          PASS  (Installed 2.0.0 in %TEMP%\powerops-install-test-fd4d7376\versions\2.0.0 | Current: 2.0.0   Previous: 1.0.0 | Start: "%TEMP%\powerops-install-test-fd4d7376\PowerOps.cmd"   (user data stays in %LOCALAPPDATA%\JUtilityPalette or your --data-dir))
+install 2.0.0: user storage byte-identical                     PASS
+install 2.0.0: previous version folder unchanged               PASS
+install 2.0.0: installed files equal the package               PASS
+reopen 2.0.0: started from its version folder                  PASS  (%TEMP%\powerops-install-test-fd4d7376\versions\2.0.0\JUtilityPalette.exe)
+reopen 2.0.0: capture made by 1.0.0 is there                   PASS
+rollback while running: refused, nothing changed               PASS  (Power Ops from %TEMP%\powerops-install-test-fd4d7376 is running (pid 62288). Close it  | first; nothing changed. | At %TEMP%\powerops-lifecycle-scratch-fd4d7376\install.ps1:43 char:31 | + ... nt -gt 0) { throw "Power Ops from $InstallRoot is running (pid $($run ... | +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |     + CategoryInfo          : OperationStopped: (Power Ops from ...othing changed.:String) [], RuntimeException |     + FullyQualifiedErrorId : Power Ops from %TEMP%\powerops-install-test-fd4d7376 is runni  |    ng (pid 62288). Close it first; nothing changed. |  )
+reopen 2.0.0: closed cleanly                                   PASS
+immutability: same version with other bytes refused            PASS  (Version 2.0.0 is already installed with different files. Versions are immutable: build a new version number. Nothing  | changed. | At %TEMP%\powerops-lifecycle-scratch-fd4d7376\install.ps1:87 char:56 | + ... $Source)) { throw "Version $version is already installed with differe ... | +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ |     + CategoryInfo          : OperationStopped: (Version 2.0.0 i...othing changed.:String) [], RuntimeException |     + FullyQualifiedErrorId : Version 2.0.0 is already installed with different files. Versions are immutable: build a  |     new version number. Nothing changed. |  )
+idempotent: identical re-install changes nothing               PASS  (Version 2.0.0 already installed (identical files). | Current: 2.0.0   Previous: 1.0.0 | Start: "%TEMP%\powerops-install-test-fd4d7376\PowerOps.cmd"   (user data stays in %LOCALAPPDATA%\JUtilityPalette or your --data-dir))
+rollback: 2.0.0 -> 1.0.0                                       PASS  (Rolled back: 2.0.0 -> 1.0.0 (user data untouched))
+rollback: user storage byte-identical                          PASS
+reopen after rollback: 1.0.0 running                           PASS  (%TEMP%\powerops-install-test-fd4d7376\versions\1.0.0\JUtilityPalette.exe)
+reopen after rollback: capture still there                     PASS
+reopen after rollback: closed cleanly                          PASS
+uninstall: user storage byte-identical                         PASS
+isolation: default data folder untouched                       PASS
+isolation: real install folder untouched                       PASS  (absent)
+data dir: %TEMP%\powerops-lifecycle-data-fd4d7376
+Package lifecycle checks: PASS

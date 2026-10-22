@@ -16,7 +16,7 @@ No new polling services, subprocess inventory probes, external writes, automatic
 
 ## Verification
 
-Run `.\scripts\build.ps1` (full Release solution, existing smoke suite, new package-free workspace tests). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture.
+Run `.\scripts\build.ps1` (full Release solution, smoke suite, package-free workspace tests). Native release gate: `tests/native/release-acceptance.ps1` plus the feature suites, and `tests/native/package-lifecycle.ps1` for a package (see `handoff/RESUME.md`). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture.
 
 Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer control is unavailable, use user-assisted steps and identify who observed each result.
 

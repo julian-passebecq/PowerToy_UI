@@ -1,5 +1,7 @@
 # Current status
 
+> **2026-10-22 - Power Ops 2.0.0 (V2) released as a private draft GitHub release from `main` (PR #23).** Current checkpoint: `handoff/RESUME.md`; evidence: `docs/evidence/2026-10-22/RECEIPT.md`. The tables below are the September history.
+
 Updated: 2026-09-21
 
 ## Active Power Ops checkpoint

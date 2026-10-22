@@ -1,0 +1,19 @@
+machine: Ctrl+Alt+Space free=False; expected bindings: ring.show=Ctrl+Alt+Shift+Q, app.toggle=Ctrl+Alt+Shift+P, capture.quick=Ctrl+Alt+Shift+N, clipboard.open=Ctrl+Alt+Shift+V
+dialog: opens from Actions menu                    PASS
+modes: five choices, Off selected by default       PASS  (Off)
+Hybrid: MX Master guide expanded                   PASS  (Expanded)
+recommend: report shown before saving              PASS  (Quick Ring: added Ctrl+Alt+Shift+Q. | Show / hide Power Ops: its shortcut is already used by another program, so it now uses Ctrl+Alt+Shift+P. | Quick Capture: added Ctrl+Alt+Shift+N. | Clipboard library: added Ctrl+Alt+Shift+V. | Saved when you press Save.)
+guide: Quick Ring step offers the chosen shortcut  PASS  (Copy Ctrl+Alt+Shift+Q)
+guide: Back/Forward in-app steps                   PASS
+nothing registered before Save                     PASS
+save: no registration warning                      PASS
+saved: Hybrid mode, shortcuts enabled              PASS
+saved: bindings are the first free suggestions     PASS  (clipboard.open=Ctrl+Alt+Shift+V, ring.show=Ctrl+Alt+Shift+Q, capture.quick=Ctrl+Alt+Shift+N, app.toggle=Ctrl+Alt+Shift+P)
+saved: unusable Ctrl+Alt+Space not kept            PASS
+registered: all four owned by Power Ops            PASS
+ring shortcut: shows the ring                      PASS
+ring shortcut again: hides it                      PASS
+exit: clean                                        PASS
+exit: shortcuts released                           PASS
+data root: %TEMP%\powerops-interaction-test-e4205bbc
+Interaction native checks: PASS
