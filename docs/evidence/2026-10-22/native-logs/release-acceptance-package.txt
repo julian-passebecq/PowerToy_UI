@@ -1,0 +1,37 @@
+startup: main window shown for the isolated data dir               PASS  (J Utility Palette ú Power Ops - powerops-release-test-484dbf9f)
+focus: new window owns the foreground at startup                   PASS
+storage: shell-workspaces.json written in the data dir             PASS
+Repository Hub: + Project adds a row                               PASS  (rows 2 -> 3)
+Repository Hub: search filters and clears                          PASS  (no-match=0 cleared=3)
+Portal Launcher: + Portal selects the new entry for editing        PASS  (Synthetic portal powerops-release-dab32cf57c)
+Capture: + Capture adds an entry                                   PASS  (entries 1 -> 2)
+Clipboard: Copy now puts the snippet text on the clipboard         PASS  (clipboard=powerops-release-dab32cf57c)
+storage: capture, portal and snippet saved to workspace.json       PASS  (file=20534 bytes)
+Launchpad: saved portal listed as a destination                    PASS
+Quick actions: ribbon present                                      PASS
+File tray: page opens from navigation                              PASS
+Claude sessions: module reachable from V2 navigation               PASS
+Claude sessions: page shown                                        PASS
+Tabs: new / close / reopen saved                                   PASS  (1 -> 3 -> 2 -> 3)
+Tabs: modules remembered per tab                                   PASS  (sessions,capture,portals)
+Saved view: dialog opens                                           PASS
+focus: closing a dialog returns the foreground to the main window  PASS
+Saved view: bookmark stored                                        PASS
+Workspaces: selector items are announced by name                   PASS  (General, Datapass, Foil, Knowledge, Device & settings)
+Workspaces: switching to Knowledge saved                           PASS  (Knowledge)
+focus: Ctrl+K moves keyboard focus to module search                PASS  (Search current module)
+DPI: window is per-monitor aware (V2)                              PASS  (PerMonitorV2)
+DPI: window DPI follows each monitor, layout stays inside          PASS  (mon 144dpi -> win 144dpi, 2220px, nav inside=True; mon 144dpi -> win 144dpi, 2220px, nav inside=True)
+theme: light chrome is light                                       PASS  (luma=252)
+exit: run 1 closed cleanly                                         PASS
+reopen: Knowledge workspace restored                               PASS  (Knowledge)
+reopen: General tabs restored (count and modules)                  PASS  (tabs=3 modules=sessions,capture,portals)
+reopen: capture still there                                        PASS
+theme: dark chrome is dark                                         PASS  (luma=35)
+exit: run 2 closed cleanly                                         PASS
+idle: minimized with the real Claude home costs < 100 ms CPU in 20 s PASS  (31 ms)
+idle: restored window rescans sessions (badge/list live again)     PASS
+exit: run 3 closed cleanly                                         PASS
+isolation: default data folder untouched                           PASS
+data root: %TEMP%\powerops-release-test-484dbf9f
+Release acceptance native checks: PASS

@@ -1,0 +1,39 @@
+lazy: no OCR/PDF/WinRT components at startup            PASS
+open: existing file listed by the first scan            PASS  (old-note.txt in 1606 ms)
+drop: four new files appear, newest first               PASS  (brief.docx, receipt.png, scan.pdf, invoice.pdf, old-note.txt)
+partial download (.crdownload) not listed               PASS
+partial download listed once renamed                    PASS  (big.pdf, brief.docx, receipt.png, scan.pdf, invoice.pdf, old-note.txt)
+file still being written is not listed                  PASS
+listed once the writer closes it                        PASS
+bounded to N=6: oldest dropped                          PASS  (voice.txt, big.pdf, brief.docx, receipt.png, scan.pdf, invoice.pdf)
+Copy as file: CF_HDROP holds the file                   PASS  (%TEMP%\powerops-tray-test-7ddf71fb\inbox\invoice.pdf)
+Copy as file: Preferred DropEffect = Copy               PASS  (1)
+Copy text (PDF text layer)                              PASS  (665 ms; Copied 63 characters from invoice.pdf (PDF text). | Copied 63 characters from invoice.pdf (PDF text).)
+PDF text did not need Windows OCR                       PASS
+Copy text (Word)                                        PASS  (479 ms)
+Copy text (image, Windows OCR)                          PASS  (376 ms; clipboard: RECEIPT NUMBER 5519)
+Windows OCR loaded only after use                       PASS
+Copy text (scanned PDF, OCR fallback)                   PASS  (636 ms; Copied 21 characters from scan.pdf (Windows OCR, scanned PDF). | Copied 21 characters from scan.pdf (Windows OCR, scanned PDF).)
+Copy as image (PDF page 1): PNG + bitmap                PASS  (559 ms; Copied page 1 of invoice.pdf as an image (1800x2329). Press Ctrl+V in the chat. | Copied page 1 of invoice.pdf as an image (1800x2329). Press Ctrl+V in the chat.)
+global shortcut: copy last received file                PASS  (%TEMP%\powerops-tray-test-7ddf71fb\inbox\voice.txt)
+Remove: gone from the tray, file kept                   PASS
+Shelf: File tray flyout shown                           PASS
+Shelf: flyout did not take focus                        PASS
+flyout: same list                                       PASS  (voice.txt, brief.docx, receipt.png, scan.pdf, invoice.pdf)
+flyout: Copy as file                                    PASS
+flyout: closes                                          PASS
+Prompt Builder: {{file}} and {{file_text}} filled       PASS  (Summarize brief.docx: Quarterly brief for Foil)
+Sidebar: tray section with the newest files             PASS  (voice.txt, brief.docx, receipt.png, scan.pdf, invoice.pdf)
+no file names or contents in any data file              PASS
+exit 1: clean                                           PASS
+restart: still lazy                                     PASS
+move: dialog shows the remembered folder                PASS  (CloudArchi)
+move: file moved, nothing overwritten                   PASS
+move: stays in the tray at its new place                PASS
+exit 2: clean                                           PASS
+settings file holds settings only                       PASS
+idle, tray never opened (30 s)                          CPU 1812 ms, handles 750 -> 756, working set 231.2 MB, private 215.6 MB
+idle, tray open and watching 6 files, no OCR yet (30 s) CPU 1438 ms, handles 880 -> 869, working set 258 MB, private 235.3 MB
+idle, tray open and watching, after OCR (30 s)          CPU 641 ms, handles 1142 -> 1133, working set 333.7 MB, private 365.1 MB
+data root: %TEMP%\powerops-tray-test-7ddf71fb
+File tray native checks: PASS

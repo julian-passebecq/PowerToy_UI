@@ -52,6 +52,14 @@ public sealed class AppPreferences
     public WindowPlacementState ExpandedPlacement { get; set; } = new();
 }
 
+public sealed class ExplorerFolderEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
+    public bool IsPinned { get; set; } = true;
+}
+
 public sealed class ProjectEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -245,7 +253,7 @@ public sealed class StickyNoteEntry
 
 public sealed class WorkspaceState
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public AppPreferences Preferences { get; set; } = new();
@@ -253,6 +261,7 @@ public sealed class WorkspaceState
     public List<RepositoryListEntry> RepositoryLists { get; set; } = [];
     public List<PortalEntry> Portals { get; set; } = [];
     public List<ToolLauncherEntry> Tools { get; set; } = [];
+    public List<ExplorerFolderEntry> ExplorerFolders { get; set; } = [];
     public List<WorkspaceResourceEntry> Resources { get; set; } = [];
     public List<ClipboardSnippetEntry> ClipboardSnippets { get; set; } = [];
     public List<ClipboardMediaEntry> ClipboardMedia { get; set; } = [];

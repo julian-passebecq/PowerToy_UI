@@ -13,3 +13,6 @@ exports/
 # OS
 Thumbs.db
 .DS_Store
+
+# Packages built by scripts/publish.ps1
+artifacts/

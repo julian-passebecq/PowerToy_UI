@@ -6,6 +6,18 @@ This repository is intentionally standalone. It is **not** a fork of Microsoft P
 
 > Current development direction: [Power Ops suite](docs/POWER_OPS_SUITE.md). The preserved September 11 handover remains available in [handover/README.md](handover/README.md), but its original compile blocker has now been fixed on the active Power Ops branch.
 
+## Install (2.0.0)
+
+Download `PowerOps-2.0.0-win-x64.zip` from the private draft release, check it against `PowerOps-2.0.0-win-x64.zip.sha256`, extract it and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1            # installs to %LOCALAPPDATA%\Programs\PowerOps
+%LOCALAPPDATA%\Programs\PowerOps\PowerOps.cmd                       # start (accepts --data-dir <folder>)
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Rollback  # back to the previously installed version
+```
+
+Every version keeps its own folder; user data (`%LOCALAPPDATA%\JUtilityPalette` or your `--data-dir`) is never touched by install, rollback or uninstall (delete the install folder). Build a package yourself with `.\scripts\publish.ps1`. Release evidence: [docs/evidence/2026-10-22](docs/evidence/2026-10-22/). Power Ring, the separate radial launcher, now lives in its own repository (`powertoy-ring`).
+
 ## Power Ops modules
 
 ### Dashboard
@@ -108,6 +120,8 @@ Window behavior can be Normal, Always on top, or Summon / hide. Summon bindings 
 ### Keyboard access
 
 The full shell supports `Ctrl+K` to focus the current-module search when that search surface is visible. `Escape` clears a focused non-empty shell search. Modified chords such as `Ctrl+Shift+K` are not intercepted.
+
+Settings lets you pin folders for Windows File Explorer. `Ctrl+Shift+E` opens the first pinned folder, or File Explorer Home when none is pinned. These shell shortcuts leave text-editing controls alone. Power Ops does not currently expose user-managed tabs; if that feature is added, it should use the standard browser tab shortcuts (`Ctrl+T`, `Ctrl+W`, `Ctrl+Shift+T`, `Ctrl+Tab`, `Ctrl+Shift+Tab`, and `Ctrl+1`…`Ctrl+9`).
 
 Focused list behavior is intentionally consistent:
 

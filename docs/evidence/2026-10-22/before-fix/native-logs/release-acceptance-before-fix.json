@@ -1,0 +1,118 @@
+{
+  "exe": "<repo>-before\\src\\JUtility.App\\bin\\Release\\net8.0-windows10.0.19041.0\\JUtilityPalette.exe",
+  "exeSha256": "50829F9EB4FA8F387FCFDF7B3B3FCBBA23273F3C1E4456EBF4CC1B09BBEA25C7",
+  "checks": {
+    "startup: main window shown for the isolated data dir": {
+      "result": "PASS",
+      "detail": "J Utility Palette · Power Ops — powerops-release-test-3982f700"
+    },
+    "focus: new window owns the foreground at startup": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "storage: shell-workspaces.json written in the data dir": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Repository Hub: + Project adds a row": {
+      "result": "PASS",
+      "detail": "rows 2 -> 3"
+    },
+    "Repository Hub: search filters and clears": {
+      "result": "PASS",
+      "detail": "no-match=0 cleared=3"
+    },
+    "Portal Launcher: + Portal selects the new entry for editing": {
+      "result": "PASS",
+      "detail": "Synthetic portal powerops-release-3356d81a0e"
+    },
+    "Capture: + Capture adds an entry": {
+      "result": "PASS",
+      "detail": "entries 1 -> 2"
+    },
+    "Clipboard: Copy now puts the snippet text on the clipboard": {
+      "result": "PASS",
+      "detail": "clipboard=powerops-release-3356d81a0e"
+    },
+    "storage: capture, portal and snippet saved to workspace.json": {
+      "result": "PASS",
+      "detail": "file=20535 bytes"
+    },
+    "Launchpad: saved portal listed as a destination": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Quick actions: ribbon present": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "File tray: page opens from navigation": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Claude sessions: module reachable from V2 navigation": {
+      "result": "FAIL",
+      "detail": ""
+    },
+    "Tabs: new / close / reopen saved": {
+      "result": "PASS",
+      "detail": "1 -> 3 -> 2 -> 3"
+    },
+    "Tabs: modules remembered per tab": {
+      "result": "PASS",
+      "detail": "tray,capture,portals"
+    },
+    "Saved view: dialog opens": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "focus: closing a dialog returns the foreground to the main window": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Saved view: bookmark stored": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "Workspaces: selector items are announced by name": {
+      "result": "FAIL",
+      "detail": "JUtility.Core.Workspaces.WorkspaceProfile, JUtility.Core.Workspaces.WorkspaceProfile, JUtility.Core.Workspaces.WorkspaceProfile, JUtility.Core.Workspaces.WorkspaceProfile, JUtility.Core.Workspaces.WorkspaceProfile"
+    },
+    "Workspaces: switching to Knowledge saved": {
+      "result": "PASS",
+      "detail": "Knowledge"
+    },
+    "focus: Ctrl+K moves keyboard focus to module search": {
+      "result": "PASS",
+      "detail": "Search current module"
+    },
+    "DPI: window is per-monitor aware (V2)": {
+      "result": "FAIL",
+      "detail": "SystemAware"
+    },
+    "DPI: window DPI follows each monitor, layout stays inside": {
+      "result": "PASS",
+      "detail": "mon 144dpi -> win 144dpi, 2220px, nav inside=True; mon 144dpi -> win 144dpi, 2220px, nav inside=True"
+    },
+    "theme: light chrome is light": {
+      "result": "PASS",
+      "detail": "luma=255"
+    },
+    "exit: run 1 closed cleanly": {
+      "result": "PASS",
+      "detail": ""
+    },
+    "reopen: Knowledge workspace restored": {
+      "result": "FAIL",
+      "detail": "JUtility.Core.Workspaces.WorkspaceProfile"
+    },
+    "run aborted": {
+      "result": "FAIL",
+      "detail": "UI element not found: General @ 96"
+    },
+    "isolation: default data folder untouched": {
+      "result": "PASS",
+      "detail": ""
+    }
+  }
+}

@@ -1,0 +1,9 @@
+shelf: web app button present with its name      PASS
+nothing requested before the user acts           PASS  (requests=0)
+shelf click: app window opened on the page       PASS  (class=Chrome_WidgetWin_1)
+shelf click: page requested                      PASS  (requests=2)
+test app window closed                           PASS
+global shortcut: same web app opens              PASS  (requests=4)
+exit: Power Ops closed                           PASS
+data root: %TEMP%\powerops-webapps-test-c18420a7
+Web app native checks: PASS

@@ -1,0 +1,20 @@
+dot: shows online from GET /api/health                         PASS  (Claude Control online)
+card: live data from GET /api/status                           PASS  (Live from Claude Control · generated 2026-09-25 18:36 · limits sampled 2026-09-25 18:10)
+card: sessions line                                            PASS  (Sessions: 12 open · 3 running · 1 need you)
+card: counts line                                              PASS
+card: urgent item listed                                       PASS
+card: audit line                                               PASS
+card: plan bars                                                PASS
+card: Open Claude Home / Open Claude Control buttons           PASS
+menu: Claude Control tab, Start and settings entries           PASS  (Claude Home, Claude Control, Start Claude Control, Claude Control...)
+tab: home.html loaded inside Power Ops (WebView2)              PASS
+tab: saved in the workspace view                               PASS
+dot: turns offline within one 30 s poll                        PASS  (Claude Control offline)
+start: offline dot runs the configured start command           PASS
+dot: back online from the post-start re-checks (< 30 s poll)   PASS  (Claude Control online)
+card: server off -> falls back to the files                    PASS  (Claude Control at http://localhost:45559 did not answer within 3 s. Showing the Effort Board files instead.)
+contract: only GET requests reached the server                 PASS  (GET)
+contract: API paths used                                       PASS
+exit: clean                                                    PASS
+data root: %TEMP%\powerops-control-test-a84cc322
+Claude Control native checks: PASS

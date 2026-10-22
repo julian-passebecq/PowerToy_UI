@@ -29,5 +29,5 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: PowerOps-win-x64
-          path: artifacts/PowerOps-win-x64.zip
+          path: artifacts/PowerOps-*-win-x64.zip*
           if-no-files-found: error

@@ -1,0 +1,25 @@
+startup: shelf shown in Quick Shelf mode                PASS
+startup: shelf did not take the foreground              PASS
+window: tool window + no-activate styles                PASS  (0x8000088)
+buttons: accessible names in configured order           PASS  (Open Power Ops, Screenshot (region), Quick Capture, Clipboard library, Downloads, Explorer folder, Terminal, Resume workspace)
+placement: near top of screen                           PASS  (top=12 left=992 width=576)
+click: Open Power Ops brings main window forward        PASS
+click: shelf not activated by the click                 PASS
+click again: shelf still not activated                  PASS
+shortcut #1: visible shelf hides                        PASS
+shortcut #2: shelf shown with keyboard focus            PASS
+keyboard: first button focused                          PASS  (Open Power Ops)
+keyboard: Tab moves to next button                      PASS  (Screenshot (region))
+Esc: shelf hidden                                       PASS
+Esc: focus returned to previous window                  PASS
+drag: shelf moved                                       PASS  (dx=120 dy=90)
+drag: position saved                                    PASS  (ShelfLeft=741.333333333333 ShelfTop=68)
+exit: closing Power Ops closes the shelf and the process PASS
+restart: saved position restored                        PASS  (now=(1112,102) saved=(1112,102))
+auto-hide: collapsed to handle while pointer away       PASS  (height=48)
+workspace: active workspace override used               PASS  (Terminal, Downloads)
+auto-hide: hover expands vertically                     PASS  (height=180 width=69)
+auto-hide: collapses again after pointer leaves         PASS  (height=48)
+exit: run 2 closed cleanly                              PASS
+data root: %TEMP%\powerops-shelf-test-041d7657
+Quick Shelf native checks: PASS

@@ -581,9 +581,11 @@ Check("workspace store round-trips and creates backup", () =>
         WorkspaceState state = store.Load();
         True(state.Projects.Count >= 2);
         state.Projects.Add(new ProjectEntry { Name = "RoundTrip" });
+        state.ExplorerFolders.Add(new ExplorerFolderEntry { Name = "Pinned folder", Path = @"C:\Workspace", IsPinned = true });
         store.Save(state);
         WorkspaceState loaded = store.Load();
         True(loaded.Projects.Any(project => project.Name == "RoundTrip"));
+        True(loaded.ExplorerFolders.Any(folder => folder.Name == "Pinned folder" && folder.Path == @"C:\Workspace" && folder.IsPinned));
         True(File.Exists(store.BackupFilePath));
     }
     finally
@@ -1538,7 +1540,7 @@ Check("recent prompt history is deduplicated and capped during normalization", (
     }
 });
 
-Check("clipboard media metadata round-trips in schema v6", () =>
+Check("clipboard media metadata round-trips in schema v7", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityClipboardMedia-" + Guid.NewGuid().ToString("N"));
     try
@@ -1583,7 +1585,7 @@ Check("clipboard media metadata round-trips in schema v6", () =>
     }
 });
 
-Check("schema v5 workspace migrates to v6 with empty clipboard media", () =>
+Check("schema v5 workspace migrates to v7 with empty clipboard media", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "JUtilityV5ClipboardMediaMigration-" + Guid.NewGuid().ToString("N"));
     try
@@ -1816,28 +1818,68 @@ Check("shell search shortcut requires Ctrl alone and a visible search surface", 
         shift: false,
         alt: false,
         windows: false,
-        searchAvailable: true));
+        searchAvailable: true,
+        editingText: false));
 
     False(ShellKeyboardPolicy.ShouldFocusSearch(
         control: true,
         shift: true,
         alt: false,
         windows: false,
-        searchAvailable: true));
+        searchAvailable: true,
+        editingText: false));
 
     False(ShellKeyboardPolicy.ShouldFocusSearch(
         control: true,
         shift: false,
         alt: false,
         windows: false,
-        searchAvailable: false));
+        searchAvailable: false,
+        editingText: false));
 
     False(ShellKeyboardPolicy.ShouldFocusSearch(
         control: false,
         shift: false,
         alt: false,
         windows: false,
-        searchAvailable: true));
+        searchAvailable: true,
+        editingText: false));
+
+    False(ShellKeyboardPolicy.ShouldFocusSearch(
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false,
+        searchAvailable: true,
+        editingText: true));
+});
+
+Check("File Explorer shortcut routes only Ctrl+Shift+E outside text editing controls", () =>
+{
+    True(ShellKeyboardPolicy.ShouldOpenExplorer(
+        control: true,
+        shift: true,
+        alt: false,
+        windows: false,
+        editingText: false));
+    False(ShellKeyboardPolicy.ShouldOpenExplorer(
+        control: true,
+        shift: true,
+        alt: false,
+        windows: false,
+        editingText: true));
+    False(ShellKeyboardPolicy.ShouldOpenExplorer(
+        control: true,
+        shift: false,
+        alt: false,
+        windows: false,
+        editingText: false));
+    False(ShellKeyboardPolicy.ShouldOpenExplorer(
+        control: true,
+        shift: true,
+        alt: true,
+        windows: false,
+        editingText: false));
 });
 
 Check("shell Escape shortcut only clears focused non-empty search without modifiers", () =>

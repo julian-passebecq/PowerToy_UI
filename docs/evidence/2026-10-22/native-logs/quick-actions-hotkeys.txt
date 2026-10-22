@@ -1,0 +1,22 @@
+baseline Ctrl+Alt+Shift+P                  free
+baseline Ctrl+Alt+Shift+O                  free
+default: Ctrl+Alt+Shift+P                  free
+default: quick-actions.json created        False
+default: exited                            True
+enabled: Ctrl+Alt+Shift+P                  taken(err 1409)
+enabled: Ctrl+Alt+Shift+O                  taken(err 1409)
+enabled: initially foreground              True
+toggle #1                                  was front=True -> expected minimized : PASS
+toggle #2                                  was front=False -> expected brought to front : PASS
+toggle #3                                  was front=True -> expected minimized : PASS
+app.open: iconic                           False
+app.open: foreground is Power Ops          True
+collision: warning dialog shown            True
+collision: instance still running          True
+collision: first instance keeps hotkey     taken(err 1409)
+enabled: exited                            True
+after exit: Ctrl+Alt+Shift+P               free
+after exit: Ctrl+Alt+Shift+O               free
+settings file unchanged by load            True
+data root: %TEMP%\powerops-hotkey-test-aa758dd0
+Native quick-action hotkey checks: PASS

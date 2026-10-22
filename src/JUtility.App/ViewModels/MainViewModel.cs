@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using JUtility.Core.Models;
 using JUtility.Core.Services;
 
@@ -51,6 +52,7 @@ public sealed class MainViewModel : ObservableObject
         RepositoryLists = new ObservableCollection<RepositoryListEntry>(_state.RepositoryLists.OrderByDescending(item => item.UpdatedUtc));
         Portals = new ObservableCollection<PortalEntry>(_state.Portals.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         Tools = new ObservableCollection<ToolLauncherEntry>(_state.Tools.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
+        ExplorerFolders = new ObservableCollection<ExplorerFolderEntry>(_state.ExplorerFolders.OrderBy(item => item.Name));
         Resources = new ObservableCollection<WorkspaceResourceEntry>(_state.Resources.OrderBy(item => item.SortOrder).ThenBy(item => item.Name));
         ClipboardSnippets = new ObservableCollection<ClipboardSnippetEntry>(_state.ClipboardSnippets.OrderBy(item => item.SortOrder).ThenBy(item => item.Title));
         ClipboardMedia = new ObservableCollection<ClipboardMediaEntry>(_state.ClipboardMedia.OrderByDescending(item => item.UpdatedUtc));
@@ -71,6 +73,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<RepositoryListEntry> RepositoryLists { get; }
     public ObservableCollection<PortalEntry> Portals { get; }
     public ObservableCollection<ToolLauncherEntry> Tools { get; }
+    public ObservableCollection<ExplorerFolderEntry> ExplorerFolders { get; }
     public ObservableCollection<WorkspaceResourceEntry> Resources { get; }
     public ObservableCollection<ClipboardSnippetEntry> ClipboardSnippets { get; }
     public ObservableCollection<ClipboardMediaEntry> ClipboardMedia { get; }
@@ -530,6 +533,48 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Tool removed";
     }
 
+    public ExplorerFolderEntry AddExplorerFolder(string name, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path.Trim());
+        if (!Directory.Exists(fullPath))
+        {
+            throw new DirectoryNotFoundException($"Folder does not exist: {fullPath}");
+        }
+
+        ExplorerFolderEntry? existing = ExplorerFolders.FirstOrDefault(folder =>
+            string.Equals(folder.Path, fullPath, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            StatusText = $"{existing.Name} is already in Explorer folders";
+            return existing;
+        }
+
+        string normalizedName = string.IsNullOrWhiteSpace(name) ? DirectoryInfoName(fullPath) : name.Trim();
+        ExplorerFolderEntry entry = new()
+        {
+            Name = normalizedName,
+            Path = fullPath,
+            IsPinned = true,
+        };
+        ExplorerFolders.Add(entry);
+        StatusText = "Explorer folder added";
+        return entry;
+    }
+
+    public void RemoveExplorerFolder(ExplorerFolderEntry folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ExplorerFolders.Remove(folder);
+        StatusText = "Explorer folder removed";
+    }
+
+    private static string DirectoryInfoName(string path)
+    {
+        string name = new DirectoryInfo(path).Name;
+        return string.IsNullOrWhiteSpace(name) ? path : name;
+    }
+
     public void AddPortalLink(PortalEntry portal)
     {
         portal.Links ??= [];
@@ -764,14 +809,19 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Prompt modules reordered";
     }
 
+    /// <summary>{{file}} / {{file_text}} from the file tray, resolved by the window just before composing. Never saved.</summary>
+    public IReadOnlyDictionary<string, string> PromptFileVariables { get; set; } = new Dictionary<string, string>();
+
     public string ComposePrompt(bool appendProjectLinks)
     {
         RenumberModules();
         RefreshPromptVariables();
 
-        Dictionary<string, string> variables = PromptVariables
-            .Where(input => !string.IsNullOrWhiteSpace(input.Value))
-            .ToDictionary(input => input.Name, input => input.Value, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> variables = new(PromptFileVariables, StringComparer.OrdinalIgnoreCase);
+        foreach (PromptVariableInput input in PromptVariables.Where(input => !string.IsNullOrWhiteSpace(input.Value)))
+        {
+            variables[input.Name] = input.Value;
+        }
 
         PromptPreview = PromptComposer.Compose(
             PromptModules,
@@ -791,6 +841,8 @@ public sealed class MainViewModel : ObservableObject
             "server",
             "chatgpt",
             "extra",
+            JUtility.Core.Files.FileTrayPrompt.FileVariable,
+            JUtility.Core.Files.FileTrayPrompt.TextVariable,
         };
 
         string[] required = PromptComposer.FindVariables(PromptModules)
@@ -831,6 +883,14 @@ public sealed class MainViewModel : ObservableObject
         Notes.Add(note);
         SelectedNote = note;
         StatusText = "Note added";
+    }
+
+    /// <summary>Adds a fully built capture (quick capture) without changing the current selection.</summary>
+    public void AddCapture(StickyNoteEntry note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        Notes.Add(note);
+        StatusText = "Captured: " + note.Title;
     }
 
     public void RemoveNote(StickyNoteEntry note)
@@ -918,6 +978,7 @@ public sealed class MainViewModel : ObservableObject
         _state.RepositoryLists = RepositoryLists.ToList();
         _state.Portals = Portals.ToList();
         _state.Tools = Tools.ToList();
+        _state.ExplorerFolders = ExplorerFolders.ToList();
         _state.Resources = Resources.ToList();
         _state.ClipboardSnippets = ClipboardSnippets.ToList();
         _state.ClipboardMedia = ClipboardMedia.ToList();

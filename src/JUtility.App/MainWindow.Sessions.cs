@@ -161,6 +161,9 @@ public partial class MainWindow
             _sessionTimer.Start();
             RefreshSessionsNow();
         };
+        // Nothing to show while the window is hidden (summon mode) or minimized: stop scanning, catch up on return.
+        IsVisibleChanged += (_, _) => UpdateSessionScanning();
+        StateChanged += (_, _) => UpdateSessionScanning();
         Closed += (_, _) =>
         {
             _sessionTimer.Stop();
@@ -170,6 +173,27 @@ public partial class MainWindow
                 closingTheme.ThemeChanged -= SessionsTheme_Changed;
             }
         };
+    }
+
+    private bool SessionsOnScreen => IsVisible && WindowState != WindowState.Minimized;
+
+    private void UpdateSessionScanning()
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        if (!SessionsOnScreen)
+        {
+            _sessionTimer.Stop();
+            _sessionDebounce.Stop();
+        }
+        else if (!_sessionTimer.IsEnabled)
+        {
+            _sessionTimer.Start();
+            RefreshSessionsNow();
+        }
     }
 
     private void SessionsTheme_Changed(object? sender, EventArgs e)
@@ -191,7 +215,7 @@ public partial class MainWindow
         Dispatcher.BeginInvoke(() =>
         {
             // Only speed up updates when the transcript is quiet otherwise the 10 s tick is enough.
-            if (!_sessionDebounce.IsEnabled)
+            if (SessionsOnScreen && !_sessionDebounce.IsEnabled)
             {
                 _sessionDebounce.Start();
             }

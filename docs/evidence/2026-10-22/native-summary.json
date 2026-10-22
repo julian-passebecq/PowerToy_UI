@@ -1,0 +1,56 @@
+{
+ "claude-control": {
+  "PASS": 18,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "file-tray": {
+  "PASS": 34,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "interaction": {
+  "PASS": 16,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "quick-actions-hotkeys": {
+  "PASS": 3,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "quick-ring-v2": {
+  "PASS": 12,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "quick-ring": {
+  "PASS": 19,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "quick-shelf": {
+  "PASS": 23,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "release-acceptance": {
+  "PASS": 35,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ },
+ "web-apps": {
+  "PASS": 7,
+  "FAIL": 0,
+  "BLOCKED": 0,
+  "verdict": "PASS"
+ }
+}

@@ -1,0 +1,21 @@
+hidden until invoked: no ring window yet       PASS
+shortcut: ring visible                         PASS  (first show 105 ms)
+placement: centred on pointer                  PASS  (centre=(1280,800) pointer=(1280,800))
+focus: ring is foreground                      PASS
+slots: centre + names in order                 PASS  (Open Power Ops, Ring test page, Resume workspace, Clipboard library, Show / hide Power Ops)
+slots: 1 at top, 2 on the right                PASS
+keyboard: centre focused first                 PASS  (Open Power Ops)
+keyboard: arrows move clockwise and wrap       PASS  (Ring test page > Resume workspace > Ring test page > Show / hide Power Ops)
+Esc: ring hidden                               PASS
+Esc: focus back on previous window             PASS
+warm show latency                              PASS  (41 ms)
+digit 1: ring hidden                           PASS
+digit 1: slot action ran (page opened)         PASS  (requests=2)
+click slot: ring hidden and action ran         PASS
+outside click: ring dismissed, nothing ran     PASS
+corner: clamped on screen                      PASS  (rect=(0,0))
+centre: Power Ops brought to front             PASS
+idle after use: no CPU while hidden            PASS  (0 ms CPU in 10 s)
+exit: Power Ops and ring closed                PASS
+data root: %TEMP%\powerops-ring-test-dfbc7e04
+Quick Ring native checks: PASS

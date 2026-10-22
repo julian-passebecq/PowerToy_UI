@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -130,6 +131,8 @@ public partial class MainWindow : Window
         RepositoryTree.ItemsSource = _projectTreeNodes;
 
         _summonService.Triggered += SummonService_Triggered;
+        InitializeQuickActions();
+        InitializeMouseKeys();
         Loaded += MainWindow_Loaded;
         Deactivated += MainWindow_Deactivated;
         Closing += MainWindow_Closing;
@@ -181,6 +184,7 @@ public partial class MainWindow : Window
         ApplyExtraColumnVisibility();
         ApplyWindowBehavior(initialLoad: true);
         _loaded = true;
+        LoadQuickActionSettings();
     }
 
     private void MainWindow_Deactivated(object? sender, EventArgs e)
@@ -544,10 +548,24 @@ public partial class MainWindow : Window
     private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         System.Windows.Input.ModifierKeys modifiers = System.Windows.Input.Keyboard.Modifiers;
+        bool editingText = IsTextEditingControl(System.Windows.Input.Keyboard.FocusedElement);
         bool searchAvailable =
             PowerOpsShell.IsVisible
             && ShellSearchBox.IsVisible
             && ShellSearchBox.IsEnabled;
+
+        if (e.Key == System.Windows.Input.Key.E
+            && ShellKeyboardPolicy.ShouldOpenExplorer(
+                control: (modifiers & System.Windows.Input.ModifierKeys.Control) != 0,
+                shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
+                alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
+                windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0,
+                editingText: editingText))
+        {
+            e.Handled = true;
+            RunQuickAction(JUtility.Core.Actions.QuickActionCatalog.FolderExplorer, JUtility.Core.Actions.ActionSurface.InAppShortcut);
+            return;
+        }
 
         if (e.Key == System.Windows.Input.Key.K
             && ShellKeyboardPolicy.ShouldFocusSearch(
@@ -555,7 +573,8 @@ public partial class MainWindow : Window
                 shift: (modifiers & System.Windows.Input.ModifierKeys.Shift) != 0,
                 alt: (modifiers & System.Windows.Input.ModifierKeys.Alt) != 0,
                 windows: (modifiers & System.Windows.Input.ModifierKeys.Windows) != 0,
-                searchAvailable))
+                searchAvailable: searchAvailable,
+                editingText: editingText && !ShellSearchBox.IsKeyboardFocusWithin))
         {
             e.Handled = true;
             ShellSearchBox.Focus();
@@ -571,6 +590,100 @@ public partial class MainWindow : Window
         {
             e.Handled = true;
             ShellSearchBox.Clear();
+        }
+    }
+
+    private static bool IsTextEditingControl(System.Windows.IInputElement? focusedElement) =>
+        focusedElement is TextBoxBase or PasswordBox
+        || focusedElement is ComboBox { IsEditable: true };
+
+    private void OpenPinnedExplorerFolder()
+    {
+        ExplorerFolderEntry? folder = _viewModel.ExplorerFolders.FirstOrDefault(item => item.IsPinned);
+        if (folder is null)
+        {
+            OpenExplorerFolder(null);
+            return;
+        }
+
+        OpenExplorerFolder(folder);
+    }
+
+    private void OpenExplorerFolder(ExplorerFolderEntry? folder) => OpenExplorerPath(folder?.Path, folder?.Name);
+
+    private void OpenExplorerPath(string? path, string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(path) && !Directory.Exists(path))
+        {
+            _viewModel.StatusText = $"Folder not found: {path}";
+            return;
+        }
+
+        try
+        {
+            ProcessStartInfo startInfo = new("explorer.exe") { UseShellExecute = true };
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                startInfo.ArgumentList.Add(path);
+            }
+
+            Process.Start(startInfo);
+            _viewModel.StatusText = name is null ? "Opened File Explorer" : $"Opened {name} in File Explorer";
+        }
+        catch (Exception ex)
+        {
+            _viewModel.StatusText = "Could not open File Explorer";
+            ShowOwnedMessage(ex.Message, "File Explorer", MessageBoxImage.Warning);
+        }
+    }
+
+    private void AddExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFolderDialog dialog = new() { Title = "Choose a folder to pin in Power Ops" };
+        bool previous = _suppressAutoHide;
+        _suppressAutoHide = true;
+        try
+        {
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            _viewModel.AddExplorerFolder(string.Empty, dialog.FolderName);
+            SafeSave();
+        }
+        catch (Exception ex)
+        {
+            ShowOwnedMessage(ex.Message, "Add Explorer folder", MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _suppressAutoHide = previous;
+        }
+    }
+
+    private void ExplorerFolderPin_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loaded)
+        {
+            SafeSave();
+        }
+    }
+
+    private void OpenExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ExplorerFolderEntry folder)
+        {
+            OpenExplorerFolder(folder);
+        }
+    }
+
+    private void DeleteExplorerFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ExplorerFolderEntry folder)
+        {
+            _viewModel.RemoveExplorerFolder(folder);
+            SafeSave();
         }
     }
 
@@ -645,6 +758,8 @@ public partial class MainWindow : Window
             "Prompt Builder" => "Compose reusable instruction modules",
             "Sessions" => "Live Claude Code sessions on this PC",
             "Settings" => "Window and local storage behavior",
+            CredentialsHeader => "Copyable service IDs; secrets stay in Windows Credential Manager; .env key names only",
+            FileTrayHeader => "Received files for AI chats",
             _ => string.Empty,
         };
 
@@ -659,10 +774,12 @@ public partial class MainWindow : Window
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
             "Prompt Builder" => "+ Module",
+            CredentialsHeader => "+ ID",
+            FileTrayHeader => "+ Folder",
             _ => "+ Capture",
         };
 
-        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder";
+        bool searchableModule = _activeModule is "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or CredentialsHeader or FileTrayHeader;
         ShellSearchBox.IsEnabled = searchableModule;
         ShellSearchBox.Opacity = searchableModule ? 1.0 : 0.45;
 
@@ -826,6 +943,18 @@ public partial class MainWindow : Window
                 Add("all", "General", 1);
                 break;
 
+            case CredentialsHeader:
+                SecondaryTitle.Text = "Credentials & IDs";
+                SecondaryHint.Text = "Same records, different views";
+                AddCredentialNavigation(Add);
+                break;
+
+            case FileTrayHeader:
+                SecondaryTitle.Text = "File tray";
+                SecondaryHint.Text = "Newest first; by folder or type";
+                AddTrayNavigation(Add);
+                break;
+
             case "Sessions":
                 SecondaryTitle.Text = "Session status";
                 SecondaryHint.Text = "Filter Claude Code sessions";
@@ -964,6 +1093,8 @@ public partial class MainWindow : Window
             case "Capture": _captureView?.Refresh(); break;
             case "Clipboard": _snippetView?.Refresh(); _mediaView?.Refresh(); break;
             case "Prompt Builder": _promptView?.Refresh(); break;
+            case CredentialsHeader: RefreshCredentials(); break;
+            case FileTrayHeader: RenderTrayPage(); break;
             case "Sessions": RenderSessions(); break;
         }
     }
@@ -1257,6 +1388,12 @@ public partial class MainWindow : Window
                 _viewModel.AddPromptModule();
                 ApplyCurrentPromptCategory(_viewModel.PromptModules.Last());
                 break;
+            case CredentialsHeader:
+                AddCredentialRecord(JUtility.Core.Credentials.CredentialKind.Id);
+                return; // Separate credentials file; business workspace unchanged.
+            case FileTrayHeader:
+                EditTraySettings();
+                return; // Separate file-tray.json; business workspace unchanged.
             default:
                 PrepareCaptureAddContext();
                 _viewModel.AddNote();
@@ -3151,14 +3288,16 @@ public partial class MainWindow : Window
         SafeSave();
     }
 
-    private void PreviewPrompt_Click(object sender, RoutedEventArgs e)
+    private async void PreviewPrompt_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         _viewModel.ComposePrompt(appendProjectLinks: false);
         _viewModel.StatusText = "Prompt preview refreshed";
     }
 
-    private void ComposeCopy_Click(object sender, RoutedEventArgs e)
+    private async void ComposeCopy_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         string text = _viewModel.ComposePrompt(appendProjectLinks: false);
         if (CopyText(text, "Prompt copied"))
         {
@@ -3186,8 +3325,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ComposeCopyProject_Click(object sender, RoutedEventArgs e)
+    private async void ComposeCopyProject_Click(object sender, RoutedEventArgs e)
     {
+        if (!await PreparePromptTrayVariablesAsync()) return;
         string text = _viewModel.ComposePrompt(appendProjectLinks: true);
         if (CopyText(text, "Prompt + project copied"))
         {
@@ -3269,7 +3409,9 @@ public partial class MainWindow : Window
         _viewModel.StatusText = "Clipboard URL captured as bookmark";
     }
 
-    private void AddNote_Click(object sender, RoutedEventArgs e)
+    private void AddNote_Click(object sender, RoutedEventArgs e) => AddCaptureNote();
+
+    private void AddCaptureNote()
     {
         PrepareCaptureAddContext();
         _viewModel.AddNote();
@@ -3647,6 +3789,7 @@ public partial class MainWindow : Window
                 + $"Projects: {candidate.Projects.Count}\n"
                 + $"Saved repository lists: {candidate.RepositoryLists.Count}\n"
                 + $"Portals: {candidate.Portals.Count}\n"
+                + $"File Explorer folders: {candidate.ExplorerFolders.Count}\n"
                 + $"Resources: {candidate.Resources.Count}\n"
                 + $"Captures: {candidate.Notes.Count}\n"
                 + $"Clipboard snippets: {candidate.ClipboardSnippets.Count}\n"

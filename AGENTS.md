@@ -1,59 +1,40 @@
-# Power Ops / J Utility Palette — current repository direction
+# Power Ops / J Utility Palette
 
-## Current live acceptance workflow — 2026-09-24
+Current state, 2026-10-22: the V2 stack (former draft PRs #2 `codex/to-be-tested-v1` and #4 `codex/power-ops-v2-workspaces`) is merged into `main` together with the Sessions tab, dark mode and workflow-audit card. Work on `main` through short-lived branches and PRs; merge on green Windows CI. The release receipt for V2 is `docs/evidence/2026-10-22/`; the live checkpoint is `handoff/RESUME.md`.
 
-The current Power Ops implementation has been promoted to `main`.
+Power Ring was extracted into its own repository (`powertoy-ring`, 2.0.0). It is no longer built or tested here; do not reintegrate it. Power Ops' own Quick Ring / Quick Shelf (inside `JUtility.App`) stay.
 
-Current promoted main revision:
+Read `projectmanagement/README.md` and `projectmanagement/STATUS.md` for durable context. The latest user instruction takes precedence over older handoff material. Never label unexecuted checks as passed; identify the exact tested revision.
 
-`96fdaf580ff9556dbc7330ae8c7831fabf0cb8ae`
+## Scope and architecture
 
-Windows CI **#304** passed the implementation before promotion, and Windows CI **#305** passed again on `main` after promotion.
+Read `docs/v2/ARCHITECTURE.md`, `docs/v2/QUICK_ACTIONS_MX_MASTER.md`, `docs/v2/CLAUDE_HANDOFF.md`, and `docs/v2/DELIVERY.md` when available. This is an incremental WPF shell, not an Electron rewrite, GitHub Desktop clone, browser fleet, monitoring server or credential vault.
 
-### Live Windows testing does not happen on main
+Share the existing business data. Save UI sessions separately in `shell-workspaces.json` (format powerops-shell, version 1); preserve business workspace schema v7. Workspaces are named VIEWS, not access-control boundaries. Saved tabs currently preserve module/search/filter state, not editor undo or every control's selection/scroll.
 
-For the current native Windows acceptance pass, switch to:
+No new polling services, subprocess inventory probes, external writes, automatic updates or credentials. Navigation visibility does NOT yet unload the inherited eager WPF editors. State that limitation explicitly.
 
-`codex/to-be-tested-v1`
+## Verification
 
-Then read that branch's:
+Run `.\scripts\build.ps1` (full Release solution, smoke suite, package-free workspace tests). Native release gate: `tests/native/release-acceptance.ps1` plus the feature suites, and `tests/native/package-lifecycle.ps1` for a package (see `handoff/RESUME.md`). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture.
 
-- `AGENTS.md`
-- `handover/CODEX_LIVE_TEST_V1.md`
-- `handover/CODEX_LIVE_TEST_V1_RESULTS.md`
+Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer control is unavailable, use user-assisted steps and identify who observed each result.
 
-Do not commit live-acceptance fixes directly to `main`. Reproduce, fix, test, and commit them on `codex/to-be-tested-v1` first.
+## Delivery
 
-### Model policy for the live pass
+Keep changes focused; no production deployments; merging PRs into main is allowed once CI is green. Secret-bearing values, user data and machine paths must not enter public logs or exports unnoticed. Content exports are review formats, not full backups; layout imports must validate and preview before replacement. Preserve malformed or future-state bytes instead of silently resetting them.
 
-Default:
+Model choice is the user's session setting; this file does not configure or launch an agent. Use the selected efficient model for ordinary work and request escalation only for a reproducible difficult defect.
 
-**GPT-6 Luna — Medium**
 
-Computer-control / desktop automation does **not** require High reasoning.
+## V2.1 continuation
 
-Stay on Luna Medium for normal UI navigation, live test execution, build/test commands, routine code changes, and straightforward bug fixes.
+The next approved direction is the shared Quick Actions layer: typed action catalog -> configurable global summon -> Quick Shelf -> Quick Ring -> per-workspace action selection -> MX Master/Logi Options+ setup guidance. Power Ops must remain usable without Logitech hardware. Do not write Logitech-specific drivers. Keep Gmail/Attention Center, cloud usage, telemetry and other external providers as later opt-in adapters until the action/provider lifecycle is stable.
 
-Escalate to **GPT-6 Luna — High** only when a confirmed defect is genuinely difficult, such as:
+## V2.2 Credentials & IDs + Scratchpad (2026-09-25)
 
-- a failure that persists after one careful reproduce/fix/retest cycle;
-- an unclear root cause spanning multiple layers;
-- difficult WPF focus, summon/hide, window placement, DPI, native interop, concurrency, persistence, or recovery behavior;
-- a risky cross-cutting fix that needs deeper architectural reasoning.
+Galaxy next-pass handoff for Power Ops: local Credentials & IDs (secret values only in Windows Credential Manager, opaque per-data-folder targets), .env registry (paths and key names only, never values, never edits files), quick capture `+` window reusing Capture/Clipboard, and a reviewed one-way `powerops.atlasnote-handoff/1` export. Read `docs/v2/CREDENTIALS_AND_SCRATCHPAD.md` for boundaries, evidence and the BLOCKED manual checks. Tests use synthetic secrets only; never put a real secret in a fixture, log or commit.
 
-Do not switch to High just because the task controls the Windows desktop.
+## V2.3 File tray (2026-09-25)
 
-Use an isolated `--data-dir` for destructive/stateful live tests. Never use the user's live workspace as a destructive fixture. Any untestable physical capability must be recorded as **BLOCKED**, not passed.
-
----
-
-# Working in this repository
-
-Read `projectmanagement/README.md` and `projectmanagement/STATUS.md` for durable project context. The latest user instruction takes precedence over older handoff material.
-
-- Do not assume a successful core test run means the WPF app builds or behaves correctly. Check the full solution and, when doing acceptance, the real Windows UI.
-- Use isolated fixture data for destructive, import, recovery, and failure tests.
-- Keep durable checkpoints and identify the exact tested revision.
-- Never label unexecuted checks as passed.
-- Keep implementation changes focused on confirmed requirements or reproduced defects.
-- A handoff does not automatically start another model or background job.
+Recently received files (Downloads and user-chosen folders such as the WhatsApp save folder) ready to drag or paste into AI chats. Read the "V2.3 - File tray" section of `docs/v2/DELIVERY.md` for behaviour, evidence and the NOT RUN list. Settings only in `file-tray.json` (never file names or contents, never exported). Native test: `tests/native/file-tray.ps1` (isolated data dir, temporary watched folder, never the real Downloads). The app now targets `net8.0-windows10.0.19041.0`, so the executable is under `src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\`. Email/OTP codes are the planned slice 2, not built.
