@@ -2135,6 +2135,185 @@ Check("summon preferences have safe defaults", () =>
     True(preferences.OpenNearCursor);
 });
 
+Check("claude sessions: AskUserQuestion pending needs you even while fresh", () =>
+{
+    DateTimeOffset now = DateTimeOffset.Parse("2026-09-25T12:00:00Z");
+    TranscriptTail tail = TranscriptTailParser.Parse([
+        """{"type":"user","timestamp":"2026-09-25T11:59:00Z","message":{"content":"build it"}}""",
+        """{"type":"assistant","timestamp":"2026-09-25T11:59:50Z","message":{"content":[{"type":"tool_use","name":"AskUserQuestion"}]}}""",
+    ]);
+    Equal("AskUserQuestion", tail.PendingToolName ?? "");
+    True(ClaudeSessionClassifier.Classify(tail, now.AddSeconds(-5), now, false).Status == ClaudeSessionStatus.NeedsYou);
+});
+
+Check("claude sessions: fresh transcript is working, stale pending tool needs you", () =>
+{
+    DateTimeOffset now = DateTimeOffset.Parse("2026-09-25T12:00:00Z");
+    TranscriptTail tail = TranscriptTailParser.Parse([
+        """{"type":"assistant","timestamp":"2026-09-25T11:00:00Z","message":{"content":[{"type":"tool_use","name":"Bash"}]}}""",
+    ]);
+    True(ClaudeSessionClassifier.Classify(tail, now.AddSeconds(-20), now, false).Status == ClaudeSessionStatus.Working);
+    True(ClaudeSessionClassifier.Classify(tail, now.AddMinutes(-2), now, false).Status == ClaudeSessionStatus.Working);
+    True(ClaudeSessionClassifier.Classify(tail, now.AddMinutes(-30), now, false).Status == ClaudeSessionStatus.NeedsYou);
+});
+
+Check("claude sessions: tool results clear pending tools; questions, done and merged PRs classify", () =>
+{
+    DateTimeOffset now = DateTimeOffset.Parse("2026-09-25T12:00:00Z");
+    DateTimeOffset old = now.AddHours(-1);
+    TranscriptTail question = TranscriptTailParser.Parse([
+        """{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash"}]}}""",
+        """{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}""",
+        """{"type":"assistant","timestamp":"2026-09-25T11:00:00Z","message":{"content":[{"type":"text","text":"Build passes.\n\nShould I open the PR?"}]}}""",
+    ]);
+    True(question.PendingToolName is null);
+    True(ClaudeSessionClassifier.Classify(question, old, now, false).Status == ClaudeSessionStatus.NeedsYou);
+
+    TranscriptTail done = TranscriptTailParser.Parse([
+        """{"type":"assistant","timestamp":"2026-09-25T11:00:00Z","message":{"content":[{"type":"text","text":"PR merged on green CI."}]}}""",
+    ]);
+    True(ClaudeSessionClassifier.Classify(done, old, now, false).Status == ClaudeSessionStatus.Done);
+
+    TranscriptTail plain = TranscriptTailParser.Parse([
+        """{"type":"assistant","timestamp":"2026-09-25T11:00:00Z","message":{"content":[{"type":"text","text":"Refactored the parser."}]}}""",
+        "{\"type\":\"assistant\",\"partial",
+    ]);
+    True(ClaudeSessionClassifier.Classify(plain, old, now, false).Status == ClaudeSessionStatus.Idle);
+    True(ClaudeSessionClassifier.Classify(plain, old, now, true).Status == ClaudeSessionStatus.Done);
+});
+
+Check("claude sessions: project names, tiers and desktop metadata mapping", () =>
+{
+    Equal("datapass-vscode", ClaudeSessionMonitor.ProjectFromFolderName("D--PROJ-datapass-vscode"));
+    Equal("diagramcloud", ClaudeSessionMonitor.ProjectFromFolderName("D--PROJ-diagramcloud--claude-worktrees-jovial-williamson-fb5c47"));
+    Equal("PowerToy_UI", ClaudeProjectTiers.ProjectNameFromPath(@"D:\PROJ\PowerToy_UI\.claude\worktrees\x"));
+    ClaudeProjectTiers tiers = ClaudeProjectTiers.Parse("| D:\\PROJ\\datapass-vscode | max | ask |\n| everything else (atlasnote) | high | ask |");
+    Equal("max", tiers.CeilingFor("datapass-vscode"));
+    Equal("high", tiers.CeilingFor("atlasnote"));
+    ClaudeDesktopSession? meta = ClaudeSessionMonitor.ParseDesktopSession(
+        """{"sessionId":"local_abc","cliSessionId":"uuid-1","title":"T","isArchived":true,"prs":[{"prNumber":4,"url":"u","state":"MERGED"}]}""");
+    Equal("uuid-1", meta?.CliSessionId ?? "");
+    True(meta!.IsArchived && meta.Prs[0].Number == 4);
+});
+
+Check("workflow audit: status, 3-line summary and problem count from a report", () =>
+{
+    string markdown = """
+        # Audit workflow — 2026-09-25 matin
+
+        ## Résumé
+        - Statut : 🟠 attention
+        - 2 sessions actives sur PowerToy_UI, même branche.
+        - Usage à 62 %, reset 18:00.
+        - Ligne en trop
+
+        ## Par projet
+        - PowerToy_UI : 🔴 ne doit pas compter ici
+
+        ## Problèmes détectés
+        1. **Chevauchement** sur PowerToy_UI
+           - détail imbriqué
+        2. Session bloquée depuis 3 h
+        - Screenshots trop nombreux
+
+        ## Usage
+        - 62 %
+        """;
+    WorkflowAuditReport report = WorkflowAuditReader.Parse("x.md", new DateOnly(2026, 9, 25), "matin", DateTimeOffset.UtcNow, markdown);
+    True(report.Status == WorkflowAuditStatus.Warning);
+    True(report.Summary.Count == 3);
+    Equal("Statut : 🟠 attention", report.Summary[0]);
+    True(report.ProblemCount == 3);
+
+    WorkflowAuditReport clean = WorkflowAuditReader.Parse("y.md", new DateOnly(2026, 9, 25), "soir", DateTimeOffset.UtcNow,
+        "## Resume\n🟢 Tout va bien.\n\n## Problemes detectes\n- Aucun.\n");
+    True(clean.Status == WorkflowAuditStatus.Ok);
+    True(clean.ProblemCount == 0);
+    True(WorkflowAuditReader.StatusOf("🟢 ok mais 🔴 overlap") == WorkflowAuditStatus.Critical);
+});
+
+Check("workflow audit: latest report picks soir over matin, ignores log.md, flags stale after 14 h", () =>
+{
+    string dir = Path.Combine(Path.GetTempPath(), "jutility-audit-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(dir);
+    try
+    {
+        File.WriteAllText(Path.Combine(dir, "2026-09-24-soir.md"), "## Résumé\n🔴 old\n");
+        File.WriteAllText(Path.Combine(dir, "2026-09-25-matin.md"), "## Résumé\n🟠 morning\n");
+        File.WriteAllText(Path.Combine(dir, "2026-09-25-soir.md"), "## Résumé\n🟢 evening\n");
+        File.WriteAllText(Path.Combine(dir, "notes.md"), "## Résumé\n🔴 not a report\n");
+        File.WriteAllText(Path.Combine(dir, "log.md"), "# log\n2026-09-25 matin 🟠 2\n2026-09-25 soir 🟢 0\n");
+        string[] before = Directory.GetFiles(dir).Order().ToArray();
+
+        WorkflowAuditReader reader = new(dir);
+        WorkflowAuditReport latest = reader.ReadLatest()!;
+        Equal("soir", latest.Slot);
+        True(latest.Status == WorkflowAuditStatus.Ok);
+        Equal("2026-09-25 soir 🟢 0", reader.ReadLastLogLine() ?? "");
+        True(!latest.IsStale(latest.RunAt.AddHours(13)));
+        True(latest.IsStale(latest.RunAt.AddHours(15)));
+        True(WorkflowAuditReader.ParseFileName("2026-09-25-midi.md") is null);
+        True(new WorkflowAuditReader(Path.Combine(dir, "missing")).ReadLatest() is null);
+        Equal(string.Join("|", before), string.Join("|", Directory.GetFiles(dir).Order())); // Read-only.
+    }
+    finally
+    {
+        Directory.Delete(dir, true);
+    }
+});
+
+Check("theme palettes define the same tokens with valid colors", () =>
+{
+    True(ThemePalette.Light.Count > 0);
+    True(ThemePalette.Light.Keys.OrderBy(k => k, StringComparer.Ordinal).SequenceEqual(ThemePalette.Dark.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+    foreach (string hex in ThemePalette.Light.Values.Concat(ThemePalette.Dark.Values))
+    {
+        _ = ThemePalette.ParseHex(hex);
+    }
+});
+
+Check("theme follows the Windows AppsUseLightTheme value", () =>
+{
+    True(ThemePalette.FromAppsUseLightTheme(0) == AppTheme.Dark);
+    True(ThemePalette.FromAppsUseLightTheme(1) == AppTheme.Light);
+    True(ThemePalette.FromAppsUseLightTheme(null) == AppTheme.Light);
+    True(ThemePalette.FromAppsUseLightTheme("0") == AppTheme.Light);
+    True(ThemePalette.For(AppTheme.Dark) == ThemePalette.Dark);
+    True(ThemePalette.ParseOverride(" Dark ") == AppTheme.Dark);
+    True(ThemePalette.ParseOverride("light") == AppTheme.Light);
+    True(ThemePalette.ParseOverride("system") is null);
+    True(ThemePalette.ParseOverride(null) is null);
+});
+
+Check("theme keeps the Effort Board teal and amber in light mode", () =>
+{
+    Equal("#0F6E7A", ThemePalette.Light["StatusOkBrush"]);
+    Equal("#B25D12", ThemePalette.Light["StatusAttentionBrush"]);
+});
+
+Check("both themes keep readable contrast for text and session status", () =>
+{
+    foreach (IReadOnlyDictionary<string, string> p in new[] { ThemePalette.Light, ThemePalette.Dark })
+    {
+        foreach (string surface in new[] { "SurfaceBrush", "PanelBrush", "SecondaryPanelBrush" })
+        {
+            True(ThemePalette.ContrastRatio(p["TextBrush"], p[surface]) >= 7.0);
+            True(ThemePalette.ContrastRatio(p["MutedBrush"], p[surface]) >= 4.5);
+            True(ThemePalette.ContrastRatio(p["StatusOkBrush"], p[surface]) >= 3.0);
+            True(ThemePalette.ContrastRatio(p["StatusAttentionBrush"], p[surface]) >= 3.0);
+        }
+
+        True(ThemePalette.ContrastRatio(p["SecondaryTextBrush"], p["AttentionRowBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["MutedBrush"], p["AttentionRowBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["StatusAttentionBrush"], p["AttentionRowBrush"]) >= 3.0);
+        True(ThemePalette.ContrastRatio(p["OnStatusBrush"], p["StatusAttentionBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["OnStatusBrush"], p["StatusCriticalBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["NavActiveTextBrush"], p["NavActiveBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["AccentBrush"], p["AccentSoftBrush"]) >= 4.5);
+        True(ThemePalette.ContrastRatio(p["TextBrush"], p["ControlBrush"]) >= 7.0);
+    }
+});
+
 if (failures.Count > 0)
 {
     Console.Error.WriteLine($"{failures.Count} smoke test(s) failed:");

@@ -211,6 +211,32 @@ Useful content:
 - saved repository lists
 - counts by project/category
 
+### Sessions (Claude Code)
+
+Read-only live view of every Claude Code session on this PC, grouped by project (collapsible) with status and project-type filter chips.
+
+- Transcripts: `%USERPROFILE%\.claude\projects\<sanitized-cwd>\<uuid>.jsonl`; only the last ~96 KB of each file is parsed, and results are cached by size + mtime.
+- Titles, branch, PRs (with state), archived flag and the `claude://claude.ai/epitaxy/local_<id>` link come from the desktop app's `claude-code-sessions\**\local_<id>.json`, matched on `cliSessionId` = transcript uuid. The packaged (MSIX) app stores these under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude`; both that and `%APPDATA%\Claude` are scanned. Without metadata, **Go** opens the Claude app and copies the title.
+- Effort ceiling comes from the tables in `%USERPROFILE%\.claude\CLAUDE.md`; project type from `Project type:` in the project's `CLAUDE.md` (default `dev`).
+- Status: **Needs you** (pending AskUserQuestion/ExitPlanMode, a tool call stalled > 5 min, or a final message ending in a question / waiting for input or a manual test), **Working** (written in the last 60 s or a tool running < 5 min), **Done** (reports done/merged, or all its PRs merged), otherwise **Idle**. Sessions archived or idle > 3 days are hidden unless toggled on.
+- Refresh: file watcher (debounced 1 s) + 10 s timer. The Needs-you count shows as a badge on the Sessions nav button and as a taskbar overlay.
+
+#### Audit card
+
+Top of the Sessions tab. Read-only view of the reports written by the `workflow-audit` Claude scheduled task in `%USERPROFILE%\.claude\effort-board\audits\` (override with the `JUTILITY_AUDITS_DIR` environment variable for fixtures). Power Ops never writes there.
+
+- Latest `<YYYY-MM-DD>-<matin|soir>.md` (soir after matin on the same day). Status badge from the worst 🟢/🟠/🔴 in **Résumé** (teal OK, amber warning, red critical), the first 3 Résumé lines, the number of top-level items (or `###` headings) under **Problèmes détectés** ("Aucun" counts as 0), and time since the file was written. **STALE** is shown after 14 h. The card tooltip shows the last line of `log.md`.
+- **Open report** renders the markdown in a viewer window, with **Open in default app** (falls back to Notepad).
+- **Checkup** opens `claude://claude.ai/epitaxy/scheduled/workflow-audit`. The Claude desktop app (checked on 2.9939.2.0) has no URL or CLI that runs a scheduled task now: `run_scheduled_task` is only available inside the app. So the button opens the task page and shows the tooltip "Scheduled → workflow-audit → Run now". It never calls the Anthropic API.
+
+## Light / dark theme
+
+Power Ops follows the Windows app mode (`HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` → `AppsUseLightTheme`) and switches live when it changes, title bar included.
+
+- Color tokens live in `JUtility.Core/Services/ThemePalette.cs` (light + dark, same keys). `ThemeService` turns them into brushes in `Application.Resources`; XAML must reference them with `DynamicResource`, never hard-coded colors.
+- Status colors follow the Effort Board: teal `#0F6E7A` = OK, amber `#B25D12` = attention, with lighter dark-mode variants (`#3FB6C4`, `#F0A155`). Smoke tests enforce contrast for text and status colors in both palettes.
+- `JUTILITY_THEME=light|dark` pins the theme for a run (acceptance screenshots) without touching Windows settings.
+
 ## Navigation model
 
 ```text

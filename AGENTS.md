@@ -1,11 +1,10 @@
-# Power Ops V2 foundation branch
+# Power Ops / J Utility Palette
 
-Current task, 2026-09-24: the user authorized a broader modular-workspace V2/V3 design and implementation of a useful V2 foundation. This supersedes the inherited V1 acceptance-only restriction on THIS branch.
+Current state, 2026-10-22: the V2 stack (former draft PRs #2 `codex/to-be-tested-v1` and #4 `codex/power-ops-v2-workspaces`) is merged into `main` together with the Sessions tab, dark mode and workflow-audit card. Work on `main` through short-lived branches and PRs; merge on green Windows CI. The release receipt for V2 is `docs/evidence/2026-10-22/`; the live checkpoint is `handoff/RESUME.md`.
 
-Branch: `codex/power-ops-v2-workspaces`.
-Base: `df3aa1626fee3c96f6008793214852b273595ffc` (Explorer checkpoint, schema v7, Windows CI #312 passed).
+Power Ring was extracted into its own repository (`powertoy-ring`, 2.0.0). It is no longer built or tested here; do not reintegrate it. Power Ops' own Quick Ring / Quick Shelf (inside `JUtility.App`) stay.
 
-Do not modify `codex/to-be-tested-v1` or `main` directly for this work; merge through PRs once CI is green. V1 native acceptance remains separate and incomplete. Existing source success is not native desktop evidence.
+Read `projectmanagement/README.md` and `projectmanagement/STATUS.md` for durable context. The latest user instruction takes precedence over older handoff material. Never label unexecuted checks as passed; identify the exact tested revision.
 
 ## Scope and architecture
 
@@ -17,7 +16,7 @@ No new polling services, subprocess inventory probes, external writes, automatic
 
 ## Verification
 
-Run `.\scripts\build.ps1` (full Release solution, existing smoke suite, new package-free workspace tests). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture. Do not call the inherited V1-only launcher, which asserts a different branch.
+Run `.\scripts\build.ps1` (full Release solution, existing smoke suite, new package-free workspace tests). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture.
 
 Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer control is unavailable, use user-assisted steps and identify who observed each result.
 

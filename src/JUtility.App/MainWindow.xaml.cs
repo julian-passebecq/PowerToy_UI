@@ -138,6 +138,7 @@ public partial class MainWindow : Window
         Closing += MainWindow_Closing;
         Closed += (_, _) => _summonService.Dispose();
         PreviewKeyDown += MainWindow_PreviewKeyDown;
+        InitializeSessionsMonitor();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -729,7 +730,7 @@ public partial class MainWindow : Window
     private static string NormalizeModule(string? module)
     {
         string normalized = string.IsNullOrWhiteSpace(module) ? "Dashboard" : module.Trim();
-        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Settings"
+        return normalized is "Dashboard" or "Repository Hub" or "Portals" or "Tools" or "System" or "Resources" or "Capture" or "Clipboard" or "Prompt Builder" or "Sessions" or "Settings"
             ? normalized
             : "Dashboard";
     }
@@ -755,6 +756,7 @@ public partial class MainWindow : Window
             "Capture" => "Inbox, tasks, notes, bookmarks and transcripts",
             "Clipboard" => "One-click reusable text",
             "Prompt Builder" => "Compose reusable instruction modules",
+            "Sessions" => "Live Claude Code sessions on this PC",
             "Settings" => "Window and local storage behavior",
             CredentialsHeader => "Copyable service IDs; secrets stay in Windows Credential Manager; .env key names only",
             FileTrayHeader => "Received files for AI chats",
@@ -767,6 +769,7 @@ public partial class MainWindow : Window
             "Portals" => "+ Portal",
             "Tools" => "+ Tool",
             "System" => "Refresh",
+            "Sessions" => "Refresh",
             "Resources" => "+ Resource",
             "Capture" => "+ Capture",
             "Clipboard" => "+ Snippet",
@@ -798,8 +801,17 @@ public partial class MainWindow : Window
         foreach (Button button in PrimaryNavPanel.Children.OfType<Button>())
         {
             bool active = string.Equals(button.Tag as string, _activeModule, StringComparison.OrdinalIgnoreCase);
-            button.Background = active ? new SolidColorBrush(Color.FromRgb(0xE8, 0xF2, 0xFF)) : Brushes.Transparent;
-            button.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x0B, 0x63, 0xCE)) : Brushes.Black;
+            if (active)
+            {
+                // Resource references keep the highlight in step with light/dark theme switches.
+                button.SetResourceReference(BackgroundProperty, "NavActiveBrush");
+                button.SetResourceReference(ForegroundProperty, "NavActiveTextBrush");
+            }
+            else
+            {
+                button.ClearValue(BackgroundProperty);
+                button.ClearValue(ForegroundProperty);
+            }
         }
     }
 
@@ -943,6 +955,11 @@ public partial class MainWindow : Window
                 AddTrayNavigation(Add);
                 break;
 
+            case "Sessions":
+                SecondaryTitle.Text = "Session status";
+                SecondaryHint.Text = "Filter Claude Code sessions";
+                AddSessionStatusNav(Add);
+                break;
             default:
                 SecondaryTitle.Text = "Overview";
                 SecondaryHint.Text = "Use the modules on the left";
@@ -1078,6 +1095,7 @@ public partial class MainWindow : Window
             case "Prompt Builder": _promptView?.Refresh(); break;
             case CredentialsHeader: RefreshCredentials(); break;
             case FileTrayHeader: RenderTrayPage(); break;
+            case "Sessions": RenderSessions(); break;
         }
     }
 
@@ -1333,6 +1351,9 @@ public partial class MainWindow : Window
     {
         switch (_activeModule)
         {
+            case "Sessions":
+                RefreshSessionsNow();
+                return;
             case "Repository Hub":
                 _viewModel.AddProject();
                 ApplyCurrentRepositoryContext(_viewModel.Projects.Last());
