@@ -19,8 +19,10 @@ function Invoke-Dotnet {
 }
 
 $repo = Split-Path -Parent $PSScriptRoot
+$version = ([xml](Get-Content (Join-Path $repo 'Directory.Build.props') -Raw)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+if (-not $version) { throw 'Directory.Build.props has no <Version>; freeze one before publishing.' }
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $repo "artifacts\PowerOps-$Runtime"
+    $OutputDirectory = Join-Path $repo "artifacts\PowerOps-$version-$Runtime"
 }
 elseif (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
     $OutputDirectory = Join-Path $repo $OutputDirectory
@@ -55,7 +57,14 @@ try {
     $releaseNotes = @"
 Power Ops / J Utility Palette
 
-Run JUtilityPalette.exe.
+Version $version ($Runtime, self-contained: no .NET install needed).
+
+Install for the current user (no admin rights; keeps every older version for rollback):
+  powershell -ExecutionPolicy Bypass -File .\install.ps1
+  then start %LOCALAPPDATA%\Programs\PowerOps\PowerOps.cmd
+Roll back to the previously installed version:
+  powershell -ExecutionPolicy Bypass -File .\install.ps1 -Rollback
+Or run JUtilityPalette.exe directly from this folder.
 
 For a separate isolated workspace:
 JUtilityPalette.exe --data-dir "D:\PowerOps-Test"
@@ -68,12 +77,16 @@ or browser data. GitHub private-repository discovery uses your locally
 authenticated gh CLI when available.
 "@
     Set-Content -Path (Join-Path $OutputDirectory 'README.txt') -Value $releaseNotes -Encoding UTF8
+    Copy-Item (Join-Path $PSScriptRoot 'install.ps1') (Join-Path $OutputDirectory 'install.ps1')
 
     Compress-Archive -Path (Join-Path $OutputDirectory '*') -DestinationPath $zipPath -CompressionLevel Optimal
 
     Write-Host "Published Power Ops:"
     Write-Host "  Folder: $OutputDirectory"
+    $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -Path "$zipPath.sha256" -Value "$hash  $(Split-Path -Leaf $zipPath)" -Encoding ascii
     Write-Host "  ZIP:    $zipPath"
+    Write-Host "  SHA256: $hash"
 }
 finally {
     Pop-Location

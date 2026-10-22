@@ -2,6 +2,9 @@
 # page as an observable slot action. Presses Ctrl+Alt+Shift+R, arrows, digits and Esc; moves/clicks the mouse.
 # Leave the desktop idle while it runs: real mouse/keyboard input overrides synthesized input and Windows then refuses focus changes.
 # Closes only the test app window it opened (unique page title). Never points at the personal workspace.
+# -RingKey picks the letter of the Ctrl+Alt+Shift ring shortcut (default R) when another app, e.g. the separate
+# Power Ring, already owns Ctrl+Alt+Shift+R.
+param([ValidatePattern('^[A-Z]$')][string] $RingKey = 'R')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type @'
@@ -9,6 +12,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 public static class R {
+  [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr c);
+  [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
   public delegate bool EnumProc(IntPtr h, IntPtr l);
@@ -45,15 +50,20 @@ public static class R {
   }
 }
 '@
+# Per-monitor V2 for this test process, so window rectangles, the pointer and UI Automation bounds share physical pixels
+# (Power Ops itself is per-monitor V2 since 2.0.0).
+[void][R]::SetProcessDpiAwarenessContext([IntPtr]::new(-4)); [void][R]::SetThreadDpiAwarenessContext([IntPtr]::new(-4))
 $A = [System.Windows.Automation.AutomationElement]; $T = [System.Windows.Automation.TreeScope]
 $exe = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\JUtilityPalette.exe'
 $root = Join-Path $env:TEMP ("powerops-ring-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8)); New-Item -ItemType Directory $root | Out-Null
+# Synthetic empty Claude home: the Sessions monitor (merged from main) must not scan the real transcripts while CPU is measured.
+$env:JUTILITY_CLAUDE_HOME = Join-Path $root 'claude-home'; New-Item -ItemType Directory $env:JUTILITY_CLAUDE_HOME -Force | Out-Null; $env:JUTILITY_AUDITS_DIR = Join-Path $env:JUTILITY_CLAUDE_HOME 'audits'
 $r = [ordered]@{}
 function Rec($name, $ok, $detail = '') { $r[$name] = $(if ($ok) { 'PASS' } else { 'FAIL' }) + $(if ($detail) { "  ($detail)" } else { '' }) }
 function Rect($h) { $x = New-Object R+RECT; [void][R]::GetWindowRect($h, [ref]$x); return $x }
-$HOT = @(0x11, 0x12, 0x10); $VK_R = 0x52
+$HOT = @(0x11, 0x12, 0x10); $VK_R = [byte][char]$RingKey
 
-foreach ($vk in 0x52, 0x4F) { if (-not [R]::RegisterHotKey([IntPtr]::Zero, 0x777A, 0x4007, $vk)) { 'BLOCKED: a test shortcut (Ctrl+Alt+Shift+R/O) is already owned by another application.'; exit 2 }; [void][R]::UnregisterHotKey([IntPtr]::Zero, 0x777A) }
+foreach ($vk in [byte][char]$RingKey, 0x4F) { if (-not [R]::RegisterHotKey([IntPtr]::Zero, 0x777A, 0x4007, $vk)) { "BLOCKED: a test shortcut (Ctrl+Alt+Shift+$RingKey/O) is already owned by another application."; exit 2 }; [void][R]::UnregisterHotKey([IntPtr]::Zero, 0x777A) }
 
 # Throwaway page = observable, harmless slot action.
 $port = Get-Random -Minimum 41000 -Maximum 48000
@@ -72,7 +82,7 @@ $job = Start-ThreadJob -ArgumentList $listener, $hits, $title -ScriptBlock {
 $appId = [guid]::NewGuid(); $web = 'web:' + $appId.ToString('N')
 $settings = [ordered]@{
   Format = 'powerops-quick-actions'; SchemaVersion = 1; Mode = 'Off'; GlobalShortcutsEnabled = $true
-  GlobalShortcuts = @(@{ Gesture = 'Ctrl+Alt+Shift+R'; ActionId = 'ring.show' }, @{ Gesture = 'Ctrl+Alt+Shift+O'; ActionId = 'app.open' })
+  GlobalShortcuts = @(@{ Gesture = "Ctrl+Alt+Shift+$RingKey"; ActionId = 'ring.show' }, @{ Gesture = 'Ctrl+Alt+Shift+O'; ActionId = 'app.open' })
   Ring = @($web, 'workspace.resume', 'clipboard.open', 'app.toggle'); Shelf = @('app.open')
   ShelfOrientation = 'Horizontal'; ShelfAlwaysOnTop = $true; ShelfAutoHide = $false; WorkspaceOverrides = @()
   WebApps = @(@{ Id = $appId; Name = 'Ring test page'; Url = "http://localhost:$port/"; OpenMode = 'AppWindow'; Browser = 'Auto' })

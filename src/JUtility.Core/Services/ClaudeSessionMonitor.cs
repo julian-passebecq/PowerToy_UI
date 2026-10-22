@@ -361,8 +361,20 @@ public sealed class ClaudeSessionMonitor
         _globalClaudeMd = globalClaudeMd;
     }
 
+    /// <summary>Folder that stands in for %USERPROFILE%\.claude (isolated native tests, synthetic profiles).</summary>
+    public const string ClaudeHomeOverrideVariable = "JUTILITY_CLAUDE_HOME";
+
     public static ClaudeSessionMonitor CreateDefault()
     {
+        if (Environment.GetEnvironmentVariable(ClaudeHomeOverrideVariable) is { Length: > 0 } overrideHome)
+        {
+            string root = Path.GetFullPath(overrideHome);
+            return new ClaudeSessionMonitor(
+                Path.Combine(root, "projects"),
+                [Path.Combine(root, "claude-code-sessions")],
+                Path.Combine(root, "CLAUDE.md"));
+        }
+
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

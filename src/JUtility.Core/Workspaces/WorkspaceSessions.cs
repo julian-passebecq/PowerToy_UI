@@ -22,6 +22,7 @@ public static class ModuleCatalog
         new ModuleDefinition("clipboard", "Clipboard Library", "Clipboard", "Knowledge & capture", "Reusable text, screenshots and short clips."),
         new ModuleDefinition("tray", "File tray", "File tray", "Knowledge & capture", "Recently received files from Downloads and chosen folders, ready to drag or paste into an AI chat. Watching starts on first use."),
         new ModuleDefinition("prompts", "Prompt Builder", "Prompt Builder", "Knowledge & capture", "Reusable instruction modules and project variables."),
+        new ModuleDefinition("sessions", "Claude sessions", "Sessions", "Knowledge & capture", "Live Claude Code sessions on this PC (read-only)."),
         new ModuleDefinition("inventory", "Environment inventory", "Environment inventory", "Device & settings", "On-demand local PATH and file-version inventory. No programs executed."),
         new ModuleDefinition("system", "System / Cheat Sheet", "System", "Device & settings", "Existing architecture facts and Windows configuration shortcuts."),
         new ModuleDefinition("features", "Feature catalog", "Feature catalog", "Device & settings", "Available features, planned adapters and lightweight boundaries."),
@@ -47,6 +48,8 @@ public sealed class WorkspaceProfile
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "Workspace";
+    // The workspace selector and screen readers show this (WPF uses ToString for the item's accessible name).
+    public override string ToString() => Name;
     // Visibility is not a security boundary and does not delete underlying data.
     public List<string> VisibleModules { get; set; } = ModuleCatalog.All.Select(x => x.Id).ToList();
     public List<SessionTab> Tabs { get; set; } = [new()];

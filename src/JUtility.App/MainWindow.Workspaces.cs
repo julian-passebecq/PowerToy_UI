@@ -58,7 +58,7 @@ public partial class MainWindow
         var original = (UIElement)Content;
         Content = null;
         var root = new DockPanel();
-        var chrome = new StackPanel { Background = Brushes.White };
+        var chrome = Themed(new StackPanel(), Panel.BackgroundProperty, "ToolbarBrush");
         chrome.Children.Add(CreateWorkspaceMenu());
         var toolbar = new WrapPanel { Margin = new Thickness(6, 2, 6, 2) };
         toolbar.Children.Add(new TextBlock { Text = "Workspace", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) });
@@ -68,7 +68,7 @@ public partial class MainWindow
         toolbar.Children.Add(SessionButton("Save view", SaveSessionBookmark));
         toolbar.Children.Add(SessionButton("Restore view", RestoreSessionBookmark));
         toolbar.Children.Add(SessionButton("+ Quick capture", () => ShowQuickCapture()));
-        toolbar.Children.Add(new TextBlock { Text = "V2 preview | on-demand only", Foreground = Brushes.DimGray, Margin = new Thickness(10, 7, 4, 4) });
+        toolbar.Children.Add(Themed(new TextBlock { Text = "V2 preview | on-demand only", Margin = new Thickness(10, 7, 4, 4) }, TextBlock.ForegroundProperty, "MutedBrush"));
         chrome.Children.Add(toolbar);
         chrome.Children.Add(new ScrollViewer { Content = _sessionTabs, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
         DockPanel.SetDock(chrome, Dock.Top);
@@ -91,6 +91,12 @@ public partial class MainWindow
         RestoreSession(); MarkSessionDirty();
     }
 
+    /// <summary>Binds a brush to the theme palette (App resources) so code-built V2 chrome follows light/dark mode.</summary>
+    private static T Themed<T>(T element, DependencyProperty property, string resourceKey) where T : FrameworkElement
+    {
+        element.SetResourceReference(property, resourceKey);
+        return element;
+    }
     private Button SessionButton(string title, Action action)
     {
         var button = new Button { Content = title, Margin = new Thickness(3), Padding = new Thickness(8, 4, 8, 4), ToolTip = title };
@@ -106,7 +112,7 @@ public partial class MainWindow
     }
     private Menu CreateWorkspaceMenu()
     {
-        var menu = new Menu { Background = Brushes.White };
+        var menu = Themed(new Menu(), Control.BackgroundProperty, "ToolbarBrush");
         MenuItem Group(string title) { var item = new MenuItem { Header = title }; menu.Items.Add(item); return item; }
         void Add(MenuItem parent, string title, Action action)
         {
@@ -179,7 +185,7 @@ public partial class MainWindow
         PrimaryNavPanel.Children.Clear();
         foreach (var group in ModuleCatalog.All.Where(x => profile.VisibleModules.Contains(x.Id)).GroupBy(x => x.Category))
         {
-            PrimaryNavPanel.Children.Add(new TextBlock { Text = group.Key, Foreground = Brushes.DimGray, FontSize = 10, Margin = new Thickness(3, 9, 3, 3) });
+            PrimaryNavPanel.Children.Add(Themed(new TextBlock { Text = group.Key, FontSize = 10, Margin = new Thickness(3, 9, 3, 3) }, TextBlock.ForegroundProperty, "MutedBrush"));
             foreach (var module in group)
             {
                 var button = SessionButton(module.Title, () => NavigateSession(module.Id));
@@ -286,8 +292,14 @@ public partial class MainWindow
         try { dialog.Owner = this; dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner; return dialog.ShowDialog() == true; }
         finally { _suppressAutoHide = previous; }
     }
-    private static Window SessionDialogWindow(string title, Panel content) => new()
-    { Title = title, Width = 490, Height = 560, MinWidth = 360, MinHeight = 300, Content = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Background = Brushes.White };
+    private static Window SessionDialogWindow(string title, Panel content)
+    {
+        var window = new Window { Title = title, Width = 490, Height = 560, MinWidth = 360, MinHeight = 300, Content = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } };
+        window.SetResourceReference(Window.BackgroundProperty, "SurfaceBrush");
+        window.SetResourceReference(Window.ForegroundProperty, "TextBrush");
+        App.Theme?.Track(window);
+        return window;
+    }
     private string? AskSessionName(string title, string initial)
     {
         var body = new StackPanel { Margin = new Thickness(18) };
@@ -422,7 +434,7 @@ public partial class MainWindow
         RenderClaudeUsageCard(_launchpadBody);
         RenderReportCards(_launchpadBody);
         _launchpadBody.Children.Add(new TextBlock { Text = "Your websites & project destinations", FontSize = 24, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-        _launchpadBody.Children.Add(new TextBlock { Text = "Uses existing Repository, Portal and Resource data. Links are not live health checks. No embedded browser is running.", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray, Margin = new Thickness(0, 6, 0, 8) });
+        _launchpadBody.Children.Add(Themed(new TextBlock { Text = "Uses existing Repository, Portal and Resource data. Links are not live health checks. No embedded browser is running.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8) }, TextBlock.ForegroundProperty, "MutedBrush"));
         _launchpadBody.Children.Add(SessionButton("Refresh saved links", RefreshLaunchpad));
         var destinations = _viewModel.Projects.Where(p => !p.IsArchived && !string.IsNullOrWhiteSpace(p.SiteUrl)).Select(p => (p.Name, Group: p.Category, Url: p.SiteUrl))
             .Concat(_viewModel.Portals.Select(p => (p.Name, Group: p.Category, Url: p.MainUrl)))
@@ -437,9 +449,9 @@ public partial class MainWindow
             {
                 var body = new StackPanel { Width = 260, Margin = new Thickness(8) };
                 body.Children.Add(new TextBlock { Text = link.Name, FontSize = 15, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-                body.Children.Add(new TextBlock { Text = link.Url, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray, MaxHeight = 45 });
+                body.Children.Add(Themed(new TextBlock { Text = link.Url, TextWrapping = TextWrapping.Wrap, MaxHeight = 45 }, TextBlock.ForegroundProperty, "MutedBrush"));
                 body.Children.Add(SessionButton("Open in browser", () => SessionAction(() => Process.Start(new ProcessStartInfo(link.Url) { UseShellExecute = true }))));
-                cards.Children.Add(new Border { Child = body, Background = Brushes.White, BorderBrush = Brushes.LightGray, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4) });
+                cards.Children.Add(Themed(Themed(new Border { Child = body, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4) }, Border.BackgroundProperty, "SurfaceBrush"), Border.BorderBrushProperty, "BorderBrush"));
             }
         }
     }

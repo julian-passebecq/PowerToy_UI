@@ -2,6 +2,9 @@
 # Fresh isolated --data-dir; a throwaway localhost page is the observable action inside the "Apps" sub-ring.
 # Leave the desktop idle while it runs (real input overrides synthesized input). Keys and clicks are only sent while the test
 # Power Ops process owns the foreground / the point. NOTE: the whole-screen check replaces the clipboard content.
+# -RingKey picks the letter of the Ctrl+Alt+Shift ring shortcut (default R) when another app, e.g. the separate
+# Power Ring, already owns Ctrl+Alt+Shift+R.
+param([ValidatePattern('^[A-Z]$')][string] $RingKey = 'R')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type @'
@@ -57,7 +60,7 @@ function Rec($name, $ok, $detail = '') { $r[$name] = $(if ($ok) { 'PASS' } else 
 function Rect($h) { $x = New-Object R2+RECT; [void][R2]::GetWindowRect($h, [ref]$x); return $x }
 $HOT = @(0x11, 0x12, 0x10)
 
-foreach ($vk in 0x52, 0x4F, 0x47) { if (-not [R2]::RegisterHotKey([IntPtr]::Zero, 0x777B, 0x4007, $vk)) { 'BLOCKED: a test shortcut (Ctrl+Alt+Shift+R/O/G) is already owned by another application.'; exit 2 }; [void][R2]::UnregisterHotKey([IntPtr]::Zero, 0x777B) }
+foreach ($vk in [byte][char]$RingKey, 0x4F, 0x47) { if (-not [R2]::RegisterHotKey([IntPtr]::Zero, 0x777B, 0x4007, $vk)) { "BLOCKED: a test shortcut (Ctrl+Alt+Shift+$RingKey/O/G) is already owned by another application."; exit 2 }; [void][R2]::UnregisterHotKey([IntPtr]::Zero, 0x777B) }
 
 $port = Get-Random -Minimum 41000 -Maximum 48000
 $title = "PowerOps sub-ring test " + [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -76,7 +79,7 @@ $appId = [guid]::NewGuid(); $web = 'web:' + $appId.ToString('N')
 $groupId = [guid]::NewGuid(); $group = 'group:' + $groupId.ToString('N')
 $settings = [ordered]@{
   Format = 'powerops-quick-actions'; SchemaVersion = 1; Mode = 'Off'; GlobalShortcutsEnabled = $true
-  GlobalShortcuts = @(@{ Gesture = 'Ctrl+Alt+Shift+R'; ActionId = 'ring.show' }, @{ Gesture = 'Ctrl+Alt+Shift+O'; ActionId = 'app.open' }, @{ Gesture = 'Ctrl+Alt+Shift+G'; ActionId = $group })
+  GlobalShortcuts = @(@{ Gesture = "Ctrl+Alt+Shift+$RingKey"; ActionId = 'ring.show' }, @{ Gesture = 'Ctrl+Alt+Shift+O'; ActionId = 'app.open' }, @{ Gesture = 'Ctrl+Alt+Shift+G'; ActionId = $group })
   Ring = @('capture.screen', $group, 'workspace.resume'); Shelf = @('app.open')
   ShelfOrientation = 'Horizontal'; ShelfAlwaysOnTop = $true; ShelfAutoHide = $false; WorkspaceOverrides = @()
   WebApps = @(@{ Id = $appId; Name = 'Sub-ring test page'; Url = "http://localhost:$port/"; OpenMode = 'AppWindow'; Browser = 'Auto' })
@@ -100,7 +103,7 @@ function Wait-Ring {
   if ($h -eq [IntPtr]::Zero) { throw 'The Quick Ring did not appear within 3 s.' }
   Start-Sleep -Milliseconds 300; return $h
 }
-function Show-Ring([byte]$vk = 0x52) { [void][R2]::SetCursorPos($cx, $cy); Start-Sleep -Milliseconds 200; [R2]::Key($HOT, $vk); return Wait-Ring }
+function Show-Ring([byte]$vk = [byte][char]$RingKey) { [void][R2]::SetCursorPos($cx, $cy); Start-Sleep -Milliseconds 200; [R2]::Key($HOT, $vk); return Wait-Ring }
 function Names($h) {
   $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
   return (@($A::FromHandle($h).FindAll($T::Descendants, $cond)) | ForEach-Object { $_.Current.Name }) -join '|'

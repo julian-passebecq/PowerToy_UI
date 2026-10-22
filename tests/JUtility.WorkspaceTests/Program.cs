@@ -30,6 +30,36 @@ Test("Default presets are valid and independently owned", () =>
     WorkspaceSessions.ActiveTab(state.Workspaces[0]).Search = "Foil";
     Check(WorkspaceSessions.ActiveTab(state.Workspaces[1]).Search == "");
 });
+Test("Claude sessions (merged from main) is a V2 module: header maps, a tab can show it, General lists it", () =>
+{
+    var module = ModuleCatalog.FromHeader("Sessions");
+    Check(module is not null && module.Id == "sessions", "Sessions header must map to a module or V2 navigation hides the tab");
+    var state = WorkspaceSessions.Defaults(); WorkspaceSessions.Validate(state);
+    Check(state.Workspaces[0].VisibleModules.Contains("sessions"));
+    var tab = WorkspaceSessions.AddTab(state.Workspaces[0], "sessions"); Check(tab.ModuleId == "sessions");
+    WorkspaceSessions.Validate(state);
+});
+Test("Sessions monitor reads a synthetic Claude home when JUTILITY_CLAUDE_HOME is set (never the real profile)", () =>
+{
+    Temporary(dir =>
+    {
+        string? previous = Environment.GetEnvironmentVariable(JUtility.Core.Services.ClaudeSessionMonitor.ClaudeHomeOverrideVariable);
+        try
+        {
+            Environment.SetEnvironmentVariable(JUtility.Core.Services.ClaudeSessionMonitor.ClaudeHomeOverrideVariable, dir);
+            var monitor = JUtility.Core.Services.ClaudeSessionMonitor.CreateDefault();
+            Check(monitor.ProjectsRoot == Path.Combine(dir, "projects"));
+            Check(monitor.Scan(DateTimeOffset.UtcNow).Count == 0, "an empty synthetic home has no sessions");
+        }
+        finally { Environment.SetEnvironmentVariable(JUtility.Core.Services.ClaudeSessionMonitor.ClaudeHomeOverrideVariable, previous); }
+    });
+});
+Test("Workspace selector items are named after the workspace (accessible name)", () =>
+{
+    var p = WorkspaceSessions.NewProfile("Knowledge");
+    Check(p.ToString() == "Knowledge");
+    Check(!JsonSerializer.Serialize(p).Contains("ToString"));
+});
 Test("Tabs preserve independent search and filter state", () =>
 {
     var p = WorkspaceSessions.NewProfile("Test");
