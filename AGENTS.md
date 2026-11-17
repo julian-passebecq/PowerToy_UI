@@ -1,40 +1,16 @@
-# Power Ops / J Utility Palette
+# Power Ops / J Utility Palette (PowerToy_UI)
 
-Current state, 2026-10-22: the V2 stack (former draft PRs #2 `codex/to-be-tested-v1` and #4 `codex/power-ops-v2-workspaces`) is merged into `main` together with the Sessions tab, dark mode and workflow-audit card. Work on `main` through short-lived branches and PRs; merge on green Windows CI. The release receipt for V2 is `docs/evidence/2026-10-22/`; the live checkpoint is `handoff/RESUME.md`.
+A standalone Windows productivity shell (WPF, .NET 8): links, portals, captures, clipboard, prompts, Quick Ring and Quick Shelf, credentials and IDs, file tray. Not a PowerToys fork. Power Ring lives in its own repo (`powertoy-ring`) and is not built here. Context: `projectmanagement/STATUS.md`, `handoff/RESUME.md`, `docs/v2/`.
 
-Power Ring was extracted into its own repository (`powertoy-ring`, 2.0.0). It is no longer built or tested here; do not reintegrate it. Power Ops' own Quick Ring / Quick Shelf (inside `JUtility.App`) stay.
+## Build and test
+- `.\scripts\build.ps1` (Release solution, smoke suite, workspace tests). Native release gate: `tests/native/release-acceptance.ps1` and the feature suites in `tests/native/`; `tests/native/package-lifecycle.ps1` for a package.
+- CI: GitHub Actions `windows-ci.yml` (public repo). No GitLab mirror.
 
-Read `projectmanagement/README.md` and `projectmanagement/STATUS.md` for durable context. The latest user instruction takes precedence over older handoff material. Never label unexecuted checks as passed; identify the exact tested revision.
+## What to protect
+- The native tests drive the real desktop: run them with a new isolated `--data-dir` on a machine nobody is using, never against personal data or the real Downloads folder.
+- Business data keeps workspace schema v7; UI sessions live separately in `shell-workspaces.json`. Malformed or newer bytes are kept, never silently reset.
+- Secrets live only in Windows Credential Manager; the .env registry stores paths and key names, never values. Tests use synthetic secrets.
+- No new polling services, external writes, automatic updates or stored credentials.
+- Unexecuted Windows, mouse or clipboard checks are NOT RUN, never PASS.
 
-## Scope and architecture
-
-Read `docs/v2/ARCHITECTURE.md`, `docs/v2/QUICK_ACTIONS_MX_MASTER.md`, `docs/v2/CLAUDE_HANDOFF.md`, and `docs/v2/DELIVERY.md` when available. This is an incremental WPF shell, not an Electron rewrite, GitHub Desktop clone, browser fleet, monitoring server or credential vault.
-
-Share the existing business data. Save UI sessions separately in `shell-workspaces.json` (format powerops-shell, version 1); preserve business workspace schema v7. Workspaces are named VIEWS, not access-control boundaries. Saved tabs currently preserve module/search/filter state, not editor undo or every control's selection/scroll.
-
-No new polling services, subprocess inventory probes, external writes, automatic updates or credentials. Navigation visibility does NOT yet unload the inherited eager WPF editors. State that limitation explicitly.
-
-## Verification
-
-Run `.\scripts\build.ps1` (full Release solution, smoke suite, package-free workspace tests). Native release gate: `tests/native/release-acceptance.ps1` plus the feature suites, and `tests/native/package-lifecycle.ps1` for a package (see `handoff/RESUME.md`). Record exact commit and run evidence. Use a NEW isolated `--data-dir` for native tests. Never use personal data as a destructive fixture.
-
-Do not label unexecuted Windows/monitor/mouse/clipboard checks PASS. If computer control is unavailable, use user-assisted steps and identify who observed each result.
-
-## Delivery
-
-Keep changes focused; no production deployments; merging PRs into main is allowed once CI is green. Secret-bearing values, user data and machine paths must not enter public logs or exports unnoticed. Content exports are review formats, not full backups; layout imports must validate and preview before replacement. Preserve malformed or future-state bytes instead of silently resetting them.
-
-Model choice is the user's session setting; this file does not configure or launch an agent. Use the selected efficient model for ordinary work and request escalation only for a reproducible difficult defect.
-
-
-## V2.1 continuation
-
-The next approved direction is the shared Quick Actions layer: typed action catalog -> configurable global summon -> Quick Shelf -> Quick Ring -> per-workspace action selection -> MX Master/Logi Options+ setup guidance. Power Ops must remain usable without Logitech hardware. Do not write Logitech-specific drivers. Keep Gmail/Attention Center, cloud usage, telemetry and other external providers as later opt-in adapters until the action/provider lifecycle is stable.
-
-## V2.2 Credentials & IDs + Scratchpad (2026-09-25)
-
-Galaxy next-pass handoff for Power Ops: local Credentials & IDs (secret values only in Windows Credential Manager, opaque per-data-folder targets), .env registry (paths and key names only, never values, never edits files), quick capture `+` window reusing Capture/Clipboard, and a reviewed one-way `powerops.atlasnote-handoff/1` export. Read `docs/v2/CREDENTIALS_AND_SCRATCHPAD.md` for boundaries, evidence and the BLOCKED manual checks. Tests use synthetic secrets only; never put a real secret in a fixture, log or commit.
-
-## V2.3 File tray (2026-09-25)
-
-Recently received files (Downloads and user-chosen folders such as the WhatsApp save folder) ready to drag or paste into AI chats. Read the "V2.3 - File tray" section of `docs/v2/DELIVERY.md` for behaviour, evidence and the NOT RUN list. Settings only in `file-tray.json` (never file names or contents, never exported). Native test: `tests/native/file-tray.ps1` (isolated data dir, temporary watched folder, never the real Downloads). The app now targets `net8.0-windows10.0.19041.0`, so the executable is under `src\JUtility.App\bin\Release\net8.0-windows10.0.19041.0\`. Email/OTP codes are the planned slice 2, not built.
+How work flows: the fleet guideline every session loads (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`). CI recipe and runners: datapass-fleet-facade `AGENTS.md`.
